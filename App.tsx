@@ -121,8 +121,12 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
+    // Fix: Extracted path props to a typed variable to resolve TypeScript inference error.
+    const pathProps: React.SVGProps<SVGPathElement> = {
+        d: "M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z"
+    };
     return React.createElement('svg', svgProps,
-        React.createElement('path', { d: "M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z" })
+        React.createElement('path', pathProps)
     );
 };
 
@@ -236,8 +240,14 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                             stroke: "currentColor",
                             className: "w-6 h-6"
                         };
+                        // Fix: Extracted path props to a typed variable to resolve TypeScript inference error.
+                        const pathProps: React.SVGProps<SVGPathElement> = {
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            d: "M6 18L18 6M6 6l12 12"
+                        };
                         return React.createElement('svg', svgProps,
-                            React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 18L18 6M6 6l12 12" })
+                            React.createElement('path', pathProps)
                         );
                     })()
                 )
@@ -319,7 +329,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
         setError('');
         setIsVerifying(true);
         try {
-            const response = await fetch('./register.json');
+            const response = await fetch('/tools/register.json');
             if (!response.ok) throw new Error('Failed to load authentication codes.');
             const data = await response.json();
             if (data.codes && data.codes.includes(code)) {
@@ -449,7 +459,7 @@ const App = () => {
             const storedKey = localStorage.getItem(AUTH_KEY);
             if (storedKey) {
                 try {
-                    const response = await fetch('./register.json');
+                    const response = await fetch('/tools/register.json');
                     const data = await response.json();
                     if (data.codes && data.codes.includes(storedKey)) {
                         setIsAuthenticated(true);
@@ -497,7 +507,7 @@ const App = () => {
     const handleOpenTutorial = async () => {
         const fallbackUrl = "https://www.youtube.com/watch?v=N_UfSbpBAjs";
         try {
-            const response = await fetch('./tutorialLinks.json');
+            const response = await fetch('/tools/tutorialLinks.json');
             if (!response.ok) {
                 throw new Error('Failed to load tutorial links.');
             }
@@ -563,12 +573,11 @@ const App = () => {
     const currentTool = sidebarTools.find(tool => tool.id === currentView);
 
     const homeLinkProps = {
-        href: "/home",
-        onClick: (e) => { e.preventDefault(); setCurrentView('dashboard'); },
+        href: "https://lamyoutubeai.com",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     const freeLinkProps = {
-        href: "/free",
+        href: "https://lamyoutubeai.com/free",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     
