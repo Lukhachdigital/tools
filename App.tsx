@@ -127,18 +127,18 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
 };
 
 // FIX: Updated IconFacebook to accept props to resolve TypeScript errors by explicitly typing the props object.
-const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
+// FIX: Refactored to use an implicit return to resolve a TypeScript error.
+const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', {
         xmlns: "http://www.w3.org/2000/svg",
         viewBox: "0 0 24 24",
         fill: "currentColor",
         className: "w-7 h-7",
         ...props
-    };
-    return React.createElement('svg', svgProps,
+    },
         React.createElement('path', { d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" })
-    );
-};
+    )
+);
 
 // FIX: Updated IconTiktok to accept props to resolve TypeScript errors by explicitly typing the props object.
 const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
@@ -319,7 +319,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
         setError('');
         setIsVerifying(true);
         try {
-            const response = await fetch('/register.json');
+            const response = await fetch('./register.json');
             if (!response.ok) throw new Error('Failed to load authentication codes.');
             const data = await response.json();
             if (data.codes && data.codes.includes(code)) {
@@ -449,7 +449,7 @@ const App = () => {
             const storedKey = localStorage.getItem(AUTH_KEY);
             if (storedKey) {
                 try {
-                    const response = await fetch('/register.json');
+                    const response = await fetch('./register.json');
                     const data = await response.json();
                     if (data.codes && data.codes.includes(storedKey)) {
                         setIsAuthenticated(true);
@@ -497,7 +497,7 @@ const App = () => {
     const handleOpenTutorial = async () => {
         const fallbackUrl = "https://www.youtube.com/watch?v=N_UfSbpBAjs";
         try {
-            const response = await fetch('/tutorialLinks.json');
+            const response = await fetch('./tutorialLinks.json');
             if (!response.ok) {
                 throw new Error('Failed to load tutorial links.');
             }
@@ -602,32 +602,38 @@ const App = () => {
                          ),
                          React.createElement('p', { className: "text-slate-400 mt-2 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription)
                     ),
-                     React.createElement('div', { className: "flex items-center justify-end flex-wrap gap-3" },
-                        socialLinks.map(link => 
-                            React.createElement('a', { 
-                                key: link.name,
-                                href: link.href, 
-                                target: "_blank", 
-                                rel: "noopener noreferrer", 
-                                'aria-label': link.name,
-                                className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
-                            }, link.icon)
-                        ),
-                        React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
-                            React.createElement('button', { 
-                                onClick: () => setShowApiKeyModal(true),
-                                className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
-                                React.createElement(IconSettings),
-                                "Cài đặt API Key"
+// FIX: Wrapped social links container in an IIFE with explicitly typed props to resolve a TypeScript error.
+                     (() => {
+                        const divProps: React.HTMLAttributes<HTMLDivElement> = {
+                            className: "flex items-center justify-end flex-wrap gap-3"
+                        };
+                        return React.createElement('div', divProps,
+                            socialLinks.map(link => 
+                                React.createElement('a', { 
+                                    key: link.name,
+                                    href: link.href, 
+                                    target: "_blank", 
+                                    rel: "noopener noreferrer", 
+                                    'aria-label': link.name,
+                                    className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
+                                }, link.icon)
                             ),
-                             React.createElement('button', { 
-                                onClick: handleOpenTutorial,
-                                className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
-                                React.createElement(IconTutorial),
-                                "Hướng dẫn"
+                            React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
+                                React.createElement('button', { 
+                                    onClick: () => setShowApiKeyModal(true),
+                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
+                                    React.createElement(IconSettings),
+                                    "Cài đặt API Key"
+                                ),
+                                 React.createElement('button', { 
+                                    onClick: handleOpenTutorial,
+                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
+                                    React.createElement(IconTutorial),
+                                    "Hướng dẫn"
+                                )
                             )
-                        )
-                    )
+                        );
+                     })()
                 ),
                 React.createElement('div', { className: "flex-grow flex w-full" },
                     currentView !== 'dashboard' && React.createElement('aside', { className: 'w-64 flex-shrink-0 p-4' },
