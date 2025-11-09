@@ -329,7 +329,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
         setError('');
         setIsVerifying(true);
         try {
-            const response = await fetch('/tools/register.json');
+            const response = await fetch('https://lamyoutubeai.com/tools/register.json');
             if (!response.ok) throw new Error('Failed to load authentication codes.');
             const data = await response.json();
             if (data.codes && data.codes.includes(code)) {
