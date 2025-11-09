@@ -1,0 +1,470 @@
+import React, { useState, useCallback } from 'react';
+
+// =================================================================
+// TYPES
+// =================================================================
+interface SEOContent {
+  description: string; // Changed from string[] to string
+  hashtags: string[];
+  primaryKeywords: string[];
+  secondaryKeywords: string[];
+}
+
+// =================================================================
+// HELPER COMPONENTS
+// =================================================================
+
+const LoadingSpinner = () => {
+  return React.createElement('svg', {
+    className: "animate-spin h-5 w-5 text-white",
+    xmlns: "http://www.w3.org/2000/svg",
+    fill: "none",
+    viewBox: "0 0 24 24"
+  },
+    React.createElement('circle', {
+      className: "opacity-25",
+      cx: "12",
+      cy: "12",
+      r: "10",
+      stroke: "currentColor",
+      strokeWidth: "4"
+    }),
+    React.createElement('path', {
+      className: "opacity-75",
+      fill: "currentColor",
+      d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    })
+  );
+};
+
+const CopyButton = ({ textToCopy }: { textToCopy: string }) => {
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    });
+  }, [textToCopy]);
+
+  const buttonClass = `absolute top-2 right-2 px-3 py-1 text-xs rounded-md transition-colors duration-200 ${
+    isCopied
+      ? 'bg-green-600 text-white'
+      : 'bg-gray-600 hover:bg-gray-500 text-gray-200'
+  }`;
+
+  return React.createElement('button', { onClick: handleCopy, className: buttonClass },
+    isCopied ? 
+      React.createElement(React.Fragment, null, React.createElement('i', { className: "fas fa-check mr-1" }), 'Đã sao chép') : 
+      React.createElement(React.Fragment, null, React.createElement('i', { className: "fas fa-copy mr-1" }), 'Sao chép')
+  );
+};
+
+
+// =================================================================
+// GEMINI API SERVICE
+// =================================================================
+const geminiModel = 'gemini-2.5-flash';
+
+const generateTitlesWithGemini = async (description: string, apiKey: string, lengthConstraint: string | null): Promise<string[]> => {
+  try {
+    const ai = new window.GoogleGenAI({ apiKey });
+    
+    let lengthInstruction = "Các tiêu đề phải có độ dài tối đa 100 ký tự";
+    if (lengthConstraint) {
+        if (lengthConstraint === "Trên 100") {
+            lengthInstruction = `Các tiêu đề phải có độ dài TRÊN 100 ký tự`;
+        } else {
+            const [min, max] = lengthConstraint.split('-');
+            lengthInstruction = `Các tiêu đề phải có độ dài từ ${min} đến ${max} ký tự`;
+        }
+    }
+
+    const prompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video sau, hãy tạo ra 5 tiêu đề hấp dẫn, linh động và rộng nghĩa hơn. ${lengthInstruction}, chứa từ khóa chính, và có yếu tố gây tò mò hoặc hứa hẹn giá trị. Viết hoa các chữ cái đầu của dòng tiêu đề hoặc viết hoa những chữ cần nhấn mạnh.
+
+    Mô tả video: "${description}"
+
+    Hãy trả về kết quả dưới dạng một mảng JSON chỉ chứa 5 chuỗi tiêu đề.`;
+
+    const response = await ai.models.generateContent({
+        model: geminiModel,
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: window.GenAIType.OBJECT,
+                properties: {
+                    titles: {
+                        type: window.GenAIType.ARRAY,
+                        items: { type: window.GenAIType.STRING }
+                    }
+                }
+            }
+        }
+    });
+
+    const jsonText = response.text;
+    const result = JSON.parse(jsonText);
+    return result.titles || [];
+
+  } catch (error) {
+    console.error("Error generating titles with Gemini:", error);
+    throw new Error("Không thể tạo tiêu đề bằng Gemini. Vui lòng kiểm tra API Key và thử lại.");
+  }
+};
+
+const generateFullSEOContentWithGemini = async (description: string, title: string, apiKey: string, descStyle: string | null): Promise<SEOContent> => {
+    try {
+        const ai = new window.GoogleGenAI({ apiKey });
+        
+        const styleMap = {
+            'Ngắn gọn': 'khoảng 80-120 từ',
+            'Vừa phải': 'khoảng 120-160 từ',
+            'Tiêu chuẩn': 'khoảng 160-220 từ',
+            'Dài': 'khoảng 220-300 từ'
+        };
+        const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
+
+        const prompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video và tiêu đề đã chọn, hãy tạo ra nội dung SEO tối ưu.
+
+        Mô tả video gốc: "${description}"
+        Tiêu đề đã chọn: "${title}"
+
+        Yêu cầu:
+        1.  **Mô tả (Description):** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
+            -   **QUAN TRỌNG:** Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Sau mỗi câu hoặc đoạn văn, hãy xuống dòng hai lần để tạo khoảng cách, giúp người đọc dễ theo dõi.
+            -   Nội dung phải tập trung vào chủ đề video và từ khóa, **KHÔNG** có lời kêu gọi hành động (CTA) và tránh dùng đại từ 'chúng tôi'.
+            -   Chỉ sử dụng 1-2 emoji phù hợp trong toàn bộ đoạn văn để tạo điểm nhấn, không bắt đầu mỗi câu bằng emoji.
+        2.  **Hashtag:** Viết 3 hashtag **liên quan mật thiết và trực tiếp nhất** đến nội dung video. Sau đó, **BẮT BUỘC** thêm 3 hashtag sau vào cuối: #lamyoutubeai, #huynhxuyenson, #huongdanai. Tổng cộng là 6 hashtag. Hashtag phải không dấu, viết bằng chữ thường, và viết liền. **QUAN TRỌNG:** Mỗi hashtag trong mảng kết quả BẮT BUỘC phải bắt đầu bằng ký tự '#'.
+        3.  **Từ khóa chính (Primary Keywords):** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
+        4.  **Từ khóa phụ (Secondary Keywords):** Liệt kê 15 từ khóa phụ mở rộng, **tập trung vào các khía cạnh cụ thể** của video.
+
+        Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }`;
+
+        const response = await ai.models.generateContent({
+            model: geminiModel,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: window.GenAIType.OBJECT,
+                    properties: {
+                        description: { type: window.GenAIType.STRING },
+                        hashtags: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
+                        primaryKeywords: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
+                        secondaryKeywords: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
+                    },
+                    required: ["description", "hashtags", "primaryKeywords", "secondaryKeywords"]
+                }
+            }
+        });
+
+        const jsonText = response.text;
+        const result = JSON.parse(jsonText);
+        return result;
+
+    } catch (error) {
+        console.error("Error generating full SEO content with Gemini:", error);
+        throw new Error("Không thể tạo nội dung SEO bằng Gemini. Vui lòng kiểm tra API Key và thử lại.");
+    }
+};
+
+// =================================================================
+// OPENAI API SERVICE
+// =================================================================
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const openAiModel = 'gpt-4o';
+
+const callOpenAI = async (apiKey: string, messages: object[]) => {
+    const response = await fetch(OPENAI_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: openAiModel,
+            messages: messages,
+            response_format: { type: "json_object" },
+            temperature: 0.7,
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error("OpenAI API Error:", errorData);
+        throw new Error(`Lỗi từ OpenAI API: ${errorData.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    const jsonText = data.choices[0]?.message?.content;
+    if (!jsonText) {
+        throw new Error("Phản hồi từ OpenAI không chứa nội dung.");
+    }
+    return JSON.parse(jsonText);
+};
+
+const generateTitlesWithOpenAI = async (description: string, apiKey: string, lengthConstraint: string | null): Promise<string[]> => {
+    let lengthInstruction = "Các tiêu đề phải có độ dài tối đa 100 ký tự";
+    if (lengthConstraint) {
+        if (lengthConstraint === "Trên 100") {
+            lengthInstruction = `Các tiêu đề phải có độ dài TRÊN 100 ký tự`;
+        } else {
+            const [min, max] = lengthConstraint.split('-');
+            lengthInstruction = `Các tiêu đề phải có độ dài từ ${min} đến ${max} ký tự`;
+        }
+    }
+    
+    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Nhiệm vụ của bạn là tạo ra 5 tiêu đề hấp dẫn dựa trên mô tả video. ${lengthInstruction}, chứa từ khóa chính, và có yếu tố gây tò mò hoặc hứa hẹn giá trị. Viết hoa các chữ cái đầu của dòng tiêu đề hoặc viết hoa những chữ cần nhấn mạnh. Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.`;
+    const userPrompt = `Mô tả video: "${description}"`;
+
+    const messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+    ];
+
+    try {
+        const result = await callOpenAI(apiKey, messages);
+        return result.titles || [];
+    } catch (error) {
+        console.error("Error generating titles with OpenAI:", error);
+        throw new Error("Không thể tạo tiêu đề bằng OpenAI. Vui lòng kiểm tra API Key và thử lại.");
+    }
+};
+
+const generateFullSEOContentWithOpenAI = async (description: string, title: string, apiKey: string, descStyle: string | null): Promise<SEOContent> => {
+    const styleMap = {
+        'Ngắn gọn': 'khoảng 80-120 từ',
+        'Vừa phải': 'khoảng 120-160 từ',
+        'Tiêu chuẩn': 'khoảng 160-220 từ',
+        'Dài': 'khoảng 220-300 từ'
+    };
+    const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
+
+    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video và tiêu đề đã chọn, hãy tạo ra nội dung SEO tối ưu.
+    
+    Yêu cầu:
+    1.  **description:** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
+        -   **QUAN TRỌNG:** Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Sau mỗi câu hoặc đoạn văn, hãy xuống dòng hai lần để tạo khoảng cách, giúp người đọc dễ theo dõi.
+        -   Nội dung phải tập trung vào chủ đề video và từ khóa, **KHÔNG** có lời kêu gọi hành động (CTA) và tránh dùng đại từ 'chúng tôi'.
+        -   Chỉ sử dụng 1-2 emoji phù hợp trong toàn bộ đoạn văn để tạo điểm nhấn, không bắt đầu mỗi câu bằng emoji.
+    2.  **hashtags:** Viết 3 hashtag **liên quan mật thiết và trực tiếp nhất** đến nội dung video. Sau đó, **BẮT BUỘC** thêm 3 hashtag sau vào cuối: #lamyoutubeai, #huynhxuyenson, #huongdanai. Tổng cộng là 6 hashtag. Hashtag phải không dấu, viết bằng chữ thường, và viết liền. **QUAN TRỌNG:** Mỗi hashtag trong mảng kết quả BẮT BUỘC phải bắt đầu bằng ký tự '#'.
+    3.  **primaryKeywords:** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
+    4.  **secondaryKeywords:** Liệt kê 15 từ khóa phụ mở rộng, **tập trung vào các khía cạnh cụ thể** của video.
+
+    Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }`;
+    
+    const userPrompt = `Mô tả video gốc: "${description}"\nTiêu đề đã chọn: "${title}"`;
+
+    const messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+    ];
+    
+    try {
+        const result = await callOpenAI(apiKey, messages);
+        return result;
+    } catch (error) {
+        console.error("Error generating full SEO content with OpenAI:", error);
+        throw new Error("Không thể tạo nội dung SEO bằng OpenAI. Vui lòng kiểm tra API Key và thử lại.");
+    }
+};
+
+// =================================================================
+// MAIN APP COMPONENT
+// =================================================================
+
+const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey }) => {
+  const [videoDescription, setVideoDescription] = useState('');
+  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+  const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
+  const [seoContent, setSeoContent] = useState<SEOContent | null>(null);
+  const [isLoadingTitles, setIsLoadingTitles] = useState(false);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedTitleLength, setSelectedTitleLength] = useState<string | null>(null);
+  const [selectedDescStyle, setSelectedDescStyle] = useState<string | null>('Tiêu chuẩn');
+  
+  const handleGenerateTitles = useCallback(async () => {
+    if (!geminiApiKey && !openaiApiKey) {
+      setError('Vui lòng vào "Cài đặt API Key" để thêm key.');
+      return;
+    }
+    if (!videoDescription.trim()) {
+      setError('Vui lòng nhập mô tả video.');
+      return;
+    }
+    setError(null);
+    setIsLoadingTitles(true);
+    setSuggestedTitles([]);
+    setSelectedTitle(null);
+    setSeoContent(null);
+
+    const lengthConstraint = selectedTitleLength; // Read from state
+
+    try {
+      let titles;
+      if (geminiApiKey) {
+        titles = await generateTitlesWithGemini(videoDescription, geminiApiKey, lengthConstraint);
+      } else if (openaiApiKey) {
+        titles = await generateTitlesWithOpenAI(videoDescription, openaiApiKey, lengthConstraint);
+      } else {
+        throw new Error("Không có API key nào được cung cấp.");
+      }
+      setSuggestedTitles(titles);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoadingTitles(false);
+    }
+  }, [videoDescription, geminiApiKey, openaiApiKey, selectedTitleLength]);
+
+  const handleGenerateContent = useCallback(async (title: string) => {
+    if (!geminiApiKey && !openaiApiKey) {
+        setError('API Key không tìm thấy. Vui lòng nhập lại trong "Cài đặt API Key".');
+        return;
+    }
+    setSelectedTitle(title);
+    setIsLoadingContent(true);
+    setSeoContent(null);
+    setError(null);
+
+    const descStyle = selectedDescStyle; // Read from state
+
+    try {
+      let content;
+      if (geminiApiKey) {
+        content = await generateFullSEOContentWithGemini(videoDescription, title, geminiApiKey, descStyle);
+      } else if (openaiApiKey) {
+        content = await generateFullSEOContentWithOpenAI(videoDescription, title, openaiApiKey, descStyle);
+      } else {
+        throw new Error("Không có API key nào được cung cấp.");
+      }
+      setSeoContent(content);
+    } catch (err: any)
+    {
+      setError(err.message);
+    } finally {
+      setIsLoadingContent(false);
+    }
+  }, [videoDescription, geminiApiKey, openaiApiKey, selectedDescStyle]);
+
+
+  const renderSEOContent = () => {
+    if (!selectedTitle || !seoContent) return null;
+
+    const hashtagsText = seoContent.hashtags.join(' ');
+    const allKeywords = [...seoContent.primaryKeywords, ...seoContent.secondaryKeywords];
+    const keywordsText = allKeywords.join(', ');
+    const descriptionText = seoContent.description; // Now a string
+
+    return React.createElement('div', { className: "space-y-6 animate-fade-in" },
+      React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg shadow-lg relative" },
+        React.createElement('h3', { className: "text-lg font-bold text-cyan-400 mb-2" }, "Tiêu đề đã chọn"),
+        React.createElement('p', { className: "text-gray-200" }, selectedTitle),
+        React.createElement(CopyButton, { textToCopy: selectedTitle })
+      ),
+      React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg shadow-lg relative" },
+        React.createElement('h3', { className: "text-lg font-bold text-cyan-400 mb-2" }, "Mô tả"),
+        React.createElement('p', { className: "text-gray-300 whitespace-pre-wrap" }, descriptionText),
+        React.createElement(CopyButton, { textToCopy: descriptionText })
+      ),
+      React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg shadow-lg relative" },
+        React.createElement('h3', { className: "text-lg font-bold text-cyan-400 mb-2" }, "Hashtag"),
+        React.createElement('p', { className: "text-gray-300" }, hashtagsText),
+        React.createElement(CopyButton, { textToCopy: hashtagsText })
+      ),
+      React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg shadow-lg relative" },
+        React.createElement('h3', { className: "text-lg font-bold text-cyan-400 mb-2" }, "Từ khóa (Keywords)"),
+        React.createElement('p', { className: "text-gray-300 leading-relaxed" }, keywordsText),
+        React.createElement(CopyButton, { textToCopy: keywordsText })
+      )
+    );
+  };
+
+  const titleLengthOptions = ["50-60", "60-70", "70-80", "80-90", "90-100", "Trên 100"];
+  const descStyleOptions = ["Ngắn gọn", "Vừa phải", "Tiêu chuẩn", "Dài"];
+
+  return (
+    React.createElement('div', { className: "w-full h-full" },
+        React.createElement('main', null,
+          React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-5 gap-8" },
+            // Left Column
+            React.createElement('div', { className: "lg:col-span-2" },
+              React.createElement('div', { className: "bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl shadow-2xl border border-gray-700 sticky top-8 space-y-6" },
+                React.createElement('div', null,
+                    React.createElement('label', { htmlFor: "description", className: "block text-lg font-semibold mb-2 text-cyan-300" }, "1. Nhập mô tả video"),
+                    React.createElement('textarea', {
+                    id: "description",
+                    value: videoDescription,
+                    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => setVideoDescription(e.target.value),
+                    placeholder: "Ví dụ: Hướng Dẫn Cách Tạo Video Trên VEO 3.1 Không Giới Hạn Thời Lượng",
+                    className: "w-full h-28 p-3 bg-gray-900 border border-gray-600 rounded-md focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors"
+                    })
+                ),
+                React.createElement('div', { className: "space-y-3" },
+                  React.createElement('h3', { className: "text-md font-semibold text-cyan-300" }, "2. Tùy chỉnh Tiêu đề"),
+                  React.createElement('div', { className: "grid grid-cols-3 gap-2" },
+                      titleLengthOptions.map(opt => React.createElement('button', {
+                          key: opt,
+                          onClick: () => setSelectedTitleLength(opt),
+                          disabled: isLoadingTitles,
+                          className: `px-2 py-2 text-xs rounded-md transition-colors ${selectedTitleLength === opt ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`
+                      }, opt))
+                  )
+                ),
+                React.createElement('div', { className: "space-y-3" },
+                  React.createElement('h3', { className: "text-md font-semibold text-cyan-300" }, "3. Tùy chỉnh Mô tả"),
+                   React.createElement('div', { className: "grid grid-cols-2 gap-2" },
+                      descStyleOptions.map(style => React.createElement('button', {
+                          key: style,
+                          onClick: () => setSelectedDescStyle(style),
+                          className: `px-3 py-2 text-sm rounded-md transition-colors ${selectedDescStyle === style ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`
+                      }, style))
+                  )
+                ),
+                React.createElement('button', {
+                  onClick: handleGenerateTitles,
+                  disabled: isLoadingTitles || (!geminiApiKey && !openaiApiKey),
+                  className: "w-full flex justify-center items-center gap-2 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                },
+                  isLoadingTitles ? React.createElement(LoadingSpinner, null) : React.createElement('i', { className: "fas fa-magic" }),
+                  isLoadingTitles ? 'Đang tạo tiêu đề...' : '4. Tạo Gợi Ý Tiêu đề'
+                )
+              )
+            ),
+            // Right Column
+            React.createElement('div', { className: "lg:col-span-3 space-y-8" },
+              error && React.createElement('div', { className: "p-3 bg-red-900/50 border border-red-700 text-red-300 rounded-lg text-center" }, error),
+              suggestedTitles.length > 0 && (
+                React.createElement('div', { className: "bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl shadow-2xl border border-gray-700" },
+                  React.createElement('h2', { className: "text-xl font-semibold mb-4 text-cyan-300" }, "5. Chọn một tiêu đề"),
+                  React.createElement('div', { className: "space-y-3" },
+                    suggestedTitles.map((title, index) => (
+                      React.createElement('div', { key: index, className: "flex items-center justify-between bg-gray-900 p-3 rounded-md border border-gray-700" },
+                        React.createElement('p', { className: "flex-grow mr-4" }, title),
+                        React.createElement('button', {
+                          onClick: () => handleGenerateContent(title),
+                          disabled: isLoadingContent,
+                          className: "flex-shrink-0 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-gray-500"
+                        }, 'Chọn')
+                      )
+                    ))
+                  )
+                )
+              ),
+              isLoadingContent && (
+                React.createElement('div', { className: "flex justify-center items-center gap-3 text-lg text-gray-300" },
+                    React.createElement(LoadingSpinner, null),
+                    React.createElement('span', null, 'Đang tối ưu hóa nội dung...')
+                )
+              ),
+              renderSEOContent()
+            )
+          )
+        )
+    )
+  );
+};
+
+export default SeoYoutubeApp;

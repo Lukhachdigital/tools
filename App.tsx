@@ -1,0 +1,668 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+// Import các ứng dụng
+import WhiskFlowApp from './WhiskFlowApp';
+import PromptJsonApp from './PromptJsonApp';
+import CreateThumbnailApp from './CreateThumbnailApp';
+import SeoYoutubeApp from './SeoYoutubeApp';
+import YoutubeExternalApp from './YoutubeExternalApp';
+import AppAffiliate from './AppAffiliate';
+import MyChannelApp from './MyChannelApp';
+import TaoAnhTrendApp from './TaoAnhTrendApp';
+
+
+// --- ICONS ---
+const iconProps = {
+    className: "w-6 h-6 mr-3 text-slate-300 group-hover:text-cyan-300 transition-colors",
+    strokeWidth: "1.5"
+};
+
+// Fix: Typed props for all icon components to correctly handle SVG attributes
+// like 'className', resolving TypeScript errors with React.createElement and React.cloneElement.
+// Updated Icons to accept props for flexible styling
+const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.25 12l8.954-8.955a.75.75 0 011.06 0l8.955 8.955M3 10.5v8.25a1.5 1.5 0 001.5 1.5h15a1.5 1.5 0 001.5-1.5V10.5M9 21V15a1.5 1.5 0 011.5-1.5h3A1.5 1.5 0 0115 15v6" })
+    )
+);
+
+const IconPromptJson = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" })
+    )
+);
+
+const IconWhiskFlow = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" })
+    )
+);
+
+const IconCreateThumbnail = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M3 8V6a2 2 0 012-2h2M3 16v2a2 2 0 002 2h2M16 3h2a2 2 0 012 2v2M16 21h2a2 2 0 002-2v-2" }),
+        React.createElement('rect', { x: "7", y: "7", width: "10", height: "10", rx: "1", strokeWidth: "1.5" })
+    )
+);
+
+const IconSeoYoutube = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" })
+    )
+);
+
+const IconYoutubeExternal = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" })
+    )
+);
+
+const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" })
+    )
+);
+
+// Fix for line 137: Refactored component to extract props into a variable to avoid TypeScript errors with React.createElement.
+const IconConsistentFlow = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M16 4h2a2 2 0 012 2v12a2 2 0 01-2 2h-2M8 20H6a2 2 0 01-2-2V6a2 2 0 012-2h2" }),
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 4h.01M12 8h.01M12 12h.01M12 16h.01M12 20h.01" })
+    );
+};
+
+// FIX: Updated IconHome to accept props to resolve TypeScript errors by explicitly typing the props object.
+const IconHome = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        strokeWidth: "1.5",
+        stroke: "currentColor",
+        className: "w-5 h-5 mr-2",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.25 12l8.954-8.955a.75.75 0 011.06 0l8.955 8.955M3 10.5v8.25a1.5 1.5 0 001.5 1.5h15a1.5 1.5 0 001.5-1.5V10.5M9 21V15a1.5 1.5 0 011.5-1.5h3A1.5 1.5 0 0115 15v6" })
+    );
+};
+
+// FIX: Updated IconGift to accept props to resolve TypeScript errors by explicitly typing the props object.
+const IconGift = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        strokeWidth: "1.5",
+        stroke: "currentColor",
+        className: "w-5 h-5 mr-2",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M21 11.25v8.25a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 19.5v-8.25M12 4.875A2.625 2.625 0 1014.625 7.5H9.375A2.625 2.625 0 1012 4.875zM21 11.25H3v-3.75a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v3.75z" })
+    );
+};
+
+// FIX: Updated IconYoutube to accept props to resolve TypeScript errors by explicitly typing the props object.
+// FIX: Refactored to use a typed props variable, which is a consistent fix pattern in this file for createElement type inference issues.
+const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        xmlns: "http://www.w3.org/2000/svg",
+        viewBox: "0 0 24 24",
+        fill: "currentColor",
+        className: "w-7 h-7",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { d: "M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z" })
+    );
+};
+
+// FIX: Updated IconFacebook to accept props to resolve TypeScript errors by explicitly typing the props object.
+const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        xmlns: "http://www.w3.org/2000/svg",
+        viewBox: "0 0 24 24",
+        fill: "currentColor",
+        className: "w-7 h-7",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" })
+    );
+};
+
+// FIX: Updated IconTiktok to accept props to resolve TypeScript errors by explicitly typing the props object.
+const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        xmlns: "http://www.w3.org/2000/svg",
+        viewBox: "0 0 24 24",
+        fill: "currentColor",
+        className: "w-7 h-7",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { d: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-2.43.05-4.86-.95-6.69-2.81-1.77-1.77-2.69-4.14-2.6-6.6.02-1.28.31-2.57.88-3.73.9-1.86 2.54-3.24 4.5-4.13.57-.25 1.19-.41 1.81-.48v3.86c-.33.04-.66.11-.97.22-1.03.34-1.93 1-2.61 1.82-.69.83-1.11 1.83-1.16 2.86-.05 1.08.28 2.18.9 3.08.62.91 1.52 1.58 2.58 1.95.88.31 1.82.35 2.75.14.93-.21 1.77-.73 2.4-1.45.63-.72 1-1.61 1.11-2.59v-9.35c-1.39.42-2.85.6-4.25.54V.02z" })
+    );
+};
+
+// FIX: Updated IconZalo to accept props to resolve TypeScript errors by explicitly typing the props object.
+const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        xmlns: "http://www.w3.org/2000/svg",
+        viewBox: "0 0 512 512",
+        fill: "currentColor",
+        className: "w-7 h-7",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z" })
+    );
+};
+
+// FIX: Updated IconSettings to accept props to resolve TypeScript errors by explicitly typing the props object.
+const IconSettings = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        strokeWidth: "1.5",
+        stroke: "currentColor",
+        className: "w-5 h-5 mr-2",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+      React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 0115 0m-15 0a7.5 7.5 0 1015 0M12 4.5v.01M12 19.5v.01" })
+    );
+};
+
+// FIX: Updated IconTutorial to accept props to resolve TypeScript errors by explicitly typing the props object.
+const IconTutorial = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        strokeWidth: "1.5",
+        stroke: "currentColor",
+        className: "w-5 h-5 mr-2",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+      React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" })
+    );
+};
+
+const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) => {
+    const [geminiKey, setGeminiKey] = useState(initialGeminiKey || '');
+    const [openAIKey, setOpenAIKey] = useState(initialOpenAIKey || '');
+
+    const handleSave = () => {
+        onSave({ gemini: geminiKey, openai: openAIKey });
+        onClose();
+    };
+    
+    return React.createElement('div', {
+        className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
+        'aria-modal': "true",
+        role: "dialog",
+        onClick: onClose
+    },
+        React.createElement('div', {
+            className: "bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg m-4 border border-cyan-500/50",
+            onClick: (e) => e.stopPropagation()
+        },
+            React.createElement('div', { className: "flex justify-between items-center p-4 border-b border-slate-700" },
+                React.createElement('h3', { className: "text-xl font-bold text-cyan-300" }, "Cài đặt API Keys"),
+                React.createElement('button', {
+                    onClick: onClose,
+                    className: "text-slate-400 hover:text-white transition-colors",
+                    'aria-label': "Close modal"
+                },
+// FIX: Refactored to use a typed props variable inside an IIFE to resolve a TypeScript type inference issue with React.createElement.
+                    (() => {
+                        const svgProps: React.SVGProps<SVGSVGElement> = {
+                            xmlns: "http://www.w3.org/2000/svg",
+                            fill: "none",
+                            viewBox: "0 0 24 24",
+                            strokeWidth: "2",
+                            stroke: "currentColor",
+                            className: "w-6 h-6"
+                        };
+                        return React.createElement('svg', svgProps,
+                            React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 18L18 6M6 6l12 12" })
+                        );
+                    })()
+                )
+            ),
+            React.createElement('div', { className: "p-6 space-y-6" },
+                React.createElement('div', {},
+                    React.createElement('div', { className: "flex justify-between items-center mb-2" },
+                        React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key"),
+                        React.createElement('a', { href: "https://aistudio.google.com/app/apikey", target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
+                    ),
+                    React.createElement('input', {
+                        id: "gemini-key",
+                        type: "password",
+                        value: geminiKey,
+                        onChange: (e) => setGeminiKey(e.target.value),
+                        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
+                        placeholder: "Nhập Gemini API Key của bạn..."
+                    })
+                ),
+                React.createElement('div', {},
+                    React.createElement('div', { className: "flex justify-between items-center mb-2" },
+                         React.createElement('label', { htmlFor: "openai-key", className: "block text-lg font-semibold text-slate-300" }, "OpenAI API Key"),
+                         React.createElement('a', { href: "https://platform.openai.com/api-keys", target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
+                    ),
+                    React.createElement('input', {
+                        id: "openai-key",
+                        type: "password",
+                        value: openAIKey,
+                        onChange: (e) => setOpenAIKey(e.target.value),
+                        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
+                        placeholder: "Nhập OpenAI API Key của bạn..."
+                    })
+                ),
+                React.createElement('button', {
+                    onClick: handleSave,
+                    className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
+                }, "Lưu Cài Đặt")
+            )
+        )
+    );
+};
+
+const AuthModal = ({ onClose, onAuthSuccess }) => {
+    const [view, setView] = useState('auth'); // 'auth', 'register', 'payment', 'confirmation'
+    const [code, setCode] = useState('');
+    const [error, setError] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [gmail, setGmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [countdown, setCountdown] = useState(120);
+
+    const countdownIntervalRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (view === 'confirmation') {
+            countdownIntervalRef.current = window.setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(countdownIntervalRef.current!);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } else {
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+            }
+        }
+        return () => {
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+            }
+        };
+    }, [view]);
+
+    const handleVerify = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setIsVerifying(true);
+        try {
+            const response = await fetch('/register.json');
+            if (!response.ok) throw new Error('Failed to load authentication codes.');
+            const data = await response.json();
+            if (data.codes && data.codes.includes(code)) {
+                onAuthSuccess(code);
+            } else {
+                setError('Mã không hợp lệ. Vui lòng thử lại.');
+            }
+        } catch (err) {
+            setError('Không thể xác thực. Vui lòng kiểm tra kết nối.');
+            console.error("Auth error:", err);
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+    
+    const handleRegisterSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!gmail.includes('@') || !gmail.includes('.')) {
+            setError('Vui lòng nhập một địa chỉ Gmail hợp lệ.');
+            return;
+        }
+        setError('');
+        setView('payment');
+    };
+    
+    const handleConfirmPayment = () => {
+        setCountdown(120); // Reset timer
+        setView('confirmation');
+    };
+    
+    const renderContent = () => {
+        switch (view) {
+            case 'register':
+                return React.createElement('form', { onSubmit: handleRegisterSubmit, className: "space-y-4" },
+                    React.createElement('h2', { className: "text-2xl font-bold text-center text-white mb-2" }, "Đăng ký"),
+                    React.createElement('p', { className: "text-slate-400 text-center mb-6" }, "Vui lòng nhập thông tin của bạn."),
+                     React.createElement('input', { type: "email", value: gmail, onChange: (e) => setGmail(e.target.value), required: true, placeholder: "Nhập Gmail của bạn (bắt buộc)", className: "w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" }),
+                     React.createElement('input', { type: "tel", value: phone, onChange: (e) => setPhone(e.target.value), placeholder: "Số điện thoại Zalo (tùy chọn)", className: "w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" }),
+                    error && React.createElement('p', { className: "text-red-400 text-center text-sm" }, error),
+                    React.createElement('button', { type: "submit", className: "w-full mt-2 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 rounded-lg transition" }, "Đăng ký"),
+                    React.createElement('button', { type: "button", onClick: () => setView('auth'), className: "w-full text-center text-slate-400 hover:text-white text-sm mt-2" }, "Quay lại")
+                );
+
+            case 'payment':
+                const qrUrl = `https://img.vietqr.io/image/BIDV-8844588159-compact2.png?amount=200000&addInfo=${encodeURIComponent(gmail + ' tools')}&accountName=HUYNH%20XUYEN%20SON`;
+                return React.createElement('div', { className: "text-center" },
+                    React.createElement('h2', { className: "text-2xl font-bold text-white mb-4" }, "Thanh toán"),
+                    React.createElement('img', { src: qrUrl, alt: "QR Code Thanh toán", className: "mx-auto rounded-lg border-4 border-white" }),
+                    React.createElement('p', { className: "text-slate-300 mt-4" }, "Quét mã để thanh toán 200,000 VND"),
+                    React.createElement('p', { className: "text-xs text-slate-400 mt-1" }, "STK: 8844588159 | Ngân hàng: BIDV | Chủ TK: HUYNH XUYEN SON"),
+                    React.createElement('button', { onClick: handleConfirmPayment, className: "w-full mt-6 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 rounded-lg transition" }, "Tôi đã thanh toán"),
+                     React.createElement('button', { type: "button", onClick: () => setView('register'), className: "w-full text-center text-slate-400 hover:text-white text-sm mt-2" }, "Quay lại")
+                );
+
+            case 'confirmation':
+                const minutes = Math.floor(countdown / 60);
+                const seconds = (countdown % 60).toString().padStart(2, '0');
+                return React.createElement('div', { className: "text-center" },
+                    React.createElement('h2', { className: "text-2xl font-bold text-green-400 mb-4" }, "Cảm ơn bạn!"),
+                    React.createElement('p', { className: "text-slate-300" }, "Yêu cầu đăng ký đã được gửi. Vui lòng liên hệ Zalo "),
+                     React.createElement('a', { href: "https://zalo.me/0979007367", target:"_blank", className: "font-bold text-cyan-400 underline" }, "0979.007.367"),
+                     React.createElement('p', { className: "text-slate-300" }, " để được kích hoạt nhanh nhất!"),
+                    React.createElement('div', { className: "text-4xl font-mono font-bold text-white my-6" }, `${minutes}:${seconds}`),
+                    React.createElement('button', { onClick: () => setView('auth'), className: "w-full bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 rounded-lg transition" }, "Sử dụng Tools")
+                );
+
+            case 'auth':
+            default:
+                return React.createElement('form', { onSubmit: handleVerify },
+                    React.createElement('h2', { className: "text-2xl font-bold text-center text-white mb-2" }, "Xác thực"),
+                    React.createElement('div', { className: 'my-6 text-center bg-slate-700/50 p-4 rounded-lg border border-slate-600' },
+                        React.createElement('p', { className: "text-slate-300" }, "Liên hệ Zalo để nhận mã dùng thử ứng dụng trong 1 tuần ", React.createElement('strong', { className: "text-yellow-300" }, "MIỄN PHÍ.")),
+                        React.createElement('a', { href: "https://zalo.me/0979007367", target: "_blank", className: "block font-bold text-cyan-400 underline mt-2 text-lg" }, "Zalo: 0979.007.367")
+                    ),
+                    React.createElement('input', { type: "text", value: code, onChange: (e) => setCode(e.target.value), required: true, placeholder: "Nhập mã của bạn...", className: "w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" }),
+                    error && React.createElement('p', { className: "text-red-400 text-center text-sm mt-4" }, error),
+                    React.createElement('button', { type: "submit", disabled: isVerifying || !code, className: "w-full mt-6 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 rounded-lg transition disabled:bg-slate-600 disabled:cursor-not-allowed" }, isVerifying ? 'Đang kiểm tra...' : "Xác nhận"),
+                    React.createElement('button', { type: "button", onClick: () => setView('register'), className: "w-full mt-3 bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 rounded-lg transition" }, "Đăng ký (Vĩnh viễn)")
+                );
+        }
+    };
+    
+    return React.createElement('div', { className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm", 'aria-modal': "true", role: "dialog", onClick: onClose },
+        React.createElement('div', { className: "bg-gradient-to-br from-cyan-500 to-blue-600 p-px rounded-2xl max-w-sm w-full shadow-2xl shadow-cyan-500/20 m-4", onClick: (e) => e.stopPropagation() },
+            React.createElement('div', { className: "bg-slate-800 rounded-[calc(1rem-1px)] p-8" },
+                renderContent()
+            )
+        )
+    );
+};
+
+const App = () => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [currentView, setCurrentView] = useState('dashboard');
+    const [geminiApiKey, setGeminiApiKey] = useState('');
+    const [openaiApiKey, setOpenaiApiKey] = useState('');
+    
+    const AUTH_KEY = 'AICREATORS_AUTH_KEY';
+    const GEMINI_API_KEY = 'GEMINI_API_KEY';
+    const OPENAI_API_KEY = 'OPENAI_API_KEY';
+
+    const sidebarTools = [
+        { id: 'dashboard', text: 'Bảng điều khiển', title: 'AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng', icon: React.createElement(IconDashboard), description: 'Tổng quan các công cụ sáng tạo' },
+        { id: 'prompt_json', text: 'Prompt JSON', title: 'Viết kịch bản và xuất Prompt chuẩn JSON', icon: React.createElement(IconPromptJson), description: 'Tự động tạo kịch bản video và chuỗi Prompt JSON tương ứng thích hợp tạo video.' },
+        { id: 'whisk_flow', text: 'Whisk & Flow I', title: 'Prompt chuẩn hóa Whisk & Flow', icon: React.createElement(IconWhiskFlow), description: 'Tạo kịch bản và prompt, đảm bảo nhân vật giữ nguyên khuôn mặt và trang phục trong suốt video.' },
+        { id: 'my_channel', text: 'Whisk & Flow II', title: 'Kịch bản & Xuất Prompt Whisk & Flow', icon: React.createElement(IconConsistentFlow), description: 'Tạo kịch bản và prompt, giữ nguyên khuôn mặt nhưng linh hoạt thay đổi trang phục nhân vật theo từng cảnh.' },
+        { id: 'create_thumbnail', text: 'Tạo Thumbnail', title: 'AI tạo Thumbnail đỉnh cao', icon: React.createElement(IconCreateThumbnail), description: 'Tạo thumbnail cho Youtube, Tiktok, Facebook sáng tạo, giúp video của bạn tăng lượt Click.' },
+        { id: 'tao_anh_trend', text: 'Tạo ảnh Trend', title: 'Tạo ảnh theo phong cách riêng', icon: React.createElement(IconSeoYoutube), description: 'Công nghệ tạo ảnh theo phong cách riêng của bạn và theo xu hướng thịnh hành.' },
+        { id: 'seo_youtube', text: 'SEO Youtube', title: 'Công cụ SEO Youtube đỉnh cao', icon: React.createElement(IconSeoYoutube), description: 'Tối ưu Tiêu đề, Mô tả, và Tags cho video YouTube của bạn.' },
+        { id: 'youtube_external', text: 'Youtube ngoại', title: 'Công cụ tối ưu Youtube view ngoại', icon: React.createElement(IconYoutubeExternal), description: 'Dịch nội dung sang nhiều ngôn ngữ chuẩn ngữ pháp để tiếp cận khán giả toàn cầu.' },
+        { id: 'app_affiliate', text: 'App Affiliate', title: 'App Affiliate Video Shorts', icon: React.createElement(IconAppAffiliate), description: 'Sáng tạo vô hạn video Viral cho Tiktok, Facebook Reels, Shopee.' },
+    ];
+    
+    const socialLinks = [
+        { href: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1", icon: React.createElement(IconYoutube), name: "Youtube", color: "bg-red-600 hover:bg-red-700" },
+        { href: "https://www.facebook.com/huynhxuyenson", icon: React.createElement(IconFacebook), name: "Facebook", color: "bg-blue-600 hover:bg-blue-700" },
+        { href: "https://tiktok.com/@lamyoutubeai", icon: React.createElement(IconTiktok), name: "Tiktok", color: "bg-gray-900 hover:bg-gray-800" },
+        { href: "https://zalo.me/0979007367", icon: React.createElement(IconZalo), name: "Zalo", color: "bg-blue-500 hover:bg-blue-600" },
+    ];
+    
+    useEffect(() => {
+        const verifyStoredKey = async () => {
+            // Check for authentication key
+            const storedKey = localStorage.getItem(AUTH_KEY);
+            if (storedKey) {
+                try {
+                    const response = await fetch('/register.json');
+                    const data = await response.json();
+                    if (data.codes && data.codes.includes(storedKey)) {
+                        setIsAuthenticated(true);
+                    } else {
+                        localStorage.removeItem(AUTH_KEY); // Stored key is no longer valid
+                    }
+                } catch (e) {
+                    console.error("Failed to verify stored key", e);
+                }
+            }
+
+            // Load API keys regardless of auth status
+            const savedGeminiKey = localStorage.getItem(GEMINI_API_KEY);
+            if (savedGeminiKey) setGeminiApiKey(savedGeminiKey);
+            const savedOpenAIKey = localStorage.getItem(OPENAI_API_KEY);
+            if (savedOpenAIKey) setOpenaiApiKey(savedOpenAIKey);
+
+            setIsLoading(false);
+        };
+
+        verifyStoredKey();
+    }, []);
+
+    const handleApiKeySave = ({ gemini, openai }) => {
+        setGeminiApiKey(gemini);
+        setOpenaiApiKey(openai);
+        localStorage.setItem(GEMINI_API_KEY, gemini);
+        localStorage.setItem(OPENAI_API_KEY, openai);
+    };
+    
+    const handleAuthSuccess = (code) => {
+        setIsAuthenticated(true);
+        setShowAuthModal(false);
+        localStorage.setItem(AUTH_KEY, code);
+    };
+
+    const handleToolClick = (toolId) => {
+        if (!isAuthenticated) {
+            setShowAuthModal(true);
+            return;
+        }
+        setCurrentView(toolId);
+    };
+
+    const handleOpenTutorial = async () => {
+        const fallbackUrl = "https://www.youtube.com/watch?v=N_UfSbpBAjs";
+        try {
+            const response = await fetch('/tutorialLinks.json');
+            if (!response.ok) {
+                throw new Error('Failed to load tutorial links.');
+            }
+            const links = await response.json();
+            const url = links[currentView] || links['dashboard'] || fallbackUrl;
+            window.open(url, '_blank', 'noopener,noreferrer');
+        } catch (error) {
+            console.error("Error opening tutorial:", error);
+            window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+        }
+    };
+
+    const Dashboard = ({ onToolClick }) => {
+        const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
+
+        return React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' },
+            dashboardTools.map(tool => (
+                React.createElement('button', {
+                    key: tool.id,
+                    onClick: () => onToolClick(tool.id),
+                    className: "group bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/20"
+                },
+                    React.createElement('div', { className: 'mb-4' },
+                        // Fix for line 323: Wrapped props in a variable to avoid TypeScript errors with React.cloneElement.
+                        (() => {
+                            const newProps = { className: "w-10 h-10 text-cyan-400 group-hover:text-cyan-300 transition-colors" };
+                            return React.cloneElement(tool.icon, newProps);
+                        })()
+                    ),
+                    React.createElement('h3', { className: 'text-lg font-bold text-slate-200 group-hover:text-white transition-colors' }, tool.text)
+                )
+            ))
+        );
+    };
+
+    const renderCurrentView = () => {
+        const appProps = { geminiApiKey, openaiApiKey };
+        switch (currentView) {
+            case 'whisk_flow': return React.createElement(WhiskFlowApp, { apiKey: geminiApiKey });
+            case 'my_channel': return React.createElement(MyChannelApp, { apiKey: geminiApiKey });
+            case 'prompt_json': return React.createElement(PromptJsonApp, appProps);
+            case 'create_thumbnail': return React.createElement(CreateThumbnailApp, { apiKey: geminiApiKey });
+            case 'tao_anh_trend': return React.createElement(TaoAnhTrendApp, { apiKey: geminiApiKey });
+            case 'seo_youtube': return React.createElement(SeoYoutubeApp, appProps);
+            case 'youtube_external': return React.createElement(YoutubeExternalApp, { apiKey: geminiApiKey });
+            case 'app_affiliate': return React.createElement(AppAffiliate, { apiKey: geminiApiKey });
+            case 'dashboard':
+            default:
+                return React.createElement(Dashboard, { onToolClick: handleToolClick });
+        }
+    };
+
+    if (isLoading) {
+        return (
+            React.createElement('div', { className: "min-h-screen bg-slate-900 flex items-center justify-center" },
+                React.createElement('p', { className: "text-slate-400 text-lg animate-pulse" }, "Đang tải ứng dụng...")
+            )
+        );
+    }
+    
+    const mainTitle = "AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng";
+    const mainDescription = "Giải phóng tiềm năng, tự động hóa công việc và nâng tầm nội dung của bạn.";
+    const currentTool = sidebarTools.find(tool => tool.id === currentView);
+
+    const homeLinkProps = {
+        href: "/home",
+        onClick: (e) => { e.preventDefault(); setCurrentView('dashboard'); },
+        className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
+    };
+    const freeLinkProps = {
+        href: "/free",
+        className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
+    };
+    
+    return (
+        React.createElement(React.Fragment, null,
+            showAuthModal && React.createElement(AuthModal, { 
+                onClose: () => setShowAuthModal(false),
+                onAuthSuccess: handleAuthSuccess 
+            }),
+            showApiKeyModal && React.createElement(ApiKeyModal, { 
+                onClose: () => setShowApiKeyModal(false),
+                onSave: handleApiKeySave,
+                initialGeminiKey: geminiApiKey,
+                initialOpenAIKey: openaiApiKey
+             }),
+            React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col" },
+                React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-6 w-full mb-4 p-4 sm:p-6" },
+                     React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
+                        React.createElement('a', homeLinkProps,
+                            React.createElement(IconHome), 
+                            "Trang chủ"
+                        ),
+                        React.createElement('a', freeLinkProps,
+                            React.createElement(IconGift),
+                            "Tài nguyên FREE"
+                        )
+                    ),
+                    React.createElement('div', { className: "text-center" },
+                         React.createElement('h1', { className: "text-3xl sm:text-4xl lg:text-5xl font-extrabold" },
+                            React.createElement('span', { className: "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600" }, currentTool && currentView !== 'dashboard' ? currentTool.title : mainTitle)
+                         ),
+                         React.createElement('p', { className: "text-slate-400 mt-2 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription)
+                    ),
+                     React.createElement('div', { className: "flex items-center justify-end flex-wrap gap-3" },
+                        socialLinks.map(link => 
+                            React.createElement('a', { 
+                                key: link.name,
+                                href: link.href, 
+                                target: "_blank", 
+                                rel: "noopener noreferrer", 
+                                'aria-label': link.name,
+                                className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
+                            }, link.icon)
+                        ),
+                        React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
+                            React.createElement('button', { 
+                                onClick: () => setShowApiKeyModal(true),
+                                className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
+                                React.createElement(IconSettings),
+                                "Cài đặt API Key"
+                            ),
+                             React.createElement('button', { 
+                                onClick: handleOpenTutorial,
+                                className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
+                                React.createElement(IconTutorial),
+                                "Hướng dẫn"
+                            )
+                        )
+                    )
+                ),
+                React.createElement('div', { className: "flex-grow flex w-full" },
+                    currentView !== 'dashboard' && React.createElement('aside', { className: 'w-64 flex-shrink-0 p-4' },
+                        React.createElement('div', { className: 'bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 h-full' },
+                            React.createElement('nav', { className: 'space-y-2' },
+                                sidebarTools.map(tool => {
+                                    const isActive = currentView === tool.id;
+                                    const buttonClasses = `
+                                        w-full flex items-center p-3 rounded-lg text-left text-base font-semibold transition-all duration-200
+                                        group ${isActive ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
+                                    `;
+                                    return React.createElement('button', {
+                                        key: tool.id,
+                                        className: buttonClasses,
+                                        onClick: () => handleToolClick(tool.id)
+                                    },
+                                        tool.icon,
+                                        React.createElement('span', null, tool.text)
+                                    );
+                                })
+                            )
+                        )
+                    ),
+                    React.createElement('main', { className: currentView === 'dashboard' ? 'w-full p-4' : 'flex-grow p-4 min-w-0' },
+                        React.createElement('div', { className: 'bg-slate-900/50 p-0 sm:p-0 rounded-2xl border-none shadow-none h-full' },
+                           renderCurrentView()
+                        )
+                    )
+                ),
+                 React.createElement('footer', { className: "text-center p-4" },
+                    React.createElement('p', { className: "text-base text-cyan-400 font-semibold tracking-wide" }, "Ứng dụng được phát triển bởi Mr. Huỳnh Xuyên Sơn")
+                )
+            )
+        )
+    );
+};
+
+export default App;
