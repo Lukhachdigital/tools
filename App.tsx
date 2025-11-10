@@ -140,32 +140,32 @@ const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 // FIX: Updated IconTiktok to accept props to resolve TypeScript errors by explicitly typing the props object.
-const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
+// FIX: Refactored to use an implicit return to resolve a TypeScript error.
+const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', {
         xmlns: "http://www.w3.org/2000/svg",
         viewBox: "0 0 24 24",
         fill: "currentColor",
         className: "w-7 h-7",
         ...props
-    };
-    return React.createElement('svg', svgProps,
+    },
         React.createElement('path', { d: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-2.43.05-4.86-.95-6.69-2.81-1.77-1.77-2.69-4.14-2.6-6.6.02-1.28.31-2.57.88-3.73.9-1.86 2.54-3.24 4.5-4.13.57-.25 1.19-.41 1.81-.48v3.86c-.33.04-.66.11-.97.22-1.03.34-1.93 1-2.61 1.82-.69.83-1.11 1.83-1.16 2.86-.05 1.08.28 2.18.9 3.08.62.91 1.52 1.58 2.58 1.95.88.31 1.82.35 2.75.14.93-.21 1.77-.73 2.4-1.45.63-.72 1-1.61 1.11-2.59v-9.35c-1.39.42-2.85.6-4.25.54V.02z" })
-    );
-};
+    )
+);
 
 // FIX: Updated IconZalo to accept props to resolve TypeScript errors by explicitly typing the props object.
-const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
+// FIX: Refactored to use an implicit return and inline props to resolve a TypeScript type inference issue.
+const IconZalo = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', {
         xmlns: "http://www.w3.org/2000/svg",
         viewBox: "0 0 512 512",
         fill: "currentColor",
         className: "w-7 h-7",
         ...props
-    };
-    return React.createElement('svg', svgProps,
+    },
         React.createElement('path', { d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z" })
-    );
-};
+    )
+);
 
 // FIX: Updated IconSettings to accept props to resolve TypeScript errors by explicitly typing the props object.
 const IconSettings = (props: React.SVGProps<SVGSVGElement>) => {
@@ -318,7 +318,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
         setError('');
         setIsVerifying(true);
         try {
-            const response = await fetch('https://lamyoutubeai.com/register-tools/register.json');
+            const response = await fetch('./register.json');
             if (!response.ok) throw new Error('Failed to load authentication codes.');
             const data = await response.json();
             if (data.codes && data.codes.includes(code)) {
@@ -327,7 +327,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
                 setError('Mã không hợp lệ. Vui lòng thử lại.');
             }
         } catch (err) {
-            setError('Không thể xác thực. Vui lòng kiểm tra kết nối.');
+            setError('Vẫn chưa thể xác thực được,hãy kiểm tra và đảm bảo kết nối xác thực.');
             console.error("Auth error:", err);
         } finally {
             setIsVerifying(false);
@@ -448,7 +448,7 @@ const App = () => {
             const storedKey = localStorage.getItem(AUTH_KEY);
             if (storedKey) {
                 try {
-                    const response = await fetch('https://lamyoutubeai.com/register-tools/register.json');
+                    const response = await fetch('./register.json');
                     const data = await response.json();
                     if (data.codes && data.codes.includes(storedKey)) {
                         setIsAuthenticated(true);
@@ -511,7 +511,8 @@ const App = () => {
 
     const Dashboard = ({ onToolClick }) => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
-
+        
+        // FIX: Inlined the props object for the container div to resolve a TypeScript error with React.createElement.
         return React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' },
             dashboardTools.map(tool => (
                 React.createElement('button', {
@@ -562,12 +563,15 @@ const App = () => {
     const currentTool = sidebarTools.find(tool => tool.id === currentView);
 
     const homeLinkProps = {
-        href: "/home",
-        onClick: (e) => { e.preventDefault(); setCurrentView('dashboard'); },
+        href: "https://lamyoutubeai.com",
+        target: "_blank",
+        rel: "noopener noreferrer",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     const freeLinkProps = {
-        href: "/free",
+        href: "https://lamyoutubeai.com/free",
+        target: "_blank",
+        rel: "noopener noreferrer",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     
@@ -583,7 +587,7 @@ const App = () => {
                 initialGeminiKey: geminiApiKey,
                 initialOpenAIKey: openaiApiKey
              }),
-            React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col" },
+            React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col pt-8" },
                 React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-6 w-full mb-4 p-4 sm:p-6" },
                      React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
                         React.createElement('a', homeLinkProps,
@@ -609,7 +613,8 @@ const App = () => {
                         return React.createElement('div', divProps,
 // FIX: Refactored to use a typed props variable to resolve TypeScript errors with React.createElement.
                             socialLinks.map(link => {
-                                const anchorProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {
+// FIX: Changed the type of 'anchorProps' from 'React.AnchorHTMLAttributes' to 'React.HTMLProps' to correctly include the 'key' property.
+                                const anchorProps: React.HTMLProps<HTMLAnchorElement> = {
                                     key: link.name,
                                     href: link.href,
                                     target: "_blank",
