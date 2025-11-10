@@ -112,19 +112,18 @@ const IconGift = (props: React.SVGProps<SVGSVGElement>) => {
 };
 
 // FIX: Updated IconYoutube to accept props to resolve TypeScript errors by explicitly typing the props object.
-// FIX: Refactored to use a typed props variable, which is a consistent fix pattern in this file for createElement type inference issues.
-const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
+// FIX: Refactored to use an implicit return to resolve a TypeScript error.
+const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', {
         xmlns: "http://www.w3.org/2000/svg",
         viewBox: "0 0 24 24",
         fill: "currentColor",
         className: "w-7 h-7",
         ...props
-    };
-    return React.createElement('svg', svgProps,
+    },
         React.createElement('path', { d: "M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z" })
-    );
-};
+    )
+);
 
 // FIX: Updated IconFacebook to accept props to resolve TypeScript errors by explicitly typing the props object.
 // FIX: Refactored to use an implicit return to resolve a TypeScript error.
@@ -319,7 +318,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
         setError('');
         setIsVerifying(true);
         try {
-            const response = await fetch('./register.json');
+            const response = await fetch('https://lamyoutubeai.com/register-tools/register.json');
             if (!response.ok) throw new Error('Failed to load authentication codes.');
             const data = await response.json();
             if (data.codes && data.codes.includes(code)) {
@@ -449,7 +448,7 @@ const App = () => {
             const storedKey = localStorage.getItem(AUTH_KEY);
             if (storedKey) {
                 try {
-                    const response = await fetch('./register.json');
+                    const response = await fetch('https://lamyoutubeai.com/register-tools/register.json');
                     const data = await response.json();
                     if (data.codes && data.codes.includes(storedKey)) {
                         setIsAuthenticated(true);
@@ -608,16 +607,18 @@ const App = () => {
                             className: "flex items-center justify-end flex-wrap gap-3"
                         };
                         return React.createElement('div', divProps,
-                            socialLinks.map(link => 
-                                React.createElement('a', { 
+// FIX: Refactored to use a typed props variable to resolve TypeScript errors with React.createElement.
+                            socialLinks.map(link => {
+                                const anchorProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {
                                     key: link.name,
-                                    href: link.href, 
-                                    target: "_blank", 
-                                    rel: "noopener noreferrer", 
+                                    href: link.href,
+                                    target: "_blank",
+                                    rel: "noopener noreferrer",
                                     'aria-label': link.name,
                                     className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
-                                }, link.icon)
-                            ),
+                                };
+                                return React.createElement('a', anchorProps, link.icon);
+                            }),
                             React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
                                 React.createElement('button', { 
                                     onClick: () => setShowApiKeyModal(true),
