@@ -114,17 +114,19 @@ const IconGift = (props: React.SVGProps<SVGSVGElement>) => {
 // FIX: Updated IconYoutube to accept props to resolve TypeScript errors by explicitly typing the props object.
 // FIX: Refactored to use a typed props variable, which is a consistent fix pattern in this file for createElement type inference issues.
 // FIX: Refactored IconYoutube to use an implicit return, resolving a TypeScript error with React.createElement.
-const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
+// FIX: Corrected a TypeScript error by defining props in a variable instead of an object literal inside React.createElement.
+const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
         viewBox: "0 0 24 24",
         fill: "currentColor",
         className: "w-7 h-7",
         ...props
-    },
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { d: "M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z" })
-    )
-);
+    );
+};
 
 // FIX: Updated IconFacebook to accept props to resolve TypeScript errors by explicitly typing the props object.
 // FIX: Refactored to use an implicit return to resolve a TypeScript error.
@@ -399,12 +401,15 @@ const App = () => {
     const currentTool = sidebarTools.find(tool => tool.id === currentView);
 
     const homeLinkProps = {
-        href: "/home",
-        onClick: (e) => { e.preventDefault(); setCurrentView('dashboard'); },
+        href: "https://lamyoutubeai.com",
+        target: "_blank",
+        rel: "noopener noreferrer",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     const freeLinkProps = {
-        href: "/free",
+        href: "https://lamyoutubeai.com/free",
+        target: "_blank",
+        rel: "noopener noreferrer",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     
