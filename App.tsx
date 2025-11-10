@@ -112,7 +112,8 @@ const IconGift = (props: React.SVGProps<SVGSVGElement>) => {
 };
 
 // FIX: Updated IconYoutube to accept props to resolve TypeScript errors by explicitly typing the props object.
-// FIX: Refactored to use an implicit return to resolve a TypeScript error.
+// FIX: Refactored to use a typed props variable, which is a consistent fix pattern in this file for createElement type inference issues.
+// FIX: Refactored IconYoutube to use an implicit return, resolving a TypeScript error with React.createElement.
 const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => (
     React.createElement('svg', {
         xmlns: "http://www.w3.org/2000/svg",
@@ -140,32 +141,32 @@ const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 // FIX: Updated IconTiktok to accept props to resolve TypeScript errors by explicitly typing the props object.
-// FIX: Refactored to use an implicit return to resolve a TypeScript error.
-const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
+const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
         viewBox: "0 0 24 24",
         fill: "currentColor",
         className: "w-7 h-7",
         ...props
-    },
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { d: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-2.43.05-4.86-.95-6.69-2.81-1.77-1.77-2.69-4.14-2.6-6.6.02-1.28.31-2.57.88-3.73.9-1.86 2.54-3.24 4.5-4.13.57-.25 1.19-.41 1.81-.48v3.86c-.33.04-.66.11-.97.22-1.03.34-1.93 1-2.61 1.82-.69.83-1.11 1.83-1.16 2.86-.05 1.08.28 2.18.9 3.08.62.91 1.52 1.58 2.58 1.95.88.31 1.82.35 2.75.14.93-.21 1.77-.73 2.4-1.45.63-.72 1-1.61 1.11-2.59v-9.35c-1.39.42-2.85.6-4.25.54V.02z" })
-    )
-);
+    );
+};
 
 // FIX: Updated IconZalo to accept props to resolve TypeScript errors by explicitly typing the props object.
-// FIX: Refactored to use an implicit return and inline props to resolve a TypeScript type inference issue.
-const IconZalo = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
+const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
         viewBox: "0 0 512 512",
         fill: "currentColor",
         className: "w-7 h-7",
         ...props
-    },
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z" })
-    )
-);
+    );
+};
 
 // FIX: Updated IconSettings to accept props to resolve TypeScript errors by explicitly typing the props object.
 const IconSettings = (props: React.SVGProps<SVGSVGElement>) => {
@@ -279,147 +280,13 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
     );
 };
 
-const AuthModal = ({ onClose, onAuthSuccess }) => {
-    const [view, setView] = useState('auth'); // 'auth', 'register', 'payment', 'confirmation'
-    const [code, setCode] = useState('');
-    const [error, setError] = useState('');
-    const [isVerifying, setIsVerifying] = useState(false);
-    const [gmail, setGmail] = useState('');
-    const [phone, setPhone] = useState('');
-    const [countdown, setCountdown] = useState(120);
-
-    const countdownIntervalRef = useRef<number | null>(null);
-
-    useEffect(() => {
-        if (view === 'confirmation') {
-            countdownIntervalRef.current = window.setInterval(() => {
-                setCountdown(prev => {
-                    if (prev <= 1) {
-                        clearInterval(countdownIntervalRef.current!);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        } else {
-            if (countdownIntervalRef.current) {
-                clearInterval(countdownIntervalRef.current);
-            }
-        }
-        return () => {
-            if (countdownIntervalRef.current) {
-                clearInterval(countdownIntervalRef.current);
-            }
-        };
-    }, [view]);
-
-    const handleVerify = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setIsVerifying(true);
-        try {
-            const response = await fetch('./register.json');
-            if (!response.ok) throw new Error('Failed to load authentication codes.');
-            const data = await response.json();
-            if (data.codes && data.codes.includes(code)) {
-                onAuthSuccess(code);
-            } else {
-                setError('Mã không hợp lệ. Vui lòng thử lại.');
-            }
-        } catch (err) {
-            setError('Vẫn chưa thể xác thực được,hãy kiểm tra và đảm bảo kết nối xác thực.');
-            console.error("Auth error:", err);
-        } finally {
-            setIsVerifying(false);
-        }
-    };
-    
-    const handleRegisterSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!gmail.includes('@') || !gmail.includes('.')) {
-            setError('Vui lòng nhập một địa chỉ Gmail hợp lệ.');
-            return;
-        }
-        setError('');
-        setView('payment');
-    };
-    
-    const handleConfirmPayment = () => {
-        setCountdown(120); // Reset timer
-        setView('confirmation');
-    };
-    
-    const renderContent = () => {
-        switch (view) {
-            case 'register':
-                return React.createElement('form', { onSubmit: handleRegisterSubmit, className: "space-y-4" },
-                    React.createElement('h2', { className: "text-2xl font-bold text-center text-white mb-2" }, "Đăng ký"),
-                    React.createElement('p', { className: "text-slate-400 text-center mb-6" }, "Vui lòng nhập thông tin của bạn."),
-                     React.createElement('input', { type: "email", value: gmail, onChange: (e) => setGmail(e.target.value), required: true, placeholder: "Nhập Gmail của bạn (bắt buộc)", className: "w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" }),
-                     React.createElement('input', { type: "tel", value: phone, onChange: (e) => setPhone(e.target.value), placeholder: "Số điện thoại Zalo (tùy chọn)", className: "w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" }),
-                    error && React.createElement('p', { className: "text-red-400 text-center text-sm" }, error),
-                    React.createElement('button', { type: "submit", className: "w-full mt-2 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 rounded-lg transition" }, "Đăng ký"),
-                    React.createElement('button', { type: "button", onClick: () => setView('auth'), className: "w-full text-center text-slate-400 hover:text-white text-sm mt-2" }, "Quay lại")
-                );
-
-            case 'payment':
-                const qrUrl = `https://img.vietqr.io/image/BIDV-8844588159-compact2.png?amount=200000&addInfo=${encodeURIComponent(gmail + ' tools')}&accountName=HUYNH%20XUYEN%20SON`;
-                return React.createElement('div', { className: "text-center" },
-                    React.createElement('h2', { className: "text-2xl font-bold text-white mb-4" }, "Thanh toán"),
-                    React.createElement('img', { src: qrUrl, alt: "QR Code Thanh toán", className: "mx-auto rounded-lg border-4 border-white" }),
-                    React.createElement('p', { className: "text-slate-300 mt-4" }, "Quét mã để thanh toán 200,000 VND"),
-                    React.createElement('p', { className: "text-xs text-slate-400 mt-1" }, "STK: 8844588159 | Ngân hàng: BIDV | Chủ TK: HUYNH XUYEN SON"),
-                    React.createElement('button', { onClick: handleConfirmPayment, className: "w-full mt-6 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 rounded-lg transition" }, "Tôi đã thanh toán"),
-                     React.createElement('button', { type: "button", onClick: () => setView('register'), className: "w-full text-center text-slate-400 hover:text-white text-sm mt-2" }, "Quay lại")
-                );
-
-            case 'confirmation':
-                const minutes = Math.floor(countdown / 60);
-                const seconds = (countdown % 60).toString().padStart(2, '0');
-                return React.createElement('div', { className: "text-center" },
-                    React.createElement('h2', { className: "text-2xl font-bold text-green-400 mb-4" }, "Cảm ơn bạn!"),
-                    React.createElement('p', { className: "text-slate-300" }, "Yêu cầu đăng ký đã được gửi. Vui lòng liên hệ Zalo "),
-                     React.createElement('a', { href: "https://zalo.me/0979007367", target:"_blank", className: "font-bold text-cyan-400 underline" }, "0979.007.367"),
-                     React.createElement('p', { className: "text-slate-300" }, " để được kích hoạt nhanh nhất!"),
-                    React.createElement('div', { className: "text-4xl font-mono font-bold text-white my-6" }, `${minutes}:${seconds}`),
-                    React.createElement('button', { onClick: () => setView('auth'), className: "w-full bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 rounded-lg transition" }, "Sử dụng Tools")
-                );
-
-            case 'auth':
-            default:
-                return React.createElement('form', { onSubmit: handleVerify },
-                    React.createElement('h2', { className: "text-2xl font-bold text-center text-white mb-2" }, "Xác thực"),
-                    React.createElement('div', { className: 'my-6 text-center bg-slate-700/50 p-4 rounded-lg border border-slate-600' },
-                        React.createElement('p', { className: "text-slate-300" }, "Liên hệ Zalo để nhận mã dùng thử ứng dụng trong 1 tuần ", React.createElement('strong', { className: "text-yellow-300" }, "MIỄN PHÍ.")),
-                        React.createElement('a', { href: "https://zalo.me/0979007367", target: "_blank", className: "block font-bold text-cyan-400 underline mt-2 text-lg" }, "Zalo: 0979.007.367")
-                    ),
-                    React.createElement('input', { type: "text", value: code, onChange: (e) => setCode(e.target.value), required: true, placeholder: "Nhập mã của bạn...", className: "w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500" }),
-                    error && React.createElement('p', { className: "text-red-400 text-center text-sm mt-4" }, error),
-                    React.createElement('button', { type: "submit", disabled: isVerifying || !code, className: "w-full mt-6 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 rounded-lg transition disabled:bg-slate-600 disabled:cursor-not-allowed" }, isVerifying ? 'Đang kiểm tra...' : "Xác nhận"),
-                    React.createElement('button', { type: "button", onClick: () => setView('register'), className: "w-full mt-3 bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 rounded-lg transition" }, "Đăng ký (Vĩnh viễn)")
-                );
-        }
-    };
-    
-    return React.createElement('div', { className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm", 'aria-modal': "true", role: "dialog", onClick: onClose },
-        React.createElement('div', { className: "bg-gradient-to-br from-cyan-500 to-blue-600 p-px rounded-2xl max-w-sm w-full shadow-2xl shadow-cyan-500/20 m-4", onClick: (e) => e.stopPropagation() },
-            React.createElement('div', { className: "bg-slate-800 rounded-[calc(1rem-1px)] p-8" },
-                renderContent()
-            )
-        )
-    );
-};
-
 const App = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [showAuthModal, setShowAuthModal] = useState(false);
     const [showApiKeyModal, setShowApiKeyModal] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [currentView, setCurrentView] = useState('dashboard');
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
     
-    const AUTH_KEY = 'AICREATORS_AUTH_KEY';
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
 
@@ -443,33 +310,13 @@ const App = () => {
     ];
     
     useEffect(() => {
-        const verifyStoredKey = async () => {
-            // Check for authentication key
-            const storedKey = localStorage.getItem(AUTH_KEY);
-            if (storedKey) {
-                try {
-                    const response = await fetch('./register.json');
-                    const data = await response.json();
-                    if (data.codes && data.codes.includes(storedKey)) {
-                        setIsAuthenticated(true);
-                    } else {
-                        localStorage.removeItem(AUTH_KEY); // Stored key is no longer valid
-                    }
-                } catch (e) {
-                    console.error("Failed to verify stored key", e);
-                }
-            }
+        // Load API keys
+        const savedGeminiKey = localStorage.getItem(GEMINI_API_KEY);
+        if (savedGeminiKey) setGeminiApiKey(savedGeminiKey);
+        const savedOpenAIKey = localStorage.getItem(OPENAI_API_KEY);
+        if (savedOpenAIKey) setOpenaiApiKey(savedOpenAIKey);
 
-            // Load API keys regardless of auth status
-            const savedGeminiKey = localStorage.getItem(GEMINI_API_KEY);
-            if (savedGeminiKey) setGeminiApiKey(savedGeminiKey);
-            const savedOpenAIKey = localStorage.getItem(OPENAI_API_KEY);
-            if (savedOpenAIKey) setOpenaiApiKey(savedOpenAIKey);
-
-            setIsLoading(false);
-        };
-
-        verifyStoredKey();
+        setIsLoading(false);
     }, []);
 
     const handleApiKeySave = ({ gemini, openai }) => {
@@ -478,18 +325,8 @@ const App = () => {
         localStorage.setItem(GEMINI_API_KEY, gemini);
         localStorage.setItem(OPENAI_API_KEY, openai);
     };
-    
-    const handleAuthSuccess = (code) => {
-        setIsAuthenticated(true);
-        setShowAuthModal(false);
-        localStorage.setItem(AUTH_KEY, code);
-    };
 
     const handleToolClick = (toolId) => {
-        if (!isAuthenticated) {
-            setShowAuthModal(true);
-            return;
-        }
         setCurrentView(toolId);
     };
 
@@ -511,8 +348,7 @@ const App = () => {
 
     const Dashboard = ({ onToolClick }) => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
-        
-        // FIX: Inlined the props object for the container div to resolve a TypeScript error with React.createElement.
+
         return React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' },
             dashboardTools.map(tool => (
                 React.createElement('button', {
@@ -563,31 +399,24 @@ const App = () => {
     const currentTool = sidebarTools.find(tool => tool.id === currentView);
 
     const homeLinkProps = {
-        href: "https://lamyoutubeai.com",
-        target: "_blank",
-        rel: "noopener noreferrer",
+        href: "/home",
+        onClick: (e) => { e.preventDefault(); setCurrentView('dashboard'); },
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     const freeLinkProps = {
-        href: "https://lamyoutubeai.com/free",
-        target: "_blank",
-        rel: "noopener noreferrer",
+        href: "/free",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     
     return (
         React.createElement(React.Fragment, null,
-            showAuthModal && React.createElement(AuthModal, { 
-                onClose: () => setShowAuthModal(false),
-                onAuthSuccess: handleAuthSuccess 
-            }),
             showApiKeyModal && React.createElement(ApiKeyModal, { 
                 onClose: () => setShowApiKeyModal(false),
                 onSave: handleApiKeySave,
                 initialGeminiKey: geminiApiKey,
                 initialOpenAIKey: openaiApiKey
              }),
-            React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col pt-8" },
+            React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col" },
                 React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-6 w-full mb-4 p-4 sm:p-6" },
                      React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
                         React.createElement('a', homeLinkProps,
@@ -611,19 +440,16 @@ const App = () => {
                             className: "flex items-center justify-end flex-wrap gap-3"
                         };
                         return React.createElement('div', divProps,
-// FIX: Refactored to use a typed props variable to resolve TypeScript errors with React.createElement.
-                            socialLinks.map(link => {
-// FIX: Changed the type of 'anchorProps' from 'React.AnchorHTMLAttributes' to 'React.HTMLProps' to correctly include the 'key' property.
-                                const anchorProps: React.HTMLProps<HTMLAnchorElement> = {
+                            socialLinks.map(link => 
+                                React.createElement('a', { 
                                     key: link.name,
-                                    href: link.href,
-                                    target: "_blank",
-                                    rel: "noopener noreferrer",
+                                    href: link.href, 
+                                    target: "_blank", 
+                                    rel: "noopener noreferrer", 
                                     'aria-label': link.name,
                                     className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
-                                };
-                                return React.createElement('a', anchorProps, link.icon);
-                            }),
+                                }, link.icon)
+                            ),
                             React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
                                 React.createElement('button', { 
                                     onClick: () => setShowApiKeyModal(true),
