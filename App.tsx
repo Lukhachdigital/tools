@@ -130,17 +130,19 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
 
 // FIX: Updated IconFacebook to accept props to resolve TypeScript errors by explicitly typing the props object.
 // FIX: Refactored to use an implicit return to resolve a TypeScript error.
-const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
+// FIX: Refactored the IconFacebook component by extracting props into a typed variable. This resolves a TypeScript type inference error with React.createElement where `className` was not being recognized as a valid attribute.
+const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
         viewBox: "0 0 24 24",
         fill: "currentColor",
         className: "w-7 h-7",
         ...props
-    },
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" })
-    )
-);
+    );
+};
 
 // FIX: Updated IconTiktok to accept props to resolve TypeScript errors by explicitly typing the props object.
 const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
@@ -402,14 +404,10 @@ const App = () => {
 
     const homeLinkProps = {
         href: "https://lamyoutubeai.com",
-        target: "_blank",
-        rel: "noopener noreferrer",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     const freeLinkProps = {
         href: "https://lamyoutubeai.com/free",
-        target: "_blank",
-        rel: "noopener noreferrer",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     
