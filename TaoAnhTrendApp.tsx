@@ -150,7 +150,8 @@ const MultiImageUploader = ({ uploadedImages, setUploadedImages, isGenerating, t
       const currentImages = [...uploadedImages];
       const filesToProcess = Array.from(files).slice(0, maxImages - currentImages.length);
       
-      filesToProcess.forEach(file => {
+      // Fix: Explicitly type the 'file' parameter to resolve TypeScript errors with 'unknown' type.
+      filesToProcess.forEach((file: File) => {
         const reader = new FileReader();
         reader.onloadend = () => {
           if (typeof reader.result === 'string') {
