@@ -84,11 +84,13 @@ const YoutubeExternalApp = ({ apiKey }): React.ReactElement => {
 
         try {
             const translationPromises = selectedLanguages.map(async (lang) => {
-                const prompt = `Bạn là một chuyên gia dịch thuật. Dịch đoạn văn bản sau đây sang ngôn ngữ ${lang}.
-                **Yêu cầu quan trọng:**
-                1.  Giữ nguyên ý nghĩa và văn phong gốc.
-                2.  Dịch toàn bộ nội dung, bao gồm cả các hashtag.
-                3.  Đối với hashtag, nếu chúng chứa danh từ riêng (ví dụ: tên người, tên thương hiệu), hãy giữ nguyên danh từ riêng đó. Ví dụ: hashtag "#huynhxuyenson" giữ nguyên, nhưng hashtag "#lamdep" phải được dịch sang ngôn ngữ đích.
+                const prompt = `Bạn là một chuyên gia dịch thuật với độ chính xác tuyệt đối. Dịch đoạn văn bản sau đây sang ngôn ngữ ${lang}.
+                **Yêu cầu BẮT BUỘC và KHÔNG THAY ĐỔI:**
+                1.  **Dịch Chính Xác:** Dịch toàn bộ nội dung sang ngôn ngữ đích.
+                2.  **Bảo Toàn Ý Nghĩa:** Giữ nguyên 100% ý nghĩa và văn phong gốc.
+                3.  **Bảo Toàn Cấu Trúc:** Giữ nguyên 100% cấu trúc của văn bản gốc, bao gồm tất cả các lần xuống dòng, khoảng trắng, và định dạng. Không được thêm, bớt hay thay đổi bất kỳ ký tự nào không phải là bản dịch.
+                4.  **Dịch Hashtag:** Dịch nghĩa của các hashtag sang ngôn ngữ đích, trừ khi chúng là danh từ riêng (tên người, thương hiệu). Ví dụ: "#lamdep" phải được dịch, nhưng "#huynhxuyenson" giữ nguyên.
+                5.  **Kết Quả Cuối Cùng:** Chỉ trả về văn bản đã dịch thuần túy. KHÔNG thêm bất kỳ lời giải thích, ghi chú, hay văn bản nào khác.
 
                 Văn bản gốc:
                 ---
