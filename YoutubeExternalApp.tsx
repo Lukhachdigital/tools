@@ -18,9 +18,12 @@ const ResultCard = ({ language, text }) => {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        navigator.clipboard.writeText(text).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }).catch(err => {
+            console.error("Failed to copy text: ", err);
+        });
     };
 
     return React.createElement('div', { className: "bg-slate-800 p-4 rounded-lg border border-slate-700" },
