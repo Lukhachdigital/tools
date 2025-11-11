@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // =================================================================
@@ -77,53 +73,6 @@ const parseAndEnhanceErrorMessage = (rawError) => {
     }
     return message;
 };
-
-type UploadedImageFile = { dataUrl: string; mimeType: string };
-type CanvasImageOutput = { base64: string; mimeType: string };
-
-const createImageOnCanvas = (imageFile: UploadedImageFile, aspectRatio: string): Promise<CanvasImageOutput> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      const [ratioW, ratioH] = aspectRatio.split(':').map(Number);
-      const baseWidth = 1280; 
-      canvas.width = baseWidth;
-      canvas.height = (baseWidth / ratioW) * ratioH;
-      
-      ctx.fillStyle = '#1e293b'; 
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      const imgRatio = img.width / img.height;
-      const canvasRatio = canvas.width / canvas.height;
-      let drawWidth, drawHeight, dx, dy;
-
-      if (imgRatio > canvasRatio) {
-        drawWidth = canvas.width;
-        drawHeight = drawWidth / imgRatio;
-      } else {
-        drawHeight = canvas.height;
-        drawWidth = drawHeight * imgRatio;
-      }
-      
-      dx = (canvas.width - drawWidth) / 2;
-      dy = (canvas.height - drawHeight) / 2;
-
-      ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
-
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      resolve({
-        base64: dataUrl.split(',')[1],
-        mimeType: 'image/jpeg',
-      });
-    };
-    img.onerror = reject;
-    img.src = imageFile.dataUrl;
-  });
-};
-
 
 // =================================================================
 // COMMON UI COMPONENTS for THUMBNAIL TAB
@@ -342,15 +291,23 @@ const ThumbnailGeneratorTab = ({ addLog, apiKey }) => {
         `;
 
         if (characterImage) {
-          addLog(`[Task ${index+1}] Pre-compositing character image to enforce ${platform} aspect ratio...`);
-          const compositedImage = await createImageOnCanvas(characterImage, platform);
-          addLog(`[Task ${index+1}] Image pre-composited. Sending to AI Art Director...`);
+          addLog(`[Task ${index+1}] Sending character image to AI Art Director with aspect ratio requirement...`);
+          
+          const dimensions = platform === '16:9' ? '1920x1080' : '1080x1080';
+          const aspectRatioGuard = `
+[PROMPT_GUARD]
+ULTRA-CRITICAL-COMMAND: IMAGE_ASPECT_RATIO
+VALUE: ${platform} (${dimensions} pixels)
+EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's final dimensions MUST strictly adhere to this aspect ratio. Any deviation is a COMPLETE FAILURE. This command OVERRIDES and SUPERSEDES all other creative instructions if they conflict. Check and re-check. A square or wrong-ratio image is an unacceptable result. The AI must not use solid color bars (letterboxing/pillarboxing) to achieve this ratio; the entire image composition must fill the ${platform} frame.
+[/PROMPT_GUARD]
+          `;
 
           const parts = [];
           
           let finalPrompt;
             if (showTextOnThumbnail) {
                 finalPrompt = `
+              ${aspectRatioGuard}
               **MISSION: VIRAL THUMBNAIL CREATION**
 
               ${textProtocolPrompt}
@@ -363,12 +320,12 @@ const ThumbnailGeneratorTab = ({ addLog, apiKey }) => {
               5.  **FONT SELECTION:** You have the creative freedom to choose a professional, bold, and highly readable font. The font choice MUST support all Vietnamese characters and diacritics perfectly.
               6.  **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly clickable thumbnail.'}
               7.  **FACIAL IDENTITY (NON-NEGOTIABLE):** The character's face, features, and identity MUST be preserved with 100% accuracy from the uploaded photo. This is the most critical instruction. Do not alter the face.
-              8.  **ASPECT RATIO:** Maintain the EXACT aspect ratio of the input image. DO NOT ALTER IT.
               
               **FINAL REVIEW:** Is the Vietnamese text flawless? Is the person recognizable? Is the thumbnail visually compelling? If all answers are YES, complete the mission.
             `;
             } else {
                 finalPrompt = `
+              ${aspectRatioGuard}
               **MISSION: VIRAL THUMBNAIL CREATION (VISUALS ONLY)**
 
               **[ART DIRECTION & CREATIVE EXECUTION]**
@@ -377,14 +334,13 @@ const ThumbnailGeneratorTab = ({ addLog, apiKey }) => {
               3.  **THEME:** The visual theme is: "${userTextPrompt}". All visuals must powerfully represent this concept.
               4.  **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly clickable thumbnail.'}
               5.  **FACIAL IDENTITY (NON-NEGOTIABLE):** The character's face, features, and identity MUST be preserved with 100% accuracy from the uploaded photo. This is the most critical instruction. Do not alter the face.
-              6.  **ASPECT RATIO:** Maintain the EXACT aspect ratio of the input image. DO NOT ALTER IT.
 
               **FINAL REVIEW:** Is the person recognizable? Is the thumbnail visually compelling based on the theme? Is there absolutely NO TEXT on the image? If all answers are YES, complete the mission.
             `;
             }
           
           parts.push({ text: finalPrompt });
-          parts.push({ inlineData: { mimeType: compositedImage.mimeType, data: compositedImage.base64 }});
+          parts.push({ inlineData: { mimeType: characterImage.mimeType, data: characterImage.base64 }});
           if (accessoryImage) {
             parts.push({ inlineData: { mimeType: accessoryImage.mimeType, data: accessoryImage.base64 }});
           }
