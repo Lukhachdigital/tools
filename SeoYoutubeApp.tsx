@@ -82,11 +82,14 @@ const generateTitlesWithGemini = async (description: string, apiKey: string, len
         }
     }
 
-    const prompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video sau, hãy tạo ra 5 tiêu đề hấp dẫn, linh động và rộng nghĩa hơn. ${lengthInstruction}, chứa từ khóa chính, và có yếu tố gây tò mò hoặc hứa hẹn giá trị. Viết hoa các chữ cái đầu của dòng tiêu đề hoặc viết hoa những chữ cần nhấn mạnh.
+    const prompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung với khả năng tạo ra các tiêu đề lan truyền.
+    Phân tích ngôn ngữ của mô tả video sau. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề độc đáo, hấp dẫn.
+    Mỗi tiêu đề phải có một góc nhìn khác nhau, sử dụng các kỹ thuật tạo sự tò mò (curiosity gap), hứa hẹn lợi ích rõ ràng, hoặc đặt câu hỏi tu từ để tối đa hóa tỷ lệ nhấp chuột.
+    Tránh các công thức lặp đi lặp lại. Hãy táo bạo và sáng tạo. ${lengthInstruction}.
 
     Mô tả video: "${description}"
 
-    Hãy trả về kết quả dưới dạng một mảng JSON chỉ chứa 5 chuỗi tiêu đề.`;
+    Trả về kết quả dưới dạng một mảng JSON chỉ chứa 5 chuỗi tiêu đề.`;
 
     const response = await ai.models.generateContent({
         model: geminiModel,
@@ -127,15 +130,17 @@ const generateFullSEOContentWithGemini = async (description: string, title: stri
         };
         const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
 
-        const prompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video và tiêu đề đã chọn, hãy tạo ra nội dung SEO tối ưu.
+        const prompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Phân tích ngôn ngữ của mô tả video và tiêu đề. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra nội dung SEO tối ưu.
 
         Mô tả video gốc: "${description}"
         Tiêu đề đã chọn: "${title}"
 
         Yêu cầu:
         1.  **Mô tả (Description):** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
-            -   **QUAN TRỌNG:** Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Sau mỗi câu hoặc đoạn văn, hãy xuống dòng hai lần để tạo khoảng cách, giúp người đọc dễ theo dõi.
-            -   Nội dung phải tập trung vào chủ đề video và từ khóa, **KHÔNG** có lời kêu gọi hành động (CTA) và tránh dùng đại từ 'chúng tôi'.
+            -   **QUAN TRỌNG:** Trong 1-2 câu đầu tiên, hãy viết một đoạn mở đầu (hook) thật hấp dẫn để giữ chân người xem.
+            -   Sử dụng lối kể chuyện (storytelling) nếu phù hợp để làm cho nội dung trở nên lôi cuốn.
+            -   Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Sau mỗi câu hoặc đoạn văn, hãy xuống dòng hai lần để tạo khoảng cách, giúp người đọc dễ theo dõi.
+            -   Nội dung phải tập trung vào chủ đề video và từ khóa, **KHÔNG** có lời kêu gọi hành động (CTA) và tránh dùng đại từ 'chúng tôi'. Văn phong phải tự nhiên, không nhồi nhét từ khóa máy móc.
             -   Chỉ sử dụng 1-2 emoji phù hợp trong toàn bộ đoạn văn để tạo điểm nhấn, không bắt đầu mỗi câu bằng emoji.
         2.  **Hashtag:** Viết 3 hashtag **liên quan mật thiết và trực tiếp nhất** đến nội dung video. Sau đó, **BẮT BUỘC** thêm 3 hashtag sau vào cuối: #lamyoutubeai, #huynhxuyenson, #huongdanai. Tổng cộng là 6 hashtag. Hashtag phải không dấu, viết bằng chữ thường, và viết liền. **QUAN TRỌNG:** Mỗi hashtag trong mảng kết quả BẮT BUỘC phải bắt đầu bằng ký tự '#'.
         3.  **Từ khóa chính (Primary Keywords):** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
@@ -217,7 +222,11 @@ const generateTitlesWithOpenAI = async (description: string, apiKey: string, len
         }
     }
     
-    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Nhiệm vụ của bạn là tạo ra 5 tiêu đề hấp dẫn dựa trên mô tả video. ${lengthInstruction}, chứa từ khóa chính, và có yếu tố gây tò mò hoặc hứa hẹn giá trị. Viết hoa các chữ cái đầu của dòng tiêu đề hoặc viết hoa những chữ cần nhấn mạnh. Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.`;
+    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung với khả năng tạo ra các tiêu đề lan truyền.
+    Nhiệm vụ của bạn là phân tích ngôn ngữ của mô tả video do người dùng cung cấp. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề độc đáo, hấp dẫn.
+    Mỗi tiêu đề phải có một góc nhìn khác nhau, sử dụng các kỹ thuật tạo sự tò mò (curiosity gap), hứa hẹn lợi ích rõ ràng, hoặc đặt câu hỏi tu từ để tối đa hóa tỷ lệ nhấp chuột.
+    Tránh các công thức lặp đi lặp lại. Hãy táo bạo và sáng tạo. ${lengthInstruction}.
+    Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.`;
     const userPrompt = `Mô tả video: "${description}"`;
 
     const messages = [
@@ -243,12 +252,14 @@ const generateFullSEOContentWithOpenAI = async (description: string, title: stri
     };
     const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
 
-    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video và tiêu đề đã chọn, hãy tạo ra nội dung SEO tối ưu.
+    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video và tiêu đề đã chọn, hãy tạo ra nội dung SEO tối ưu. Phân tích ngôn ngữ của đầu vào và trả lời bằng chính ngôn ngữ đó với ngữ pháp hoàn hảo.
     
     Yêu cầu:
     1.  **description:** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
-        -   **QUAN TRỌNG:** Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Sau mỗi câu hoặc đoạn văn, hãy xuống dòng hai lần để tạo khoảng cách, giúp người đọc dễ theo dõi.
-        -   Nội dung phải tập trung vào chủ đề video và từ khóa, **KHÔNG** có lời kêu gọi hành động (CTA) và tránh dùng đại từ 'chúng tôi'.
+        -   **QUAN TRỌNG:** Trong 1-2 câu đầu tiên, hãy viết một đoạn mở đầu (hook) thật hấp dẫn để giữ chân người xem.
+        -   Sử dụng lối kể chuyện (storytelling) nếu phù hợp để làm cho nội dung trở nên lôi cuốn.
+        -   Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Sau mỗi câu hoặc đoạn văn, hãy xuống dòng hai lần để tạo khoảng cách, giúp người đọc dễ theo dõi.
+        -   Nội dung phải tập trung vào chủ đề video và từ khóa, **KHÔNG** có lời kêu gọi hành động (CTA) và tránh dùng đại từ 'chúng tôi'. Văn phong phải tự nhiên, không nhồi nhét từ khóa máy móc.
         -   Chỉ sử dụng 1-2 emoji phù hợp trong toàn bộ đoạn văn để tạo điểm nhấn, không bắt đầu mỗi câu bằng emoji.
     2.  **hashtags:** Viết 3 hashtag **liên quan mật thiết và trực tiếp nhất** đến nội dung video. Sau đó, **BẮT BUỘC** thêm 3 hashtag sau vào cuối: #lamyoutubeai, #huynhxuyenson, #huongdanai. Tổng cộng là 6 hashtag. Hashtag phải không dấu, viết bằng chữ thường, và viết liền. **QUAN TRỌNG:** Mỗi hashtag trong mảng kết quả BẮT BUỘC phải bắt đầu bằng ký tự '#'.
     3.  **primaryKeywords:** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
