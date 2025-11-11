@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -323,6 +324,19 @@ const App = () => {
         { href: "https://zalo.me/0979007367", icon: React.createElement(IconZalo), name: "Zalo", color: "bg-blue-500 hover:bg-blue-600" },
     ];
     
+    const tutorialLinks = {
+      "dashboard": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "prompt_json": "https://www.youtube.com/watch?v=Uql-HZz8UnM",
+      "whisk_flow": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "my_channel": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "create_thumbnail": "https://www.youtube.com/watch?v=9d9c5Q1nID8",
+      "tao_anh_trend": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "create_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "seo_youtube": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "youtube_external": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "app_affiliate": "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg"
+    };
+
     useEffect(() => {
         // Load API keys
         const savedGeminiKey = localStorage.getItem(GEMINI_API_KEY);
@@ -344,22 +358,10 @@ const App = () => {
         setCurrentView(toolId);
     };
 
-    const handleOpenTutorial = async () => {
-        const fallbackUrl = "https://www.youtube.com/watch?v=N_UfSbpBAjs";
-        try {
-            const response = await fetch('./tutorialLinks.json');
-            if (!response.ok) {
-                console.error(`Failed to fetch tutorial links: ${response.statusText}`);
-                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-                return;
-            }
-            const tutorialLinks = await response.json();
-            const url = tutorialLinks[currentView] || tutorialLinks.dashboard || fallbackUrl;
-            window.open(url, '_blank', 'noopener,noreferrer');
-        } catch (error) {
-            console.error("Error opening tutorial:", error);
-            window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-        }
+    const handleOpenTutorial = () => {
+        const fallbackUrl = "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1";
+        const url = tutorialLinks[currentView] || tutorialLinks.dashboard || fallbackUrl;
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     const Dashboard = ({ onToolClick }) => {
