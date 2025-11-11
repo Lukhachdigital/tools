@@ -60,53 +60,6 @@ const parseAndEnhanceErrorMessage = (rawError) => {
     return message;
 };
 
-type UploadedImageFile = { dataUrl: string; mimeType: string };
-type CanvasImageOutput = { base64: string; mimeType: string };
-
-const createImageOnCanvas = (imageFile: UploadedImageFile, aspectRatio: string): Promise<CanvasImageOutput> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      const [ratioW, ratioH] = aspectRatio.split(':').map(Number);
-      const baseWidth = 1280; 
-      canvas.width = baseWidth;
-      canvas.height = (baseWidth / ratioW) * ratioH;
-      
-      ctx.fillStyle = '#1e293b'; 
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      const imgRatio = img.width / img.height;
-      const canvasRatio = canvas.width / canvas.height;
-      let drawWidth, drawHeight, dx, dy;
-
-      if (imgRatio > canvasRatio) {
-        drawWidth = canvas.width;
-        drawHeight = drawWidth / imgRatio;
-      } else {
-        drawHeight = canvas.height;
-        drawWidth = drawHeight * imgRatio;
-      }
-      
-      dx = (canvas.width - drawWidth) / 2;
-      dy = (canvas.height - drawHeight) / 2;
-
-      ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
-
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      resolve({
-        base64: dataUrl.split(',')[1],
-        mimeType: 'image/jpeg',
-      });
-    };
-    img.onerror = reject;
-    img.src = imageFile.dataUrl;
-  });
-};
-
-
 // =================================================================
 // CUSTOM UI COMPONENTS for TAO ANH TREND
 // =================================================================
@@ -319,13 +272,20 @@ const TrendImageGeneratorTab = ({ addLog, apiKey }) => {
 
         const ai = new window.GoogleGenAI({ apiKey });
         
-        addLog(`[Task ${index+1}] Pre-compositing ${characterImages.length} character image(s) to enforce ${platform} aspect ratio...`);
-        const compositedImagePromises = characterImages.map(img => createImageOnCanvas(img, platform));
-        const compositedImages = await Promise.all(compositedImagePromises);
-        addLog(`[Task ${index+1}] Images pre-composited. Sending to AI Art Director...`);
+        addLog(`[Task ${index+1}] Sending ${characterImages.length} character image(s) to AI with aspect ratio requirement...`);
+        
+        const dimensions = platform === '16:9' ? '1920x1080' : '1080x1080';
+        const aspectRatioGuard = `
+[PROMPT_GUARD]
+ULTRA-CRITICAL-COMMAND: IMAGE_ASPECT_RATIO
+VALUE: ${platform} (${dimensions} pixels)
+EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's final dimensions MUST strictly adhere to this aspect ratio. Any deviation is a COMPLETE FAILURE. This command OVERRIDES and SUPERSEDES all other creative instructions if they conflict. Check and re-check. A square or wrong-ratio image is an unacceptable result. The AI must not use solid color bars (letterboxing/pillarboxing) to achieve this ratio; the entire image composition must fill the ${platform} frame.
+[/PROMPT_GUARD]
+        `;
 
         const parts = [];
         const finalPrompt = `
+            ${aspectRatioGuard}
             **MISSION: CREATIVE GROUP PORTRAIT**
 
             **[CORE TASK & NON-NEGOTIABLE RULES]**
@@ -335,13 +295,12 @@ const TrendImageGeneratorTab = ({ addLog, apiKey }) => {
             4.  **USER GUIDANCE:** Incorporate these creative notes from the user: "${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a visually stunning and creative image.'}"
             5.  **NO TEXT:** The final image must NOT contain any text, letters, or numbers. This is a strict rule.
             6.  **PHOTOREALISM:** The final image should be photorealistic and high-quality. Avoid cartoon or animated styles unless specifically requested in the theme or creative notes.
-            7.  **ASPECT RATIO:** Maintain the EXACT aspect ratio of the input images (${platform}). DO NOT ALTER IT.
 
             **FINAL REVIEW:** Does the image contain all ${characterImages.length} people? Are all faces recognizable? Does the scene match the theme? Is there absolutely NO TEXT on the image? If all answers are YES, complete the mission.
         `;
         
         parts.push({ text: finalPrompt });
-        compositedImages.forEach(img => {
+        characterImages.forEach(img => {
             parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
         });
 
