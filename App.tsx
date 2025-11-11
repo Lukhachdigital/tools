@@ -137,6 +137,7 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
 // FIX: Updated IconFacebook to accept props to resolve TypeScript errors by explicitly typing the props object.
 // FIX: Refactored to use an implicit return to resolve a TypeScript error.
 // FIX: Refactored the IconFacebook component by extracting props into a typed variable. This resolves a TypeScript type inference error with React.createElement where `className` was not being recognized as a valid attribute.
+// FIX on line 247: Inlined the props for the `path` element to resolve a subtle TypeScript error.
 const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -145,12 +146,8 @@ const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
-    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
-    const pathProps: React.SVGProps<SVGPathElement> = {
-        d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"
-    };
     return React.createElement('svg', svgProps,
-        React.createElement('path', pathProps)
+        React.createElement('path', { d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" })
     );
 };
 
