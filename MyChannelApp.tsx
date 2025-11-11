@@ -110,7 +110,7 @@ const MyChannelApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
         },
         whisk_prompt_vi: {
           type: window.GenAIType.STRING,
-          description: "Vietnamese prompt for static image generation on Whisk. Must clearly describe the context according to the script. Concise, cinematic, sufficiently detailed, evocative. No faces, clothes, gender, identity.",
+          description: "VIETNAMESE prompt for Whisk. Must start with character's gender/identity. Must have consistent descriptions for recurring outfits, accessories, and backgrounds. Must be cinematic and evocative.",
         },
         motion_prompt: {
           type: window.GenAIType.STRING,
@@ -126,41 +126,43 @@ const MyChannelApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
       items: sceneSchema,
     };
 
-    const styleInstruction = `The overall cinematic style for this video should be: ${cinematicStyle}. Elaborate on this style in each scene's 'style' field.`;
-
-    const whiskPromptDescription = cinematicStyle === "Hoạt hình"
-      ? `Concise, cinematic, sufficiently detailed, and emotionally evocative VIETNAMESE prompt for static image generation on Whisk, in an ANIMATED style. Crucially, this prompt MUST describe the context (bối cảnh) clearly and in detail, consistent with the scene description. This is mandatory for every single prompt. Focus on the visual composition and mood. DO NOT describe faces, clothes, gender, or identity.`
-      : `Concise, cinematic, sufficiently detailed, and emotionally evocative VIETNAMESE prompt for static image generation on Whisk. The prompt MUST explicitly request a PHOTOREALISTIC, truthful, and realistic image. Crucially, this prompt MUST describe the context (bối cảnh) clearly and in detail, consistent with the scene description. This is mandatory for every single prompt. Focus on the visual composition and mood. DO NOT describe faces, clothes, gender, or identity.`;
+    const styleSpecificWhiskInstruction = cinematicStyle === "Hoạt hình"
+      ? `The prompt MUST be for an ANIMATED style.`
+      : `The prompt MUST explicitly request a PHOTOREALISTIC, truthful, and realistic image.`;
 
     const prompt = `
-  You are an AI film scriptwriting tool that generates scene descriptions and prompts for image and video generation systems (Whisk and Flow VEO 3.1).
-  Your task is to take a video idea and a total duration, divide it into 8-second scenes, and for each scene, generate a structured output. Each scene description should immediately present a high-climax visual or a pivotal moment. The narrative should focus on impactful, visually striking events directly.
+  You are an AI film scriptwriting tool that generates scene descriptions and prompts for image and video generation systems (Whisk and Flow VEO 3.1). Your main goal is to ensure visual consistency for characters and locations across multiple scenes.
 
-  **CRITICAL RULES TO FOLLOW:**
-  1.  **Mandatory Context:** For EVERY scene without exception, the 'scene' description and the 'whisk_prompt_vi' MUST clearly and detailedly describe the context (bối cảnh). This rule is absolute.
-  2.  **Perfect Character Accuracy:** The 'characterSummary' field MUST be 100% accurate for every scene. Adhere strictly to the character counting rules. Inaccuracy is not acceptable.
-  3.  **Dynamic Outfits:** The character's clothing MUST change and be appropriate for the context of each scene. For example, a character exploring a jungle should wear practical gear, and if they later attend a ceremony, their attire must change accordingly. This adds realism and visual interest.
-  4.  **Detailed Whisk Prompts:** For EVERY scene, the 'whisk_prompt_vi' must contain detailed descriptions of three key elements: the character's **outfit**, their **emotional expression**, and the **background context**. This is non-negotiable and ensures a rich visual output.
+  **INTERNAL CONSISTENCY PLAN (DO NOT include in final JSON output):**
+  Before generating the script, you MUST first create an internal "consistency sheet" for yourself.
+  1.  **Character Sheet:** Define the main character(s).
+  2.  **Outfit Sheet:** Define specific outfits the character(s) will wear. Give each outfit a name (e.g., "Outfit A: rugged explorer gear", "Outfit B: formal tuxedo"). Note which scenes each outfit is worn in.
+  3.  **Location Sheet:** Define the key locations. Give each location a name (e.g., "Location X: dense jungle temple", "Location Y: modern city street at night"). Note which scenes take place in each location.
+  4.  **Reference this sheet** for EVERY scene to ensure the descriptions are perfectly consistent.
+
+  **CRITICAL RULES FOR JSON OUTPUT:**
+  1.  **Gender/Identity in Whisk Prompt:** For every scene, the 'whisk_prompt_vi' MUST start by identifying the character. Use their gender (e.g., "Một người đàn ông", "Một người phụ nữ") or a specific identity if they are not human (e.g., "Một con robot", "Một con rồng"). DO NOT describe age, face, or body shape. This is because the user provides a reference photo on Whisk.
+  2.  **Outfit & Accessory Consistency:** If a character wears the same outfit (e.g., "Outfit A") across multiple scenes, the description of their clothing and any accessories in the 'whisk_prompt_vi' for those scenes MUST be **IDENTICAL**. Use the exact same wording from your internal sheet.
+  3.  **Background Consistency:** If a scene takes place in a location that is used in other scenes (e.g., "Location X"), the description of the background in 'whisk_prompt_vi' MUST be detailed and **IDENTICAL** across all scenes in that location. If a background appears only once, a detailed description is not required.
+  4.  **Mandatory Context:** The 'scene' description must still clearly describe the overall context (bối cảnh).
+  5.  **Character Summary Accuracy:** The 'characterSummary' field MUST be 100% accurate for every scene.
 
   Video Idea: "${videoIdea}"
   This video will be divided into ${numberOfScenes} scenes, each 8 seconds long.
-  ${styleInstruction}
+  The overall cinematic style for this video should be: ${cinematicStyle}.
 
-  Crucially, ensure the generated script maintains strong contextual consistency between the "Video Idea" and the selected "Cinematic style." For example, if the video idea involves a "forest man" and the cinematic style is "cinematic," do not include modern items like walkie-talkies or compasses in the scene descriptions or prompts. All elements (environment, objects, actions) must be thematically aligned with the core concept.
-
-  For each scene, generate the following structure as a JSON array. Ensure all fields are present and follow the specified guidelines:
+  For each scene, generate the following structure as a JSON array, strictly following all consistency rules above:
 
   {
     "character": "Leave empty — user will attach reference character in Whisk. Provide an empty string.",
-    "style": "Cinematic style, lighting, tone, depth of field, visual texture, camera. (e.g., 'Cinematic, warm golden hour, shallow depth of field, soft grain, handheld close-up.')",
-    "scene": "In Vietnamese, you MUST describe the context (bối cảnh), action, emotion, lighting, and environment. A detailed context description is mandatory for every scene. DO NOT describe specific characters (faces, clothes, gender, identity). Focus on the atmosphere and overall situation. This description should go straight to the main high-climax point or pivotal moment of the scene.",
-    "characterSummary": "Summarize the main characters appearing in this scene, adhering to a maximum of 2 main human characters (1 Nam, 1 Nữ) and potentially 1 giant animal character (1 Thú). Examples: '1 Nam', '1 Nữ', '1 Thú', '1 Nam và 1 Nữ', '1 Nam và 1 Thú', '1 Nữ và 1 Thú', 'Không có nhân vật chính'. If the scene implies characters that are not a main boy/girl/giant animal, describe them generally (e.g., 'nhóm người', 'đám đông') but do not count them in the summary. It is absolutely critical that this summary is accurate for every single scene without exception. There must be no errors.",
-    "whisk_prompt_vi": "${whiskPromptDescription}",
-    "motion_prompt": "English prompt for Flow VEO 3.1. Describe camera movement (e.g., 'slow zoom out', 'subtle pan left'), dynamic lighting (e.g., 'flickering shadows'), emotional rhythm, and moving objects or environmental elements (e.g., 'leaves rustling', 'gentle sway of water'). DO NOT describe faces, clothes, gender, or identity. This prompt should be independent from 'whisk_prompt_vi' and focus solely on motion."
+    "style": "Cinematic style, lighting, tone, depth of field, visual texture, camera.",
+    "scene": "In Vietnamese, describe the context (bối cảnh), action, emotion, lighting, and environment. DO NOT describe specific characters (faces, clothes, gender, identity).",
+    "characterSummary": "Summarize the main characters (e.g., '1 Nam', '1 Nữ', '1 Thú'). This MUST be accurate.",
+    "whisk_prompt_vi": "VIETNAMESE prompt for Whisk. ${styleSpecificWhiskInstruction} Must start with character's gender/identity. Must have consistent descriptions for recurring outfits, accessories, and backgrounds. Must be cinematic and evocative.",
+    "motion_prompt": "English prompt for Flow VEO 3.1. Describe camera movement, dynamic lighting, etc. DO NOT describe faces, clothes, gender, or identity."
   }
 
-  Generate a JSON array with ${numberOfScenes} scene objects, following the video idea and scene-by-scene progression.
-  The narrative should have a realistic cinematic tone, natural lighting, and an emotional, narrative rhythm.
+  Generate a JSON array with ${numberOfScenes} scene objects.
   `;
 
     try {
