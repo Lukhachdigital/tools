@@ -25,9 +25,11 @@ const SceneCard = ({ scene, sceneNumber }: { scene: Scene; sceneNumber: number }
   const [copiedFlow, setCopiedFlow] = useState(false);
 
   const copyToClipboard = (text: string, setter: React.Dispatch<React.SetStateAction<boolean>>) => {
-    navigator.clipboard.writeText(text);
-    setter(true);
-    // setTimeout(() => setter(false), 2000); // Removed timeout as per request
+    navigator.clipboard.writeText(text).then(() => {
+      setter(true);
+    }).catch(err => {
+      console.error("Failed to copy text: ", err);
+    });
   };
 
   return (
