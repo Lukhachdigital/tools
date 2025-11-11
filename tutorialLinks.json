@@ -1,12 +1,12 @@
 {
-  "dashboard": "https://www.youtube.com/playlist?list=PLlpNqaFh8WE4y1ULxKgfjDWyCBWx4-LhL",
-  "prompt_json": "https://www.youtube.com/watch?v=b4_2_nB_2aQ",
-  "whisk_flow": "https://www.youtube.com/watch?v=uD4izuDMUQA",
-  "my_channel": "https://www.youtube.com/watch?v=uD4izuDMUQA",
+  "dashboard": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+  "prompt_json": "https://www.youtube.com/watch?v=Uql-HZz8UnM",
+  "whisk_flow": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+  "my_channel": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
   "create_thumbnail": "https://www.youtube.com/watch?v=9d9c5Q1nID8",
-  "tao_anh_trend": "https://www.youtube.com/watch?v=s4x2826-T8M",
-  "create_video": "https://www.youtube.com/watch?v=s4x2826-T8M",
-  "seo_youtube": "https://www.youtube.com/watch?v=Gmfq20gIM_A",
-  "youtube_external": "https://www.youtube.com/watch?v=Gmfq20gIM_A",
+  "tao_anh_trend": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+  "create_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+  "seo_youtube": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+  "youtube_external": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
   "app_affiliate": "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg"
 }
