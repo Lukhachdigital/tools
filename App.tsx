@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -144,8 +145,12 @@ const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
+    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
+    const pathProps: React.SVGProps<SVGPathElement> = {
+        d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"
+    };
     return React.createElement('svg', svgProps,
-        React.createElement('path', { d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" })
+        React.createElement('path', pathProps)
     );
 };
 
@@ -158,8 +163,12 @@ const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
+    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
+    const pathProps: React.SVGProps<SVGPathElement> = {
+        d: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-2.43.05-4.86-.95-6.69-2.81-1.77-1.77-2.69-4.14-2.6-6.6.02-1.28.31-2.57.88-3.73.9-1.86 2.54-3.24 4.5-4.13.57-.25 1.19-.41 1.81-.48v3.86c-.33.04-.66.11-.97.22-1.03.34-1.93 1-2.61 1.82-.69.83-1.11 1.83-1.16 2.86-.05 1.08.28 2.18.9 3.08.62.91 1.52 1.58 2.58 1.95.88.31 1.82.35 2.75.14.93-.21 1.77-.73 2.4-1.45.63-.72 1-1.61 1.11-2.59v-9.35c-1.39.42-2.85.6-4.25.54V.02z"
+    };
     return React.createElement('svg', svgProps,
-        React.createElement('path', { d: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-2.43.05-4.86-.95-6.69-2.81-1.77-1.77-2.69-4.14-2.6-6.6.02-1.28.31-2.57.88-3.73.9-1.86 2.54-3.24 4.5-4.13.57-.25 1.19-.41 1.81-.48v3.86c-.33.04-.66.11-.97.22-1.03.34-1.93 1-2.61 1.82-.69.83-1.11 1.83-1.16 2.86-.05 1.08.28 2.18.9 3.08.62.91 1.52 1.58 2.58 1.95.88.31 1.82.35 2.75.14.93-.21 1.77-.73 2.4-1.45.63-.72 1-1.61 1.11-2.59v-9.35c-1.39.42-2.85.6-4.25.54V.02z" })
+        React.createElement('path', pathProps)
     );
 };
 
@@ -172,8 +181,12 @@ const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
+    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
+    const pathProps: React.SVGProps<SVGPathElement> = {
+        d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z"
+    };
     return React.createElement('svg', svgProps,
-        React.createElement('path', { d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z" })
+        React.createElement('path', pathProps)
     );
 };
 
