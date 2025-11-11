@@ -123,8 +123,12 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
+    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
+    const pathProps: React.SVGProps<SVGPathElement> = {
+        d: "M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z"
+    };
     return React.createElement('svg', svgProps,
-        React.createElement('path', { d: "M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z" })
+        React.createElement('path', pathProps)
     );
 };
 
@@ -173,6 +177,7 @@ const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
 };
 
 // FIX: Updated IconSettings to accept props to resolve TypeScript errors by explicitly typing the props object.
+// FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
 const IconSettings = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -183,8 +188,13 @@ const IconSettings = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-5 h-5 mr-2",
         ...props
     };
+    const pathProps: React.SVGProps<SVGPathElement> = {
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      d: "M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 0115 0m-15 0a7.5 7.5 0 1015 0M12 4.5v.01M12 19.5v.01"
+    };
     return React.createElement('svg', svgProps,
-      React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 0115 0m-15 0a7.5 7.5 0 1015 0M12 4.5v.01M12 19.5v.01" })
+      React.createElement('path', pathProps)
     );
 };
 
@@ -339,10 +349,12 @@ const App = () => {
         try {
             const response = await fetch('./tutorialLinks.json');
             if (!response.ok) {
-                throw new Error('Failed to load tutorial links.');
+                console.error(`Failed to fetch tutorial links: ${response.statusText}`);
+                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+                return;
             }
-            const links = await response.json();
-            const url = links[currentView] || links['dashboard'] || fallbackUrl;
+            const tutorialLinks = await response.json();
+            const url = tutorialLinks[currentView] || tutorialLinks.dashboard || fallbackUrl;
             window.open(url, '_blank', 'noopener,noreferrer');
         } catch (error) {
             console.error("Error opening tutorial:", error);
