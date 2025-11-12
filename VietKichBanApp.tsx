@@ -3,6 +3,7 @@ import React, { useState, useCallback } from 'react';
 // --- TYPES ---
 interface Character {
   name: string;
+  role: string;
   description: string;
   whiskPrompt: string;
 }
@@ -36,8 +37,13 @@ const CharacterCard = ({ character }: { character: Character }): React.ReactElem
 
   return (
     React.createElement("div", { className: "bg-gray-900/50 p-4 rounded-lg border border-gray-700" },
-      React.createElement("h4", { className: "text-lg font-bold text-gray-100" }, character.name),
-      React.createElement("p", { className: "text-gray-300 mt-1 text-sm" }, character.description),
+       React.createElement("div", { className: "flex items-center gap-3 mb-2" },
+        React.createElement("h4", { className: "text-lg font-bold text-gray-100" }, character.name),
+        React.createElement("span", {
+            className: `text-xs font-semibold px-2.5 py-1 rounded-full ${character.role === 'Nhân vật chính' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-gray-600/50 text-gray-300'}`
+        }, character.role)
+      ),
+      React.createElement("p", { className: "text-gray-300 text-sm" }, character.description),
       React.createElement("div", { className: "mt-4" },
         React.createElement("p", { className: "font-semibold text-sm text-indigo-300 mb-2" }, "Prompt tạo ảnh nhân vật (Whisk AI):"),
         React.createElement("div", { className: "relative bg-gray-700 p-3 rounded-md border border-gray-600" },
@@ -103,8 +109,14 @@ const VietKichBanApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
     
     const numberOfScenes = Math.ceil((durationInMinutes * 60) / 8);
 
+    const whiskStyleInstruction = cinematicStyle === "Hoạt hình"
+      ? "The style MUST be animated."
+      : "The style MUST be photorealistic and NOT animated.";
+
     const prompt = `
 You are an expert Hollywood screenwriter and director, tasked with creating a concept for an epic, profound, and thrilling film. Your primary goal is to ensure thematic and visual consistency throughout the entire script.
+
+**CREATIVITY MANDATE:** For every generation, even if the user input is identical to a previous one, you MUST generate a completely unique and different story, set of characters (including names), and prompts. Do not repeat previous outputs. Your creativity and originality are paramount.
 
 **CRITICAL RULE: THEMATIC CONSISTENCY**
 You MUST strictly adhere to the user-selected "Cinematic Style". Analyze it deeply. If the style is "${cinematicStyle}", all characters, actions, settings, and objects in both the character descriptions and the VEO prompts MUST be appropriate for that era and genre. For example, if the user's idea is 'a forest man saving animals' and the style is 'prehistoric', you absolutely CANNOT include modern items like cameras, walkie-talkies, or guns. This rule is non-negotiable and takes precedence over all other creative instructions.
@@ -117,20 +129,26 @@ Based on the user's idea and your strict adherence to the cinematic style, you m
 - Total Duration: Approximately ${durationInMinutes} minutes.
 
 **Task 1: Character Development & Whisk Prompts**
-- Create a list of all characters for the story.
-- For each character, you will create an object with three fields:
+- Create a list of all characters for the story, identifying main and supporting roles.
+- For each character, you will create an object with four fields:
     1.  **name**: The character's name. It must be thematically appropriate for the cinematic style.
-    2.  **description**: A detailed description of the character in VIETNAMESE. Describe what/who they are, their appearance, and key traits (e.g., "Manu: Một con sói đầu đàn dũng mãnh, có bộ lông màu vàng óng và một vết sẹo dài trên mắt phải.").
-    3.  **whiskPrompt**: A detailed, cinematic prompt in ENGLISH for Whisk AI to generate a standalone portrait of this character (without a reference image). This prompt should be rich with visual details about the character's appearance, posture, and the immediate environment that defines them, consistent with your Vietnamese description.
+    2.  **role**: The character's role in the story. MUST be either 'Nhân vật chính' or 'Nhân vật phụ'.
+    3.  **description**: A detailed description of the character in VIETNAMESE. Describe what/who they are, their appearance, and key traits (e.g., "Manu: Một con sói đầu đàn dũng mãnh, có bộ lông màu vàng óng và một vết sẹo dài trên mắt phải.").
+    4.  **whiskPrompt**: A detailed, cinematic prompt in ENGLISH for Whisk AI to generate a standalone portrait of this character.
+        **CRITICAL Whisk Prompt Rules:**
+        a. **Style**: ${whiskStyleInstruction}
+        b. **Background**: The background MUST be a 'solid white background'. This is a strict, non-negotiable requirement.
+        c. **Content**: The prompt MUST NOT include the character's name. Instead, it must contain a highly detailed and evocative description of the character's physical appearance, clothing, posture, and emotions, consistent with your Vietnamese description.
 
 **Task 2: Prompt Generation for VEO 3.1**
 - You must generate exactly ${numberOfScenes} prompts, as each prompt corresponds to an 8-second video scene.
 - For each scene, write one detailed, cinematic prompt in ENGLISH.
 - **CRITICAL VEO PROMPT RULES:**
-    1.  **Character Naming:** Every single prompt MUST explicitly mention at least one character by the 'name' you created in Task 1. This is non-negotiable.
+    1.  **Character Naming:** Every single prompt MUST explicitly mention at least one character by the 'name' you created in Task 1. A maximum of THREE named characters can be mentioned in a single prompt. It is absolutely critical that the spelling of the names is 100% accurate. This is a non-negotiable rule.
     2.  **Content Focus:** Do NOT describe clothing or outfits. Focus exclusively on character actions, the setting/background, character emotions, and facial expressions.
     3.  **DETAILED & CONSISTENT SETTINGS:** Before you write the prompts, you must internally plan the key locations. If a specific location (e.g., "the ancient, vine-covered temple entrance," "the neon-lit cyberpunk cockpit") appears in multiple scenes, you MUST use a consistent and IDENTICAL detailed description for that background in each relevant prompt to ensure visual continuity. Be very specific about the elements that make up the setting.
     4.  **Language:** All prompts MUST be in ENGLISH.
+    5.  **Cinematic Style**: Each prompt must also incorporate descriptive words that reflect the chosen '${cinematicStyle}' style. For example, if the style is 'Viễn tưởng' (Sci-Fi), use terms like 'holographic glow', 'sleek metallic surfaces', 'cybernetic implants'.
 
 Generate a JSON object that strictly adheres to the provided schema.
 `;
@@ -140,7 +158,7 @@ Generate a JSON object that strictly adheres to the provided schema.
         properties: {
             characterList: {
                 type: window.GenAIType.ARRAY,
-                description: "A list of character objects.",
+                description: "A list of character objects, distinguishing between main and supporting roles.",
                 items: {
                     type: window.GenAIType.OBJECT,
                     properties: {
@@ -148,16 +166,20 @@ Generate a JSON object that strictly adheres to the provided schema.
                             type: window.GenAIType.STRING,
                             description: "The character's name."
                         },
+                        role: { 
+                            type: window.GenAIType.STRING,
+                            description: "The character's role, either 'Nhân vật chính' or 'Nhân vật phụ'."
+                        },
                         description: { 
                             type: window.GenAIType.STRING,
                             description: "The character's detailed description in Vietnamese."
                         },
                         whiskPrompt: { 
                             type: window.GenAIType.STRING,
-                            description: "A detailed English prompt for Whisk AI to generate the character's image."
+                            description: "A detailed English prompt for Whisk AI to generate the character's image against a solid white background."
                         }
                     },
-                    required: ["name", "description", "whiskPrompt"]
+                    required: ["name", "role", "description", "whiskPrompt"]
                 }
             },
             prompts: {
