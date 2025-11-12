@@ -11,6 +11,7 @@ import YoutubeExternalApp from './YoutubeExternalApp';
 import AppAffiliate from './AppAffiliate';
 import MyChannelApp from './MyChannelApp';
 import TaoAnhTrendApp from './TaoAnhTrendApp';
+import VietKichBanApp from './VietKichBanApp';
 
 
 // --- ICONS ---
@@ -37,6 +38,12 @@ const IconPromptJson = (props: React.SVGProps<SVGSVGElement>) => (
 const IconWhiskFlow = (props: React.SVGProps<SVGSVGElement>) => (
     React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" })
+    )
+);
+
+const IconVietKichBan = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" })
     )
 );
 
@@ -134,10 +141,7 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// FIX: Updated IconFacebook to accept props to resolve TypeScript errors by explicitly typing the props object.
-// FIX: Refactored to use an implicit return to resolve a TypeScript error.
-// FIX: Refactored the IconFacebook component by extracting props into a typed variable. This resolves a TypeScript type inference error with React.createElement where `className` was not being recognized as a valid attribute.
-// FIX on line 247: Inlined the props for the `path` element to resolve a subtle TypeScript error.
+// FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
 const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -146,8 +150,11 @@ const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
+    const pathProps: React.SVGProps<SVGPathElement> = {
+        d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"
+    };
     return React.createElement('svg', svgProps,
-        React.createElement('path', { d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" })
+        React.createElement('path', pathProps)
     );
 };
 
@@ -320,6 +327,7 @@ const App = () => {
         { id: 'prompt_json', text: 'Prompt JSON', title: 'Viết kịch bản và xuất Prompt chuẩn JSON', icon: React.createElement(IconPromptJson), description: 'Tự động tạo kịch bản video và chuỗi Prompt JSON tương ứng thích hợp tạo video.' },
         { id: 'whisk_flow', text: 'Whisk & Flow I', title: 'Prompt chuẩn hóa Whisk & Flow', icon: React.createElement(IconWhiskFlow), description: 'Tạo kịch bản và prompt, đảm bảo nhân vật giữ nguyên khuôn mặt và trang phục trong suốt video.' },
         { id: 'my_channel', text: 'Whisk & Flow II', title: 'Kịch bản & Xuất Prompt Whisk & Flow', icon: React.createElement(IconConsistentFlow), description: 'Tạo kịch bản và prompt, giữ nguyên khuôn mặt nhưng linh hoạt thay đổi trang phục nhân vật theo từng cảnh.' },
+        { id: 'viet_kich_ban', text: 'Viết kịch bản', title: 'AI Biên Kịch & Đạo Diễn', icon: React.createElement(IconVietKichBan), description: 'Tạo danh sách nhân vật và chuỗi prompt chuyên nghiệp cho VEO 3.1.' },
         { id: 'create_thumbnail', text: 'Tạo Thumbnail', title: 'AI tạo Thumbnail đỉnh cao', icon: React.createElement(IconCreateThumbnail), description: 'Tạo thumbnail cho Youtube, Tiktok, Facebook sáng tạo, giúp video của bạn tăng lượt Click.' },
         { id: 'tao_anh_trend', text: 'Tạo ảnh Trend', title: 'Tạo ảnh theo phong cách riêng', icon: React.createElement(IconSeoYoutube), description: 'Công nghệ tạo ảnh theo phong cách riêng của bạn và theo xu hướng thịnh hành.' },
         { id: 'seo_youtube', text: 'SEO Youtube', title: 'Công cụ SEO Youtube đỉnh cao', icon: React.createElement(IconSeoYoutube), description: 'Tối ưu Tiêu đề, Mô tả, và Tags cho video YouTube của bạn.' },
@@ -339,6 +347,7 @@ const App = () => {
       "prompt_json": "https://www.youtube.com/watch?v=Uql-HZz8UnM",
       "whisk_flow": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "my_channel": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "viet_kich_ban": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "create_thumbnail": "https://www.youtube.com/watch?v=9d9c5Q1nID8",
       "tao_anh_trend": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "create_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
@@ -403,6 +412,7 @@ const App = () => {
             case 'whisk_flow': return React.createElement(WhiskFlowApp, { apiKey: geminiApiKey });
             case 'my_channel': return React.createElement(MyChannelApp, { apiKey: geminiApiKey });
             case 'prompt_json': return React.createElement(PromptJsonApp, appProps);
+            case 'viet_kich_ban': return React.createElement(VietKichBanApp, { apiKey: geminiApiKey });
             case 'create_thumbnail': return React.createElement(CreateThumbnailApp, { apiKey: geminiApiKey });
             case 'tao_anh_trend': return React.createElement(TaoAnhTrendApp, { apiKey: geminiApiKey });
             case 'seo_youtube': return React.createElement(SeoYoutubeApp, appProps);
