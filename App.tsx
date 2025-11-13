@@ -345,7 +345,7 @@ const App = () => {
     ];
     
     const tutorialLinks = {
-      "dashboard": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "dashboard": "https://www.youtube.com/watch?v=0JHNmbmnTR4",
       "prompt_json": "https://www.youtube.com/watch?v=Uql-HZz8UnM",
       "whisk_flow": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "my_channel": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
