@@ -20,6 +20,26 @@ const Button = ({ children, className = '', variant = 'primary', ...props }) => 
   );
 };
 
+const AspectRatioSelector = ({ selectedRatio, onSelect, disabled }) => {
+    const ratios = [
+        { id: '16:9', label: 'Ngang' },
+        { id: '9:16', label: 'Dọc' },
+        { id: '1:1', label: 'Vuông' }
+    ];
+    return (
+        React.createElement('div', { className: "flex justify-center gap-2 mb-2" },
+            ratios.map(ratio => React.createElement(Button, {
+                key: ratio.id,
+                variant: selectedRatio === ratio.id && !disabled ? 'active' : 'secondary',
+                onClick: () => onSelect(ratio.id),
+                disabled: disabled,
+                children: ratio.label
+            }))
+        )
+    );
+};
+
+
 // =================================================================
 // UI HELPERS & UTILS
 // =================================================================
@@ -63,30 +83,6 @@ const parseAndEnhanceErrorMessage = (rawError) => {
 // =================================================================
 // CUSTOM UI COMPONENTS for TAO ANH TREND
 // =================================================================
-const PlatformSelector = ({ platform, setPlatform, isGenerating }) => {
-  const platformOptions = {
-    '16:9': 'Khổ ngang 16:9',
-    '1:1': 'khổ vuông 1:1',
-  };
-  return (
-      React.createElement('div', null,
-          React.createElement('label', { className: "block text-sm font-semibold mb-2" }, "Tỷ lệ ảnh"),
-          React.createElement('div', { className: "flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2" },
-              Object.entries(platformOptions).map(([value, label]) => (
-                React.createElement(Button, {
-                  key: value,
-                  variant: platform === value ? 'active' : 'secondary',
-                  onClick: () => setPlatform(value),
-                  className: "flex-1",
-                  disabled: isGenerating,
-                  children: label
-                })
-              ))
-          )
-      )
-  );
-};
-
 type UploadedImage = {
   id: string;
   base64: string;
@@ -94,84 +90,69 @@ type UploadedImage = {
   mimeType: string;
 };
 
-const MultiImageUploader = ({ uploadedImages, setUploadedImages, isGenerating, title, maxImages = 4 }) => {
+const SingleImageUploader = ({ uploadedImage, setUploadedImage, isGenerating, placeholderText, label }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const currentImages = [...uploadedImages];
-      const filesToProcess = Array.from(files).slice(0, maxImages - currentImages.length);
-      
-      // Fix: Explicitly type the 'file' parameter to resolve TypeScript errors with 'unknown' type.
-      filesToProcess.forEach((file: File) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            const newImage = {
-              id: `${file.name}-${Date.now()}`,
-              base64: reader.result.split(',')[1],
-              dataUrl: reader.result,
-              mimeType: file.type,
-            };
-            setUploadedImages(prev => [...prev, newImage]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setUploadedImage({
+            id: `${file.name}-${Date.now()}`,
+            base64: reader.result.split(',')[1],
+            dataUrl: reader.result,
+            mimeType: file.type,
+          });
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
-
-  const removeImage = (idToRemove: string) => {
-    setUploadedImages(prev => prev.filter(img => img.id !== idToRemove));
-  };
-
+  
   return (
-    React.createElement('div', null,
-      React.createElement('label', { className: "block text-sm font-semibold mb-2" }, title),
-      React.createElement('div', {
-        className: "w-full min-h-32 bg-slate-800 border-2 border-dashed border-slate-600 rounded-lg p-2 flex flex-wrap gap-2 items-center justify-center transition"
-      },
-        uploadedImages.map(image => (
-          React.createElement('div', { key: image.id, className: "relative w-24 h-24 group flex-shrink-0" },
-            React.createElement('img', { src: image.dataUrl, alt: "Preview", className: "w-full h-full object-cover rounded-md" }),
-            (() => {
+      React.createElement('div', {className: 'flex-1 flex flex-col'},
+        label && React.createElement('label', { className: "block text-sm text-center font-semibold mb-2" }, label),
+        React.createElement('div', { 
+          className: "w-full h-32 bg-slate-800 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-slate-700 transition relative group",
+          onClick: () => !isGenerating && fileInputRef.current?.click()
+        },
+          React.createElement('input', { 
+            type: "file", 
+            ref: fileInputRef, 
+            className: "hidden", 
+            onChange: handleFileChange, 
+            accept: "image/png, image/jpeg, image/webp",
+            disabled: isGenerating,
+          }),
+          uploadedImage ? (
+            React.createElement(React.Fragment, null,
+              React.createElement('img', { src: uploadedImage.dataUrl, alt: "Uploaded preview", className: "w-full h-full object-cover rounded-lg" }),
+              (() => {
                 const buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
-                    onClick: () => !isGenerating && removeImage(image.id),
-                    className: "absolute top-0.5 right-0.5 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-0.5 leading-none shadow-md transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100",
+                    onClick: (e) => { e.stopPropagation(); setUploadedImage(null); },
+                    className: "absolute top-1 right-1 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 leading-none shadow-md transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100",
                     disabled: isGenerating,
                     'aria-label': "Remove image"
                 };
                 return React.createElement('button', buttonProps,
-                  React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-3 w-3", viewBox: "0 0 20 20", fill: "currentColor" },
-                    React.createElement('path', { fillRule: "evenodd", d: "M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z", clipRule: "evenodd" })
-                  )
+                    React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-3 w-3", viewBox: "0 0 20 20", fill: "currentColor" },
+                        React.createElement('path', { fillRule: "evenodd", d: "M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z", clipRule: "evenodd" })
+                    )
                 );
-            })()
-          )
-        )),
-        uploadedImages.length < maxImages && (
-          React.createElement('div', {
-            onClick: () => !isGenerating && fileInputRef.current?.click(),
-            className: "w-24 h-24 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-slate-700 rounded-md transition-colors"
-          },
-            React.createElement('p', null, "+ Thêm ảnh"),
-            React.createElement('p', { className: "text-xs" }, `(${uploadedImages.length}/${maxImages})`)
+              })()
+            )
+          ) : (
+            React.createElement('div', { className: "text-center text-gray-400 p-2" },
+              React.createElement('p', null, placeholderText)
+            )
           )
         )
-      ),
-      React.createElement('input', {
-        type: "file",
-        ref: fileInputRef,
-        className: "hidden",
-        onChange: handleFileChange,
-        accept: "image/png, image/jpeg, image/webp",
-        disabled: isGenerating || uploadedImages.length >= maxImages,
-        multiple: true
-      })
-    )
+      )
   );
 };
+
 
 const ImageCountSelector = ({ numberOfImages, setNumberOfImages, isGenerating }) => {
    return (
@@ -202,11 +183,18 @@ interface Result {
 }
 interface ResultsPanelProps {
   results: Result[];
-  platform: string;
 }
 
-const ResultsPanel = ({ results, platform }: ResultsPanelProps) => {
-  const gridClass = platform === '16:9' 
+const ResultsPanel = ({ results }: ResultsPanelProps) => {
+  const isLandscape = results.length > 0 && results[0].imageUrl 
+    ? (() => {
+        const img = new Image();
+        img.src = results[0].imageUrl;
+        return img.naturalWidth > img.naturalHeight;
+      })()
+    : true;
+    
+  const gridClass = isLandscape
       ? 'grid grid-cols-1 md:grid-cols-2 gap-4' 
       : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4';
 
@@ -248,84 +236,107 @@ const ResultsPanel = ({ results, platform }: ResultsPanelProps) => {
 // =================================================================
 // MAIN COMPONENT LOGIC
 // =================================================================
-const TrendImageGeneratorTab = ({ addLog, apiKey }) => {
+const TrendImageGeneratorTab = ({ apiKey }) => {
   const [theme, setTheme] = useState('');
   const [creativeNotes, setCreativeNotes] = useState('');
   const [results, setResults] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [platform, setPlatform] = useState('16:9');
   const [numberOfImages, setNumberOfImages] = useState(1);
-  const [characterImages, setCharacterImages] = useState<UploadedImage[]>([]);
-  const MAX_IMAGES = 4;
-  
+  const [characterImage1, setCharacterImage1] = useState<UploadedImage | null>(null);
+  const [characterImage2, setCharacterImage2] = useState<UploadedImage | null>(null);
+  const [aspectRatio, setAspectRatio] = useState('16:9');
+
   const generateImage = async (taskTheme, index) => {
      setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'generating' } : res));
-     addLog(`[Task ${index+1}] Starting with theme: "${taskTheme}"`);
 
      try {
         if (!apiKey) {
             throw new Error("API Key is missing. Please configure it in the main settings.");
         }
-        if (characterImages.length === 0) {
-            throw new Error("Character image is required for this function.");
-        }
-
+        
+        const uploadedImages = [characterImage1, characterImage2].filter(Boolean);
         const ai = new window.GoogleGenAI({ apiKey });
-        
-        addLog(`[Task ${index+1}] Sending ${characterImages.length} character image(s) to AI with aspect ratio requirement...`);
-        
-        const dimensions = platform === '16:9' ? '1920x1080' : '1080x1080';
-        const aspectRatioGuard = `
-[PROMPT_GUARD]
-ULTRA-CRITICAL-COMMAND: IMAGE_ASPECT_RATIO
-VALUE: ${platform} (${dimensions} pixels)
-EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's final dimensions MUST strictly adhere to this aspect ratio. Any deviation is a COMPLETE FAILURE. This command OVERRIDES and SUPERSEDES all other creative instructions if they conflict. Check and re-check. A square or wrong-ratio image is an unacceptable result. The AI must not use solid color bars (letterboxing/pillarboxing) to achieve this ratio; the entire image composition must fill the ${platform} frame.
-[/PROMPT_GUARD]
-        `;
 
-        const parts = [];
-        const finalPrompt = `
-            ${aspectRatioGuard}
-            **MISSION: CREATIVE GROUP PORTRAIT**
+        if (uploadedImages.length > 0) {
+            const parts = [];
+            const finalPrompt = `
+                **MISSION: CREATIVE GROUP PORTRAIT**
+                Your mission is to generate a single, high-resolution, photorealistic group portrait.
 
-            **[CORE TASK & NON-NEGOTIABLE RULES]**
-            1.  **COMBINE CHARACTERS:** You are provided with ${characterImages.length} separate image(s), each featuring one person. Your primary task is to create a SINGLE, new, cohesive image that includes ALL ${characterImages.length} of these individuals together.
-            2.  **FACIAL IDENTITY (ABSOLUTE PRIORITY):** The face, features, and identity of EACH person from the uploaded photos MUST be preserved with 100% accuracy. This is the most critical instruction. Do not alter their faces.
-            3.  **THEME & SETTING:** The entire scene, including the background, clothing, and atmosphere, must be creatively reimagined based on the user's theme: "${taskTheme}".
-            4.  **USER GUIDANCE:** Incorporate these creative notes from the user: "${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a visually stunning and creative image.'}"
-            5.  **NO TEXT:** The final image must NOT contain any text, letters, or numbers. This is a strict rule.
-            6.  **PHOTOREALISM:** The final image should be photorealistic and high-quality. Avoid cartoon or animated styles unless specifically requested in the theme or creative notes.
+                **[CORE TASK & NON-NEGOTIABLE RULES]**
+                1.  **COMBINE CHARACTERS:** You are provided with ${uploadedImages.length} separate image(s), each featuring one person. Your primary task is to create a SINGLE, new, cohesive image that includes ALL ${uploadedImages.length} of these individuals together.
+                2.  **ASPECT RATIO:** The final image's aspect ratio MUST be determined by the aspect ratio of the FIRST uploaded character image. This is a critical instruction for visual consistency.
+                3.  **FACIAL IDENTITY (ABSOLUTE PRIORITY):** The face, features, and identity of EACH person from the uploaded photos MUST be preserved with 100% accuracy. This is the most critical instruction. Do not alter their faces.
+                4.  **THEME & SETTING:** The entire scene, including the background, clothing, and atmosphere, must be creatively reimagined based on the user's theme: "${taskTheme}".
+                5.  **USER GUIDANCE:** Incorporate these creative notes from the user: "${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a visually stunning and creative image.'}"
+                6.  **NO TEXT:** The final image must NOT contain any text, letters, or numbers. This is a strict rule.
+                7.  **PHOTOREALISM:** The final image should be photorealistic and high-quality. Avoid cartoon or animated styles unless specifically requested in the theme or creative notes.
 
-            **FINAL REVIEW:** Does the image contain all ${characterImages.length} people? Are all faces recognizable? Does the scene match the theme? Is there absolutely NO TEXT on the image? If all answers are YES, complete the mission.
-        `;
-        
-        parts.push({ text: finalPrompt });
-        characterImages.forEach(img => {
-            parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
-        });
+                **FINAL MANDATORY CHECKLIST:**
+                1.  **CHARACTERS:** Does the image contain all ${uploadedImages.length} people and are their faces recognizable? -> If not, FAIL.
+                2.  **THEME:** Does the scene match the theme? -> If not, FAIL.
+                3.  **TEXT:** Is there absolutely NO TEXT on the image? -> If not, FAIL.
+            `;
+            
+            parts.push({ text: finalPrompt });
+            uploadedImages.forEach(img => {
+                parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
+            });
 
-        const apiContents = { parts };
+            const apiContents = { parts };
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: apiContents,
-            config: { responseModalities: [window.GenAIModality.IMAGE] },
-        });
-        
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-        if (!imagePart || !imagePart.inlineData) {
-            throw new Error('Image generation succeeded, but no image data was returned.');
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash-image',
+                contents: apiContents,
+                config: { responseModalities: [window.GenAIModality.IMAGE] },
+            });
+            
+            const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+            if (!imagePart || !imagePart.inlineData) {
+                throw new Error('Image generation succeeded, but no image data was returned.');
+            }
+
+            const base64ImageBytes = imagePart.inlineData.data;
+            const imageUrl = `data:${imagePart.inlineData.mimeType};base64,${base64ImageBytes}`;
+
+            setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
+
+        } else {
+            // New logic for imagen-4.0-generate-001 (text-only)
+            const finalImagenPrompt = `
+              **MISSION: Create ONE viral-quality image (VISUALS ONLY).**
+
+              **[DESIGN & STYLE REQUIREMENTS]**
+              *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${taskTheme}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
+              *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles.
+              *   **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly creative image.'}
+              ---
+              **FINAL GOAL:** A visually stunning image that represents the theme perfectly, with absolutely NO TEXT.
+            `;
+
+            const response = await ai.models.generateImages({
+                model: 'imagen-4.0-generate-001',
+                prompt: finalImagenPrompt,
+                config: {
+                  numberOfImages: 1,
+                  outputMimeType: 'image/png',
+                  aspectRatio: aspectRatio,
+                },
+            });
+
+            if (!response.generatedImages?.[0]?.image?.imageBytes) {
+                throw new Error('Image generation succeeded, but no image data was returned from Imagen.');
+            }
+
+            const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+            const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+
+            setResults(prev => prev.map((res, idx) => 
+                idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
+            ));
         }
-
-        const base64ImageBytes = imagePart.inlineData.data;
-        const imageUrl = `data:${imagePart.inlineData.mimeType};base64,${base64ImageBytes}`;
-
-        setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
-        addLog(`[Task ${index+1}] Image ready!`, 'success');
-        
      } catch(error) {
         const errorMessage = parseAndEnhanceErrorMessage(error);
-        addLog(`[Task ${index+1}] Error: ${errorMessage}`, 'error');
         setResults(prev => prev.map((res, idx) => 
             idx === index ? { ...res, status: 'error', error: errorMessage } : res
         ));
@@ -334,16 +345,12 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
 
   const handleGenerateClick = async () => {
     if (!apiKey) {
-      addLog('Vui lòng cài đặt API Key trước khi tạo.', 'error');
+      alert('Vui lòng cài đặt API Key trước khi tạo.');
       return;
     }
-    if (characterImages.length === 0) {
-      addLog('Vui lòng tải ít nhất một ảnh nhân vật.', 'warning');
+    if (!characterImage1 && !theme.trim()) {
+      alert('Vui lòng nhập chủ đề hoặc tải ít nhất một ảnh nhân vật.');
       return;
-    }
-    if (!theme.trim()) {
-        addLog('Vui lòng nhập chủ đề cho ảnh.', 'warning');
-        return;
     }
 
     const tasks: Result[] = [];
@@ -356,7 +363,6 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
     }
 
     setIsGenerating(true);
-    addLog(`Bắt đầu tạo ${tasks.length} ảnh theo chủ đề "${theme}"...`);
     setResults(tasks);
 
     for (let i = 0; i < tasks.length; i++) {
@@ -364,11 +370,10 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
     }
 
     setIsGenerating(false);
-    addLog('Hoàn tất tất cả các tác vụ.', 'info');
   };
   
-  const totalImages = characterImages.length > 0 ? numberOfImages : 0;
-  const canGenerate = isGenerating || characterImages.length === 0 || !theme.trim();
+  const totalImages = (characterImage1 || theme.trim()) ? numberOfImages : 0;
+  const canGenerate = isGenerating || (!characterImage1 && !theme.trim());
 
   const themeTextAreaProps: React.TextareaHTMLAttributes<HTMLTextAreaElement> = {
     id: "theme-textarea",
@@ -393,14 +398,31 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
         React.createElement('div', null,
           React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "1. Tùy chỉnh"),
           React.createElement('div', { className: "bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4" },
-              React.createElement(PlatformSelector, { platform, setPlatform, isGenerating }),
-              React.createElement(MultiImageUploader, { 
-                    uploadedImages: characterImages, 
-                    setUploadedImages: setCharacterImages, 
-                    isGenerating, 
-                    title: "Upload ảnh nhân vật",
-                    maxImages: MAX_IMAGES
-              }),
+              React.createElement('div', null,
+                  React.createElement('label', { className: "block text-sm font-semibold mb-2" }, "Upload ảnh nhân vật"),
+                  React.createElement(AspectRatioSelector, {
+                      selectedRatio: aspectRatio,
+                      onSelect: setAspectRatio,
+                      disabled: !!(characterImage1 || characterImage2)
+                  }),
+                  React.createElement('p', { className: "text-xs text-center text-slate-400 mb-2" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
+                  React.createElement('div', { className: "flex gap-4" },
+                      React.createElement(SingleImageUploader, { 
+                          label: "Nhân vật 1",
+                          uploadedImage: characterImage1, 
+                          setUploadedImage: setCharacterImage1, 
+                          isGenerating, 
+                          placeholderText: "Upload ảnh 1"
+                      }),
+                      React.createElement(SingleImageUploader, { 
+                          label: "Nhân vật 2",
+                          uploadedImage: characterImage2, 
+                          setUploadedImage: setCharacterImage2, 
+                          isGenerating, 
+                          placeholderText: "Upload ảnh 2"
+                      })
+                  )
+              ),
               React.createElement(ImageCountSelector, { numberOfImages, setNumberOfImages, isGenerating })
           )
         ),
@@ -433,51 +455,17 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
 
       React.createElement('div', { className: "lg:w-3/5 xl:w-2/3" },
          React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "3. Kết quả"),
-         React.createElement(ResultsPanel, { results, platform })
+         React.createElement(ResultsPanel, { results })
       )
     )
   );
 };
 
 const TaoAnhTrendApp = ({ apiKey }) => {
-  const [logs, setLogs] = useState([]);
-
-  const addLog = (message, type = 'info') => {
-    const newLog = {
-      id: Date.now(),
-      message,
-      type,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-    setLogs(prev => [newLog, ...prev.slice(0, 100)]);
-  };
-  
-  const getLogColor = (type) => {
-    switch (type) {
-        case 'success': return 'text-green-400';
-        case 'error': return 'text-red-400';
-        case 'warning': return 'text-yellow-400';
-        default: return 'text-gray-400';
-    }
-  }
-
   return (
     React.createElement('div', { className: "min-h-screen w-full p-4" },
       React.createElement('main', { className: "text-gray-300 space-y-6 h-full" },
-          React.createElement(TrendImageGeneratorTab, { addLog, apiKey }),
-          logs.length > 0 && (
-             React.createElement('div', null,
-                React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "Logs"),
-                React.createElement('div', { className: "bg-slate-900/50 border border-slate-700 rounded-lg p-3 max-h-60 overflow-y-auto font-mono text-xs" },
-                    logs.map(log => (
-                        React.createElement('p', { key: log.id, className: "flex" },
-                            React.createElement('span', { className: "text-gray-500 mr-2 flex-shrink-0" }, log.timestamp),
-                            React.createElement('span', { className: `${getLogColor(log.type)} break-all` }, log.message)
-                        )
-                    ))
-                )
-            )
-          )
+          React.createElement(TrendImageGeneratorTab, { apiKey })
       )
     )
   );

@@ -77,29 +77,47 @@ const parseAndEnhanceErrorMessage = (rawError) => {
 // =================================================================
 // COMMON UI COMPONENTS for THUMBNAIL TAB
 // =================================================================
-const PlatformSelector = ({ platform, setPlatform, isGenerating }) => {
-  const platformOptions = {
-    '16:9': 'Khổ ngang 16:9',
-    '1:1': 'khổ vuông 1:1',
-  };
-  return (
-      React.createElement('div', null,
-          React.createElement('label', { className: "block text-sm font-semibold mb-2" }, "Tỷ lệ ảnh"),
-          React.createElement('div', { className: "flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2" },
-              Object.entries(platformOptions).map(([value, label]) => (
-                React.createElement(Button, {
-                  key: value,
-                  variant: platform === value ? 'active' : 'secondary',
-                  onClick: () => setPlatform(value),
-                  className: "flex-1",
-                  disabled: isGenerating,
-                  children: label
-                })
-              ))
-          )
+
+const Lightbox = ({ imageUrl, onClose }) => {
+    if (!imageUrl) return null;
+
+    const handleSave = () => {
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `thumbnail-image-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    return React.createElement('div', {
+        className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
+        onClick: onClose
+      },
+      React.createElement('div', {
+        className: "relative w-full max-w-4xl max-h-[90vh] p-4",
+        onClick: e => e.stopPropagation()
+      },
+// FIX: Inlined image properties to resolve a TypeScript overload error with React.createElement.
+        React.createElement('img', {
+            src: imageUrl,
+            alt: "Enlarged thumbnail",
+            className: "w-full h-full object-contain rounded-lg shadow-2xl"
+        }),
+        React.createElement('div', { className: "absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4" },
+          React.createElement('button', {
+            onClick: handleSave,
+            className: "px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors shadow-lg"
+          }, "Lưu ảnh"),
+          React.createElement('button', {
+            onClick: onClose,
+            className: "px-6 py-2 bg-gray-700 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors shadow-lg"
+          }, "Đóng")
+        )
       )
-  );
+    );
 };
+
 
 type UploadedImage = {
   id: string;
@@ -108,7 +126,7 @@ type UploadedImage = {
   mimeType: string;
 };
 
-const SingleImageUploader = ({ uploadedImage, setUploadedImage, isGenerating, title, helpText }) => {
+const SingleImageUploader = ({ uploadedImage, setUploadedImage, isGenerating, placeholderText }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +149,6 @@ const SingleImageUploader = ({ uploadedImage, setUploadedImage, isGenerating, ti
   
   return (
       React.createElement('div', null,
-        React.createElement('label', { className: "block text-sm font-semibold mb-2" }, title),
         React.createElement('div', { 
           className: "w-full h-32 bg-slate-800 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-slate-700 transition relative group",
           onClick: () => !isGenerating && fileInputRef.current?.click()
@@ -163,9 +180,8 @@ const SingleImageUploader = ({ uploadedImage, setUploadedImage, isGenerating, ti
               })()
             )
           ) : (
-            React.createElement('div', { className: "text-center text-gray-400" },
-              React.createElement('p', null, "Click để chọn ảnh"),
-              React.createElement('p', { className: "text-xs" }, helpText)
+            React.createElement('div', { className: "text-center text-gray-400 p-2" },
+              React.createElement('p', null, placeholderText)
             )
           )
         )
@@ -193,6 +209,25 @@ const ImageCountSelector = ({ numberOfImages, setNumberOfImages, isGenerating })
    );
 };
 
+const AspectRatioSelector = ({ selectedRatio, onSelect, disabled }) => {
+    const ratios = [
+        { id: '16:9', label: 'Ngang' },
+        { id: '9:16', label: 'Dọc' },
+        { id: '1:1', label: 'Vuông' }
+    ];
+    return (
+        React.createElement('div', { className: "flex justify-center gap-2 mb-2" },
+            ratios.map(ratio => React.createElement(Button, {
+                key: ratio.id,
+                variant: selectedRatio === ratio.id && !disabled ? 'active' : 'secondary',
+                onClick: () => onSelect(ratio.id),
+                disabled: disabled,
+                children: ratio.label
+            }))
+        )
+    );
+};
+
 interface Result {
   id: string;
   status: 'generating' | 'pending' | 'error' | 'done';
@@ -202,11 +237,20 @@ interface Result {
 }
 interface ResultsPanelProps {
   results: Result[];
-  platform: string;
+  onImageClick: (url: string) => void;
 }
 
-const ResultsPanel = ({ results, platform }: ResultsPanelProps) => {
-  const gridClass = platform === '16:9' 
+const ResultsPanel = ({ results, onImageClick }: ResultsPanelProps) => {
+  // Determine grid layout based on the first image's aspect ratio, default to grid
+  const isLandscape = results.length > 0 && results[0].imageUrl 
+    ? (() => {
+        const img = new Image();
+        img.src = results[0].imageUrl;
+        return img.naturalWidth > img.naturalHeight;
+      })()
+    : true;
+
+  const gridClass = isLandscape
       ? 'grid grid-cols-1 md:grid-cols-2 gap-4' 
       : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4';
 
@@ -218,7 +262,10 @@ const ResultsPanel = ({ results, platform }: ResultsPanelProps) => {
           React.createElement('div', { className: gridClass },
             results.map(res => (
               React.createElement('div', { key: res.id, className: "bg-slate-800 rounded-lg shadow-lg overflow-hidden flex flex-col" },
-                  React.createElement('div', { className: "w-full aspect-video bg-slate-700 flex items-center justify-center" },
+                  React.createElement('div', { 
+                      className: "w-full aspect-video bg-slate-700 flex items-center justify-center cursor-pointer",
+                      onClick: () => res.status === 'done' && res.imageUrl && onImageClick(res.imageUrl)
+                  },
                       (res.status === 'generating' || res.status === 'pending') && React.createElement(Spinner),
                       res.status === 'error' && React.createElement(ErrorDisplay, { message: res.error || 'An unknown error occurred.' }),
                       res.status === 'done' && res.imageUrl && 
@@ -248,96 +295,43 @@ const ResultsPanel = ({ results, platform }: ResultsPanelProps) => {
 // =================================================================
 // TAB: THUMBNAIL GENERATOR
 // =================================================================
-const ThumbnailGeneratorTab = ({ addLog, apiKey }) => {
+const ThumbnailGeneratorTab = ({ apiKey }) => {
   const [prompts, setPrompts] = useState('');
   const [creativeNotes, setCreativeNotes] = useState('');
   const [results, setResults] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [platform, setPlatform] = useState('16:9');
   const [numberOfImages, setNumberOfImages] = useState(1);
   const [characterImage, setCharacterImage] = useState<UploadedImage | null>(null);
   const [accessoryImage, setAccessoryImage] = useState<UploadedImage | null>(null);
-  const [generationMode, setGenerationMode] = useState('accurate'); // 'accurate' or 'creative'
-  const [showTextOnThumbnail, setShowTextOnThumbnail] = useState(true);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [aspectRatio, setAspectRatio] = useState('16:9');
   
   const generateThumbnail = async (userTextPrompt, index) => {
      setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'generating' } : res));
-     addLog(`[Task ${index+1}] Starting with text: "${userTextPrompt}"`);
 
      try {
         if (!apiKey) {
             throw new Error("API Key is missing. Please configure it in the main settings.");
         }
         const ai = new window.GoogleGenAI({ apiKey });
-        const platformName = platform === '16:9' ? 'YouTube' : 'Facebook';
         
-        const textProtocolPrompt = generationMode === 'creative' ? `
-          **[ZERO-TOLERANCE PROTOCOL: VIETNAMESE LANGUAGE ACCURACY - CREATIVE MODE]**
-          *   **GUIDING THEME:** Your primary guide is the user's text: "${userTextPrompt}".
-          *   **CREATIVE INTERPRETATION:** You are allowed to creatively interpret this theme. You can slightly rephrase or use a powerful keyword from the user's text for maximum visual impact on the thumbnail.
-          *   **ABSOLUTE MANDATE:** Despite creative freedom, any text you DO render must have **100% PERFECT VIETNAMESE ACCURACY**.
-          *   **DEFINITION OF FAILURE:** A single error in spelling, grammar, or diacritics (dấu) constitutes a **COMPLETE MISSION FAILURE**.
-          *   **DIACRITICS CHECKLIST (MUST VERIFY):** dấu sắc (´), dấu huyền (\`), dấu hỏi (?), dấu ngã (~), dấu nặng (.).
-          *   **MANDATORY SELF-CORRECTION:** Before outputting the final image, you MUST perform an internal check. If the rendered text does not have perfect Vietnamese, you are REQUIRED to regenerate it until it is a 100% match. This is not optional.
-          ---
-        ` : `
-          **[ZERO-TOLERANCE PROTOCOL: VIETNAMESE LANGUAGE ACCURACY - ACCURATE MODE]**
-          *   **ABSOLUTE MANDATE:** Your primary, non-negotiable mission is to render the following Vietnamese text with **100% PERFECT ACCURACY**.
-          *   **TEXT TO RENDER (EXACTLY AS WRITTEN):** "${userTextPrompt}"
-          *   **DEFINITION OF FAILURE:** A single error in spelling, grammar, or diacritics (dấu) constitutes a **COMPLETE MISSION FAILURE**. There is no partial success.
-          *   **DIACRITICS CHECKLIST (MUST VERIFY):** dấu sắc (´), dấu huyền (\`), dấu hỏi (?), dấu ngã (~), dấu nặng (.).
-          *   **MANDATORY SELF-CORRECTION:** Before outputting the final image, you MUST perform an internal check. If the rendered text does not perfectly match the input text, you are REQUIRED to regenerate it until it is a 100% match. This is not optional.
-          ---
-        `;
-
         if (characterImage) {
-          addLog(`[Task ${index+1}] Sending character image to AI Art Director with aspect ratio requirement...`);
           
-          const dimensions = platform === '16:9' ? '1920x1080' : '1080x1080';
-          const aspectRatioGuard = `
-[PROMPT_GUARD]
-ULTRA-CRITICAL-COMMAND: IMAGE_ASPECT_RATIO
-VALUE: ${platform} (${dimensions} pixels)
-EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's final dimensions MUST strictly adhere to this aspect ratio. Any deviation is a COMPLETE FAILURE. This command OVERRIDES and SUPERSEDES all other creative instructions if they conflict. Check and re-check. A square or wrong-ratio image is an unacceptable result. The AI must not use solid color bars (letterboxing/pillarboxing) to achieve this ratio; the entire image composition must fill the ${platform} frame.
-[/PROMPT_GUARD]
-          `;
-
           const parts = [];
           
-          let finalPrompt;
-            if (showTextOnThumbnail) {
-                finalPrompt = `
-              ${aspectRatioGuard}
-              **MISSION: VIRAL THUMBNAIL CREATION**
-
-              ${textProtocolPrompt}
-
-              **[ART DIRECTION & CREATIVE EXECUTION]**
-              1.  **CORE TASK:** Transform the uploaded image. The person in the image is the main character, but you must reimagine everything else: pose, action, clothing, and background to create a dynamic, viral-quality scene.
-              2.  **ACCESSORY INTEGRATION (If accessory image is provided):** The character MUST be wearing or using the accessory from the secondary image in a natural and visually appealing way. The accessory's design, shape, and color must be preserved with 100% fidelity.
-              3.  **THEME:** The visual theme must perfectly match the text.
-              4.  **TEXT STYLE:** Text must be large, stylish, and instantly readable.
-              5.  **FONT SELECTION:** You have the creative freedom to choose a professional, bold, and highly readable font. The font choice MUST support all Vietnamese characters and diacritics perfectly.
-              6.  **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly clickable thumbnail.'}
-              7.  **FACIAL IDENTITY (NON-NEGOTIABLE):** The character's face, features, and identity MUST be preserved with 100% accuracy from the uploaded photo. This is the most critical instruction. Do not alter the face.
-              
-              **FINAL REVIEW:** Is the Vietnamese text flawless? Is the person recognizable? Is the thumbnail visually compelling? If all answers are YES, complete the mission.
-            `;
-            } else {
-                finalPrompt = `
-              ${aspectRatioGuard}
+          const finalPrompt = `
               **MISSION: VIRAL THUMBNAIL CREATION (VISUALS ONLY)**
 
               **[ART DIRECTION & CREATIVE EXECUTION]**
               1.  **CORE TASK:** Transform the uploaded image based on a visual theme. The person in the image is the main character, but you must reimagine everything else: pose, action, clothing, and background to create a dynamic, viral-quality scene. **DO NOT ADD ANY TEXT TO THE IMAGE.**
-              2.  **ACCESSORY INTEGRATION (If accessory image is provided):** The character MUST be wearing or using the accessory from the secondary image in a natural and visually appealing way. The accessory's design, shape, and color must be preserved with 100% fidelity.
-              3.  **THEME:** The visual theme is: "${userTextPrompt}". All visuals must powerfully represent this concept.
-              4.  **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly clickable thumbnail.'}
-              5.  **FACIAL IDENTITY (NON-NEGOTIABLE):** The character's face, features, and identity MUST be preserved with 100% accuracy from the uploaded photo. This is the most critical instruction. Do not alter the face.
+              2.  **ASPECT RATIO:** The final image's aspect ratio MUST match the aspect ratio of the uploaded character image.
+              3.  **ACCESSORY INTEGRATION (If accessory image is provided):** The character MUST be wearing or using the accessory from the secondary image in a natural and visually appealing way. The accessory's design, shape, and color must be preserved with 100% fidelity.
+              4.  **THEME:** The visual theme is: "${userTextPrompt}". All visuals must powerfully represent this concept.
+              5.  **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly clickable thumbnail.'}
+              6.  **FACIAL IDENTITY (NON-NEGOTIABLE):** The character's face, features, and identity MUST be preserved with 100% accuracy from the uploaded photo. This is the most critical instruction. Do not alter the face.
 
               **FINAL REVIEW:** Is the person recognizable? Is the thumbnail visually compelling based on the theme? Is there absolutely NO TEXT on the image? If all answers are YES, complete the mission.
             `;
-            }
           
           parts.push({ text: finalPrompt });
           parts.push({ inlineData: { mimeType: characterImage.mimeType, data: characterImage.base64 }});
@@ -360,34 +354,15 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
           const imageUrl = `data:${response.candidates[0].content.parts[0].inlineData.mimeType};base64,${base64ImageBytes}`;
 
           setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
-          addLog(`[Task ${index+1}] Thumbnail ready!`, 'success');
 
         } else {
-          addLog(`[Task ${index+1}] Generating new image with specialized model (Imagen) to enforce aspect ratio...`);
           
           const creativeGuidanceForImagen = creativeNotes.trim()
               ? `**User's Creative Guidance (High Priority):** ${creativeNotes}`
               : '';
           
-          let finalImagenPrompt;
-            if (showTextOnThumbnail) {
-                finalImagenPrompt = `
-                **MISSION: Create ONE viral-quality thumbnail for ${platformName}.**
-
-                ${textProtocolPrompt}
-
-                **[DESIGN & STYLE REQUIREMENTS]**
-                *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${userTextPrompt}".
-                *   **FONT:** Choose a professional, bold, and highly readable font that is stylistically appropriate and ensures perfect Vietnamese character rendering.
-                *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles for maximum clickability.
-                *   **USER GUIDANCE:** ${creativeGuidanceForImagen}
-                *   **COMPOSITION:** Create a dynamic and engaging composition. AVOID boring, centered layouts. Integrate text and visuals seamlessly for maximum impact.
-                ---
-                **FINAL GOAL:** A visually stunning thumbnail with FLAWLESSLY RENDERED VIETNAMESE TEXT that is impossible to ignore.
-              `;
-            } else {
-                finalImagenPrompt = `
-                **MISSION: Create ONE viral-quality thumbnail for ${platformName} (VISUALS ONLY).**
+          const finalImagenPrompt = `
+                **MISSION: Create ONE viral-quality thumbnail (VISUALS ONLY).**
 
                 **[DESIGN & STYLE REQUIREMENTS]**
                 *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${userTextPrompt}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
@@ -397,7 +372,7 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
                 ---
                 **FINAL GOAL:** A visually stunning thumbnail that represents the theme perfectly, with absolutely NO TEXT.
               `;
-            }
+            
 
           const response = await ai.models.generateImages({
               model: 'imagen-4.0-generate-001',
@@ -405,7 +380,7 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
               config: {
                 numberOfImages: 1,
                 outputMimeType: 'image/png',
-                aspectRatio: platform, 
+                aspectRatio: aspectRatio, 
               },
           });
           
@@ -419,11 +394,9 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
           setResults(prev => prev.map((res, idx) => 
               idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
           ));
-          addLog(`[Task ${index+1}] Thumbnail ready! (Aspect ratio enforced)`, 'success');
         }
      } catch(error) {
         const errorMessage = parseAndEnhanceErrorMessage(error);
-        addLog(`[Task ${index+1}] Error: ${errorMessage}`, 'error');
         setResults(prev => prev.map((res, idx) => 
             idx === index ? { ...res, status: 'error', error: errorMessage } : res
         ));
@@ -432,12 +405,12 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
 
   const handleGenerateClick = async () => {
     if (!apiKey) {
-      addLog('Vui lòng cài đặt API Key trước khi tạo.', 'error');
+      alert('Vui lòng cài đặt API Key trước khi tạo.');
       return;
     }
     const promptList = prompts.split('\n').filter(p => p.trim() !== '');
     if (promptList.length === 0 && !characterImage) {
-      addLog('Vui lòng nhập nội dung chữ hoặc tải ảnh nhân vật lên.', 'warning');
+      alert('Vui lòng nhập mô tả nội dung hoặc tải ảnh mẫu lên.');
       return;
     }
     
@@ -455,7 +428,6 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
     });
 
     setIsGenerating(true);
-    addLog(`Bắt đầu tạo ${tasks.length} thumbnail...`);
     setResults(tasks);
 
     for (let i = 0; i < tasks.length; i++) {
@@ -463,7 +435,6 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
     }
 
     setIsGenerating(false);
-    addLog('Hoàn tất tất cả các tác vụ.', 'info');
   };
   
   const promptCount = prompts.split('\n').filter(p => p.trim() !== '').length || (characterImage ? 1 : 0);
@@ -488,124 +459,73 @@ EXECUTION: This command is NON-NEGOTIA-BLE and ABSOLUTE. The generated image's f
   };
 
   return (
-    React.createElement('div', { className: "flex flex-col lg:flex-row gap-8" },
-      React.createElement('div', { className: "lg:w-2/5 xl:w-1/3 flex-shrink-0 space-y-8" },
-        React.createElement('div', null,
-          React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "1. Tùy chỉnh"),
-          React.createElement('div', { className: "bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4" },
-              React.createElement(PlatformSelector, { platform, setPlatform, isGenerating }),
-              React.createElement('div', { className: "grid grid-cols-2 gap-4" },
-                React.createElement(SingleImageUploader, { 
-                    uploadedImage: characterImage, 
-                    setUploadedImage: setCharacterImage, 
-                    isGenerating, 
-                    title: "Upload ảnh nhân vật",
-                    helpText: "(Bắt buộc nếu không nhập chữ)"
+    React.createElement(React.Fragment, null,
+      lightboxImage && React.createElement(Lightbox, { imageUrl: lightboxImage, onClose: () => setLightboxImage(null) }),
+      React.createElement('div', { className: "flex flex-col lg:flex-row gap-8" },
+        React.createElement('div', { className: "lg:w-2/5 xl:w-1/3 flex-shrink-0 space-y-8" },
+          React.createElement('div', null,
+            React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "1. Tùy chỉnh"),
+            React.createElement('div', { className: "bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4" },
+                React.createElement(AspectRatioSelector, {
+                    selectedRatio: aspectRatio,
+                    onSelect: setAspectRatio,
+                    disabled: !!(characterImage || accessoryImage)
                 }),
-                React.createElement(SingleImageUploader, { 
-                    uploadedImage: accessoryImage, 
-                    setUploadedImage: setAccessoryImage, 
-                    isGenerating, 
-                    title: "Upload ảnh phụ kiện",
-                    helpText: "(Tùy chọn)"
+                React.createElement('p', { className: "text-sm text-center text-slate-400 -mb-2" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
+                React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+                  React.createElement(SingleImageUploader, { 
+                      uploadedImage: characterImage, 
+                      setUploadedImage: setCharacterImage, 
+                      isGenerating, 
+                      placeholderText: "Upload ảnh khổ NGANG"
+                  }),
+                  React.createElement(SingleImageUploader, { 
+                      uploadedImage: accessoryImage, 
+                      setUploadedImage: setAccessoryImage, 
+                      isGenerating, 
+                      placeholderText: "Upload ảnh khổ DỌC"
+                  })
+                ),
+                React.createElement(ImageCountSelector, { numberOfImages, setNumberOfImages, isGenerating })
+            )
+          ),
+
+          React.createElement('div', null,
+            React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "2. Nhập nội dung"),
+            React.createElement('div', { className: "bg-slate-900/50 p-4 rounded-lg border border-slate-700" },
+                React.createElement('label', { htmlFor: "prompt-textarea-image", className: "block text-sm font-semibold mb-1" },
+                    "Mô tả nội dung ảnh Thumbnail"
+                ),
+                React.createElement('textarea', promptTextAreaProps),
+                 React.createElement('label', { htmlFor: "creative-notes-textarea", className: "block text-sm font-semibold mb-1 mt-4" },
+                    "Gợi ý sáng tạo (Tùy chọn)"
+                ),
+                React.createElement('textarea', creativeNotesTextAreaProps),
+                React.createElement(Button, {
+                    variant: "primary",
+                    className: "w-full mt-4 text-lg py-3",
+                    onClick: handleGenerateClick,
+                    disabled: canGenerate,
+                    children: isGenerating ? 'Đang tạo...' : `Tạo ${totalImages > 0 ? totalImages : ''} Thumbnail`
                 })
-              ),
-              React.createElement(ImageCountSelector, { numberOfImages, setNumberOfImages, isGenerating })
+            )
           )
         ),
 
-        React.createElement('div', null,
-          React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "2. Nhập nội dung"),
-          React.createElement('div', { className: "bg-slate-900/50 p-4 rounded-lg border border-slate-700" },
-              React.createElement('div', { className: "flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4" },
-                  React.createElement(Button, {
-                      variant: generationMode === 'accurate' ? 'active' : 'secondary',
-                      onClick: () => setGenerationMode('accurate'),
-                      disabled: isGenerating,
-                      className: "flex-1",
-                      children: "Chính xác"
-                  }),
-                  React.createElement(Button, {
-                      variant: generationMode === 'creative' ? 'active' : 'secondary',
-                      onClick: () => setGenerationMode('creative'),
-                      disabled: isGenerating,
-                      className: "flex-1",
-                      children: "Sáng tạo"
-                  })
-              ),
-              React.createElement(Button, {
-                  variant: showTextOnThumbnail ? 'active' : 'secondary',
-                  onClick: () => setShowTextOnThumbnail(!showTextOnThumbnail),
-                  disabled: isGenerating,
-                  className: "w-full mb-4",
-                  children: showTextOnThumbnail ? 'Đang hiển thị Text' : 'Đang ẩn Text'
-              }),
-              React.createElement('label', { htmlFor: "prompt-textarea-image", className: "block text-sm font-semibold mb-1" },
-                  "Nội dung hiển trên Thumbnail"
-              ),
-              React.createElement('textarea', promptTextAreaProps),
-               React.createElement('label', { htmlFor: "creative-notes-textarea", className: "block text-sm font-semibold mb-1 mt-4" },
-                  "Gợi ý sáng tạo (Tùy chọn)"
-              ),
-              React.createElement('textarea', creativeNotesTextAreaProps),
-              React.createElement(Button, {
-                  variant: "primary",
-                  className: "w-full mt-4 text-lg py-3",
-                  onClick: handleGenerateClick,
-                  disabled: canGenerate,
-                  children: isGenerating ? 'Đang tạo...' : `Tạo ${totalImages > 0 ? totalImages : ''} Thumbnail`
-              })
-          )
+        React.createElement('div', { className: "lg:w-3/5 xl:w-2/3" },
+           React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "3. Kết quả"),
+           React.createElement(ResultsPanel, { results, onImageClick: setLightboxImage })
         )
-      ),
-
-      React.createElement('div', { className: "lg:w-3/5 xl:w-2/3" },
-         React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "3. Kết quả"),
-         React.createElement(ResultsPanel, { results, platform })
       )
     )
   );
 };
 
 const CreateThumbnailApp = ({ apiKey }) => {
-  const [logs, setLogs] = useState([]);
-
-  const addLog = (message, type = 'info') => {
-    const newLog = {
-      id: Date.now(),
-      message,
-      type,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-    setLogs(prev => [newLog, ...prev.slice(0, 100)]);
-  };
-  
-  const getLogColor = (type) => {
-    switch (type) {
-        case 'success': return 'text-green-400';
-        case 'error': return 'text-red-400';
-        case 'warning': return 'text-yellow-400';
-        default: return 'text-gray-400';
-    }
-  }
-
   return (
     React.createElement('div', { className: "min-h-screen w-full p-4" },
       React.createElement('main', { className: "text-gray-300 space-y-6 h-full" },
-          React.createElement(ThumbnailGeneratorTab, { addLog, apiKey }),
-          logs.length > 0 && (
-             React.createElement('div', null,
-                React.createElement('h3', { className: "text-lg font-bold text-white mb-2" }, "Logs"),
-                React.createElement('div', { className: "bg-slate-900/50 border border-slate-700 rounded-lg p-3 max-h-60 overflow-y-auto font-mono text-xs" },
-                    logs.map(log => (
-                        React.createElement('p', { key: log.id, className: "flex" },
-                            React.createElement('span', { className: "text-gray-500 mr-2 flex-shrink-0" }, log.timestamp),
-                            React.createElement('span', { className: `${getLogColor(log.type)} break-all` }, log.message)
-                        )
-                    ))
-                )
-            )
-          )
+          React.createElement(ThumbnailGeneratorTab, { apiKey })
       )
     )
   );

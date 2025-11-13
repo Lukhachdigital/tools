@@ -1,11 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 
-const UploadIcon = () => (
-    React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-10 w-10", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 1.5 },
-        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" })
-    )
-);
-
 const WandIcon = () => (
     React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-6 w-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" })
@@ -42,74 +36,76 @@ const SaveIcon = () => (
     )
 );
 
-const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-            const result = reader.result;
-            if (typeof result === 'string') {
-                resolve(result.split(',')[1]);
-            } else {
-                reject(new Error('Failed to read file as data URL string.'));
-            }
-        };
-        reader.onerror = error => reject(error);
-    });
+type UploadedImage = {
+  id: string;
+  base64: string;
+  dataUrl: string;
+  mimeType: string;
 };
 
-const ImageUploader = ({ title, onImageUpload }) => {
-    const [preview, setPreview] = useState(null);
-    const inputRef = useRef(null);
+const SingleImageUploader = ({ label, uploadedImage, setUploadedImage, isGenerating, placeholderText }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = useCallback(async (event) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            if (preview) {
-                URL.revokeObjectURL(preview);
-            }
-            const previewUrl = URL.createObjectURL(file);
-            setPreview(previewUrl);
-
-            const base64 = await fileToBase64(file);
-            onImageUpload({
-                file: file,
-                previewUrl: previewUrl,
-                base64: base64,
-            });
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setUploadedImage({
+            id: `${file.name}-${Date.now()}`,
+            base64: reader.result.split(',')[1],
+            dataUrl: reader.result,
+            mimeType: file.type,
+          });
         }
-    }, [onImageUpload, preview]);
-
-    const handleClick = () => {
-        inputRef.current?.click();
-    };
-
-    return (
-        React.createElement('div', { className: "bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center text-center transition-all duration-300 hover:border-blue-500 hover:bg-slate-800" },
-            React.createElement('h3', { className: "text-md font-semibold text-slate-300 mb-2" }, title),
-            React.createElement('input', {
-                type: "file",
-                ref: inputRef,
-                onChange: handleFileChange,
-                className: "hidden",
-                accept: "image/png, image/jpeg, image/webp"
-            }),
-            React.createElement('div', {
-                onClick: handleClick,
-                className: "w-full aspect-square bg-slate-900/70 rounded-lg cursor-pointer flex items-center justify-center border-2 border-dashed border-slate-600 hover:border-blue-600 transition-colors"
-            },
-                preview ? (
-                    React.createElement('img', { src: preview, alt: "Uploaded preview", className: "w-full h-full object-cover rounded-lg" })
-                ) : (
-                    React.createElement('div', { className: "flex flex-col items-center text-slate-500" },
-                        React.createElement(UploadIcon),
-                        React.createElement('p', { className: "mt-2 text-sm" }, "Nhấp để tải lên")
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  return (
+      React.createElement('div', {className: 'flex flex-col items-center'},
+        React.createElement('h3', { className: "text-md font-semibold text-slate-300 mb-2" }, label),
+        React.createElement('div', { 
+          className: "w-full aspect-square bg-slate-800 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-slate-700 transition relative group",
+          onClick: () => !isGenerating && fileInputRef.current?.click()
+        },
+          React.createElement('input', { 
+            type: "file", 
+            ref: fileInputRef, 
+            className: "hidden", 
+            onChange: handleFileChange, 
+            accept: "image/png, image/jpeg, image/webp",
+            disabled: isGenerating,
+          }),
+          uploadedImage ? (
+            React.createElement(React.Fragment, null,
+              React.createElement('img', { src: uploadedImage.dataUrl, alt: "Uploaded preview", className: "w-full h-full object-cover rounded-lg" }),
+              (() => {
+                const buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+                    onClick: (e) => { e.stopPropagation(); setUploadedImage(null); },
+                    className: "absolute top-1 right-1 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 leading-none shadow-md transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100",
+                    disabled: isGenerating,
+                    'aria-label': "Remove image"
+                };
+                return React.createElement('button', buttonProps,
+                    React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-3 w-3", viewBox: "0 0 20 20", fill: "currentColor" },
+                        React.createElement('path', { fillRule: "evenodd", d: "M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z", clipRule: "evenodd" })
                     )
-                )
+                );
+              })()
             )
+          ) : (
+            React.createElement('div', { className: "text-center text-gray-400 p-2" },
+              React.createElement('p', null, placeholderText)
+            )
+          )
         )
-    );
+      )
+  );
 };
+
 
 const SkeletonLoader = () => (
     React.createElement('div', { className: "w-full animate-pulse flex flex-col gap-4" },
@@ -275,7 +271,6 @@ const generateSingleResult = async (
     ai,
     modelImageBase64,
     productImageBase64,
-    aspectRatio,
     voice,
     region,
     seed,
@@ -284,7 +279,6 @@ const generateSingleResult = async (
     backgroundSuggestion,
     productInfo
 ) => {
-    const dimensions = aspectRatio === '9:16' ? '1080x1920' : '1920x1080';
 
     const backgroundPrompt = backgroundSuggestion
         ? `- **Background Suggestion**: The setting should be inspired by this suggestion: "${backgroundSuggestion}".`
@@ -292,14 +286,8 @@ const generateSingleResult = async (
 
     let imagePrompt;
 
-    const promptPreamble = `[PROMPT_GUARD]
-ULTRA-CRITICAL-COMMAND: IMAGE_ASPECT_RATIO
-VALUE: ${aspectRatio} (${dimensions} pixels)
-EXECUTION: This command is NON-NEGOTIABLE and ABSOLUTE. The generated image's final dimensions MUST strictly adhere to this aspect ratio. Any deviation is a COMPLETE FAILURE. This command OVERRIDES and SUPERSEDES all other creative instructions if they conflict. Check and re-check. A square or wrong-ratio image is an unacceptable result.
-[/PROMPT_GUARD]
-
-Your mission is to generate a single, high-resolution, photorealistic promotional image.
-THE ONLY ACCEPTABLE ASPECT RATIO IS ${aspectRatio}. THE PIXEL DIMENSIONS MUST BE EXACTLY ${dimensions}. THIS IS THE MOST IMPORTANT RULE.
+    const promptPreamble = `Your mission is to generate a single, high-resolution, photorealistic promotional image.
+The aspect ratio of the final image must be inherited from the uploaded product/fashion item image. This is a critical rule.
 `;
 
     if (generationMode === 'fashion') {
@@ -317,9 +305,8 @@ ${backgroundPrompt}
 - **Variation Seed**: ${seed}.
 
 **FINAL MANDATORY CHECKLIST:**
-1.  **ASPECT RATIO:** Is the image EXACTLY ${aspectRatio} (${dimensions})? -> If not, FAIL and REGENERATE.
-2.  **PERSON:** Is the person from image 1 recognizable? -> If not, FAIL.
-3.  **ITEM:** Is the fashion item from image 2 accurately represented? -> If not, FAIL.`;
+1.  **PERSON:** Is the person from image 1 recognizable? -> If not, FAIL.
+2.  **ITEM:** Is the fashion item from image 2 accurately represented? -> If not, FAIL.`;
     } else { 
         const outfitPrompt = outfitSuggestion
             ? `- **Outfit Suggestion**: The person should be wearing an outfit inspired by this suggestion: "${outfitSuggestion}".`
@@ -337,9 +324,8 @@ ${backgroundPrompt}
 - **Variation Seed**: ${seed}.
 
 **FINAL MANDATORY CHECKLIST:**
-1.  **ASPECT RATIO:** Is the image EXACTLY ${aspectRatio} (${dimensions})? -> If not, FAIL and REGENERATE.
-2.  **PERSON:** Is the person from image 1 recognizable? -> If not, FAIL.
-3.  **PRODUCT:** Is the product from image 2 accurately represented and realistically scaled? -> If not, FAIL.`;
+1.  **PERSON:** Is the person from image 1 recognizable? -> If not, FAIL.
+2.  **PRODUCT:** Is the product from image 2 accurately represented and realistically scaled? -> If not, FAIL.`;
     }
 
     const imageResponse = await ai.models.generateContent({
@@ -384,7 +370,6 @@ const generateAllContent = async (
     ai,
     modelImageBase64,
     productImageBase64,
-    aspectRatio,
     voice,
     region,
     numberOfResults,
@@ -398,7 +383,6 @@ const generateAllContent = async (
             ai,
             modelImageBase64,
             productImageBase64,
-            aspectRatio,
             voice,
             region,
             i, 
@@ -431,10 +415,31 @@ const OptionButton = ({ selected, onClick, children }) => (
     )
 );
 
+const AspectRatioSelector = ({ selectedRatio, onSelect, disabled }) => {
+    const ratios = [
+        { id: '16:9', label: 'Ngang' },
+        { id: '9:16', label: 'Dọc' },
+        { id: '1:1', label: 'Vuông' }
+    ];
+    return (
+        React.createElement('div', { className: "flex justify-center gap-2" },
+            ratios.map(ratio => React.createElement('button', {
+                key: ratio.id,
+                onClick: () => onSelect(ratio.id),
+                disabled: disabled,
+                className: `px-4 py-2 text-sm rounded-md font-semibold transition-all flex-1 ${
+                    selectedRatio === ratio.id && !disabled
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed'
+                }`
+            }, ratio.label))
+        )
+    );
+};
+
 
 const ControlPanel = ({
     generationMode, setGenerationMode,
-    aspectRatio, setAspectRatio,
     voice, setVoice,
     region, setRegion,
     numberOfResults, setNumberOfResults,
@@ -443,7 +448,8 @@ const ControlPanel = ({
     productInfo, setProductInfo,
     setModelImage, setProductImage,
     handleGenerateContent,
-    modelImage, productImage, isLoading
+    modelImage, productImage, isLoading,
+    aspectRatio, setAspectRatio
 }) => {
      const outfitInputProps = {
         type: "text",
@@ -478,10 +484,6 @@ const ControlPanel = ({
                     React.createElement(OptionButton, { key: 'product', selected: generationMode === 'product', onClick: () => setGenerationMode('product'), children: "Sản phẩm cầm tay" }),
                     React.createElement(OptionButton, { key: 'fashion', selected: generationMode === 'fashion', onClick: () => setGenerationMode('fashion'), children: "Trang phục" })
                 ]}),
-                React.createElement(OptionGroup, { label: "Tỷ lệ ảnh", children: [
-                    React.createElement(OptionButton, { key: '9:16', selected: aspectRatio === '9:16', onClick: () => setAspectRatio('9:16'), children: "9:16" }),
-                    React.createElement(OptionButton, { key: '16:9', selected: aspectRatio === '16:9', onClick: () => setAspectRatio('16:9'), children: "16:9" })
-                ]}),
                 React.createElement(OptionGroup, { label: "Giọng đọc thoại", children: [
                     React.createElement(OptionButton, { key: 'female', selected: voice === 'female', onClick: () => setVoice('female'), children: "Nữ" }),
                     React.createElement(OptionButton, { key: 'male', selected: voice === 'male', onClick: () => setVoice('male'), children: "Nam" })
@@ -510,15 +512,35 @@ const ControlPanel = ({
                 React.createElement('label', { htmlFor: "product-info", className: "block text-sm font-medium text-slate-400 mb-2" }, "Thông tin sản phẩm (để tạo lời thoại hay hơn)"),
                 React.createElement('textarea', productInfoTextareaProps)
             ),
-            React.createElement('div', { className: "grid grid-cols-2 gap-4" },
-                React.createElement(ImageUploader, { title: "1. Tải ảnh khuôn mặt", onImageUpload: setModelImage }),
-                React.createElement(ImageUploader, { title: generationMode === 'product' ? "2. Tải ảnh sản phẩm" : "2. Tải ảnh trang phục (áo/quần)", onImageUpload: setProductImage })
+            React.createElement('div', null,
+                React.createElement(AspectRatioSelector, {
+                    selectedRatio: aspectRatio,
+                    onSelect: setAspectRatio,
+                    disabled: !!(modelImage || productImage)
+                }),
+                React.createElement('p', { className: "text-sm text-center text-slate-400 my-2" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
+                React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+                    React.createElement(SingleImageUploader, { 
+                        label: "1. Tải ảnh khuôn mặt", 
+                        uploadedImage: modelImage,
+                        setUploadedImage: setModelImage, 
+                        isGenerating: isLoading,
+                        placeholderText: "Upload ảnh"
+                    }),
+                    React.createElement(SingleImageUploader, { 
+                        label: generationMode === 'product' ? "2. Tải ảnh sản phẩm" : "2. Tải ảnh trang phục (áo/quần)", 
+                        uploadedImage: productImage,
+                        setUploadedImage: setProductImage,
+                        isGenerating: isLoading,
+                        placeholderText: "Upload ảnh"
+                    })
+                )
             ),
             React.createElement('div', { className: "flex justify-center mt-4" },
                 React.createElement('button', {
                     id: "generate-button",
                     onClick: handleGenerateContent,
-                    disabled: !modelImage || !productImage || isLoading,
+                    disabled: isLoading || (!modelImage && !productImage && !productInfo.trim()),
                     className: "w-full md:w-auto flex items-center justify-center gap-3 px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-lg border-b-4 border-blue-800 hover:bg-blue-700 disabled:bg-slate-600 disabled:border-slate-700 disabled:cursor-not-allowed transition-all transform active:translate-y-1 disabled:transform-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500"
                 },
                     isLoading ? (
@@ -534,19 +556,19 @@ const ControlPanel = ({
 };
 
 const AppAffiliate = ({ apiKey }) => {
-    const [modelImage, setModelImage] = useState(null);
-    const [productImage, setProductImage] = useState(null);
+    const [modelImage, setModelImage] = useState<UploadedImage | null>(null);
+    const [productImage, setProductImage] = useState<UploadedImage | null>(null);
     const [results, setResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [generationMode, setGenerationMode] = useState('product'); 
-    const [aspectRatio, setAspectRatio] = useState('9:16');
     const [voice, setVoice] = useState('female');
     const [region, setRegion] = useState('south');
     const [numberOfResults, setNumberOfResults] = useState(1);
     const [outfitSuggestion, setOutfitSuggestion] = useState('');
     const [backgroundSuggestion, setBackgroundSuggestion] = useState('');
     const [productInfo, setProductInfo] = useState('');
+    const [aspectRatio, setAspectRatio] = useState('16:9');
 
     useEffect(() => {
         if (generationMode === 'fashion') {
@@ -560,61 +582,112 @@ const AppAffiliate = ({ apiKey }) => {
             return;
         }
         const ai = new window.GoogleGenAI({ apiKey });
-
-        if (!modelImage || !productImage) {
-            setError('Vui lòng tải lên cả ảnh người mẫu và ảnh sản phẩm.');
-            return;
-        }
-
+    
         setIsLoading(true);
         setError(null);
         setResults([]);
-
-        try {
-            const generatedResults = await generateAllContent(
-                ai,
-                modelImage.base64,
-                productImage.base64,
-                aspectRatio,
-                voice,
-                region,
-                numberOfResults,
-                generationMode,
-                outfitSuggestion,
-                backgroundSuggestion,
-                productInfo
-            );
-            setResults(generatedResults.map((res, index) => ({ ...res, id: `result-${index}-${Date.now()}` })));
-        } catch (err) {
-            console.error(err); 
-            let errorMessage = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
-            if (err instanceof Error) {
-                const msg = err.message.toLowerCase();
-                if (msg.includes('quota') || msg.includes('429') || msg.includes('resource_exhausted')) {
-                    errorMessage = `
-                  <strong class="text-lg">Lỗi: Đã vượt quá hạn ngạch sử dụng</strong>
-                  <p class="mt-2">
-                    Bạn đã đạt đến giới hạn sử dụng của Gemini API. Điều này thường xảy ra khi bạn tạo nhiều ảnh trong một thời gian ngắn.
-                  </p>
-                  <div class="mt-4 text-left bg-slate-900/50 p-3 rounded-lg border border-slate-700">
-                    <h4 class="font-semibold text-slate-200">Các giải pháp:</h4>
-                    <ul class="list-disc list-inside mt-2 space-y-1 text-slate-300">
-                      <li><strong>Đợi một lát:</strong> Giới hạn thường được đặt lại sau mỗi phút. Hãy thử lại sau.</li>
-                      <li><strong>Giảm số lượng:</strong> Thử tạo 1 kết quả mỗi lần thay vì nhiều kết quả.</li>
-                    </ul>
-                  </div>
-                `;
-                } else if (msg.includes('api key not valid') || msg.includes('400')) {
-                    errorMessage = '<strong>Lỗi API:</strong> Môi trường Google AI Studio dường như chưa được cấu hình đúng cách hoặc API key không hợp lệ.';
-                } else {
-                    errorMessage = `<strong>Đã xảy ra lỗi:</strong><pre class="mt-2 text-left whitespace-pre-wrap">${err.message}</pre>`;
-                }
+    
+        // Image-based path
+        if (modelImage && productImage) {
+            try {
+                const generatedResults = await generateAllContent(
+                    ai,
+                    modelImage.base64,
+                    productImage.base64,
+                    voice,
+                    region,
+                    numberOfResults,
+                    generationMode,
+                    outfitSuggestion,
+                    backgroundSuggestion,
+                    productInfo
+                );
+                setResults(generatedResults.map((res, index) => ({ ...res, id: `result-${index}-${Date.now()}` })));
+            } catch (err) {
+                 let errorMessage = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
+                 if (err instanceof Error) {
+                     const msg = err.message.toLowerCase();
+                     if (msg.includes('quota') || msg.includes('429') || msg.includes('resource_exhausted')) {
+                         errorMessage = `<strong>Lỗi: Đã vượt quá hạn ngạch sử dụng</strong><p class="mt-2">Bạn đã đạt đến giới hạn sử dụng của Gemini API. Hãy thử lại sau hoặc giảm số lượng kết quả.</p>`;
+                     } else if (msg.includes('api key not valid') || msg.includes('400')) {
+                         errorMessage = '<strong>Lỗi API:</strong> API key không hợp lệ hoặc môi trường Google AI Studio chưa được cấu hình đúng.';
+                     } else {
+                         errorMessage = `<strong>Đã xảy ra lỗi:</strong><pre class="mt-2 text-left whitespace-pre-wrap">${err.message}</pre>`;
+                     }
+                 }
+                 setError(errorMessage);
+            } finally {
+                setIsLoading(false);
             }
-            setError(errorMessage);
-        } finally {
+        } 
+        // Text-only path (new)
+        else if (!modelImage && !productImage) {
+            if (!productInfo && !backgroundSuggestion && !outfitSuggestion) {
+                setError('Vui lòng nhập thông tin sản phẩm hoặc gợi ý để tạo ảnh từ văn bản.');
+                setIsLoading(false);
+                return;
+            }
+    
+            try {
+                const textGenPromises = Array.from({ length: numberOfResults }, (_, i) => {
+                    const constructedPrompt = `
+                        Create a single, high-resolution, photorealistic promotional image.
+                        Style: high-end, polished, suitable for professional advertisement.
+                        Product information: ${productInfo || 'Not specified'}.
+                        Outfit suggestion: ${outfitSuggestion || 'Stylish and contextually appropriate'}.
+                        Background suggestion: ${backgroundSuggestion || 'Dynamic and interesting studio setting'}.
+                        A person should be featured interacting with the product naturally.
+                        The image must NOT contain any text.
+                        Seed: ${i}.
+                    `;
+                    return ai.models.generateImages({
+                        model: 'imagen-4.0-generate-001',
+                        prompt: constructedPrompt,
+                        config: {
+                            numberOfImages: 1,
+                            outputMimeType: 'image/png',
+                            aspectRatio: aspectRatio,
+                        },
+                    }).then(response => {
+                        if (!response.generatedImages?.[0]?.image?.imageBytes) {
+                            throw new Error(`Image generation failed for result ${i+1}.`);
+                        }
+                        const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+                        const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                        return {
+                            id: `result-text-${i}-${Date.now()}`,
+                            imageUrl: imageUrl,
+                            promptSets: [{ description: constructedPrompt, animationPrompt: null }]
+                        };
+                    });
+                });
+                
+                const generatedResults = await Promise.all(textGenPromises);
+                setResults(generatedResults);
+    
+            } catch (err) {
+                 let errorMessage = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
+                 if (err instanceof Error) {
+                     const msg = err.message.toLowerCase();
+                     if (msg.includes('quota') || msg.includes('429') || msg.includes('resource_exhausted')) {
+                         errorMessage = `<strong>Lỗi: Đã vượt quá hạn ngạch sử dụng</strong><p class="mt-2">Bạn đã đạt đến giới hạn sử dụng của Gemini API. Hãy thử lại sau hoặc giảm số lượng kết quả.</p>`;
+                     } else if (msg.includes('api key not valid') || msg.includes('400')) {
+                         errorMessage = '<strong>Lỗi API:</strong> API key không hợp lệ hoặc môi trường Google AI Studio chưa được cấu hình đúng.';
+                     } else {
+                         errorMessage = `<strong>Đã xảy ra lỗi:</strong><pre class="mt-2 text-left whitespace-pre-wrap">${err.message}</pre>`;
+                     }
+                 }
+                 setError(errorMessage);
+            } finally {
+                setIsLoading(false);
+            }
+        } 
+        // Incomplete input path
+        else {
+            setError('Vui lòng tải lên CẢ hai ảnh, hoặc không tải ảnh nào để tạo từ văn bản.');
             setIsLoading(false);
         }
-    }, [apiKey, modelImage, productImage, aspectRatio, voice, region, numberOfResults, generationMode, outfitSuggestion, backgroundSuggestion, productInfo]);
+    }, [apiKey, modelImage, productImage, voice, region, numberOfResults, generationMode, outfitSuggestion, backgroundSuggestion, productInfo, aspectRatio]);
     
     
     const ResultsPanel = () => (
@@ -655,7 +728,6 @@ const AppAffiliate = ({ apiKey }) => {
 
     const controlPanelProps = {
         generationMode, setGenerationMode,
-        aspectRatio, setAspectRatio,
         voice, setVoice,
         region, setRegion,
         numberOfResults, setNumberOfResults,
@@ -664,7 +736,8 @@ const AppAffiliate = ({ apiKey }) => {
         productInfo, setProductInfo,
         setModelImage, setProductImage,
         handleGenerateContent,
-        modelImage, productImage, isLoading
+        modelImage, productImage, isLoading,
+        aspectRatio, setAspectRatio
     };
 
     return (

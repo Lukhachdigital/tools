@@ -1,4 +1,7 @@
 
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -142,6 +145,7 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
 };
 
 // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
+// FIX: Explicitly typed svgProps to resolve a TypeScript overload resolution issue with React.createElement.
 const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -185,12 +189,9 @@ const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
-    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
-    const pathProps: React.SVGProps<SVGPathElement> = {
-        d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z"
-    };
+    // FIX: Inlined path properties into the `createElement` call to avoid a TypeScript overload resolution issue.
     return React.createElement('svg', svgProps,
-        React.createElement('path', pathProps)
+        React.createElement('path', { d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z" })
     );
 };
 

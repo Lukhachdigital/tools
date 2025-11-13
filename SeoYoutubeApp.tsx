@@ -81,11 +81,15 @@ const generateTitlesWithGemini = async (description: string, apiKey: string, len
             lengthInstruction = `Các tiêu đề phải có độ dài từ ${min} đến ${max} ký tự`;
         }
     }
-
+    const currentYear = new Date().getFullYear();
     const prompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung với khả năng tạo ra các tiêu đề lan truyền.
     Phân tích ngôn ngữ của mô tả video sau. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề độc đáo, hấp dẫn.
-    Mỗi tiêu đề phải có một góc nhìn khác nhau, sử dụng các kỹ thuật tạo sự tò mò (curiosity gap), hứa hẹn lợi ích rõ ràng, hoặc đặt câu hỏi tu từ để tối đa hóa tỷ lệ nhấp chuột.
-    Tránh các công thức lặp đi lặp lại. Hãy táo bạo và sáng tạo. ${lengthInstruction}.
+    
+    **YÊU CẦU QUAN TRỌNG:**
+    1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ tiêu đề hoàn toàn mới và khác biệt. Tránh sử dụng các công thức lặp đi lặp lại. Mục tiêu của bạn là cung cấp những ý tưởng mới mẻ, độc đáo mỗi lần.
+    2.  **Tính thời sự:** Năm hiện tại là ${currentYear}. Đảm bảo tất cả nội dung đều phù hợp với hiện tại và tương lai, tránh đề cập đến các năm đã qua trừ khi có liên quan đến lịch sử của chủ đề.
+    3.  **Kỹ thuật:** Mỗi tiêu đề phải có một góc nhìn khác nhau, sử dụng các kỹ thuật tạo sự tò mò (curiosity gap), hứa hẹn lợi ích rõ ràng, hoặc đặt câu hỏi tu từ để tối đa hóa tỷ lệ nhấp chuột.
+    4.  **Độ dài:** ${lengthInstruction}.
 
     Mô tả video: "${description}"
 
@@ -129,13 +133,17 @@ const generateFullSEOContentWithGemini = async (description: string, title: stri
             'Dài': 'khoảng 220-300 từ'
         };
         const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
-
+        const currentYear = new Date().getFullYear();
         const prompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Phân tích ngôn ngữ của mô tả video và tiêu đề. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra nội dung SEO tối ưu.
 
         Mô tả video gốc: "${description}"
         Tiêu đề đã chọn: "${title}"
 
-        Yêu cầu:
+        **YÊU CẦU QUAN TRỌNG:**
+        1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ mô tả và từ khóa hoàn toàn mới và khác biệt. Hãy tư duy sáng tạo để diễn đạt ý tưởng theo nhiều cách khác nhau.
+        2.  **Tính thời sự:** Năm hiện tại là ${currentYear}. Đảm bảo tất cả nội dung đều phù hợp với hiện tại và tương lai.
+
+        **CẤU TRÚC NỘI DUNG:**
         1.  **Mô tả (Description):** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
             -   **QUAN TRỌNG:** Trong 1-2 câu đầu tiên, hãy viết một đoạn mở đầu (hook) thật hấp dẫn để giữ chân người xem.
             -   Sử dụng lối kể chuyện (storytelling) nếu phù hợp để làm cho nội dung trở nên lôi cuốn.
@@ -221,11 +229,14 @@ const generateTitlesWithOpenAI = async (description: string, apiKey: string, len
             lengthInstruction = `Các tiêu đề phải có độ dài từ ${min} đến ${max} ký tự`;
         }
     }
-    
+    const currentYear = new Date().getFullYear();
     const systemPrompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung với khả năng tạo ra các tiêu đề lan truyền.
     Nhiệm vụ của bạn là phân tích ngôn ngữ của mô tả video do người dùng cung cấp. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề độc đáo, hấp dẫn.
-    Mỗi tiêu đề phải có một góc nhìn khác nhau, sử dụng các kỹ thuật tạo sự tò mò (curiosity gap), hứa hẹn lợi ích rõ ràng, hoặc đặt câu hỏi tu từ để tối đa hóa tỷ lệ nhấp chuột.
-    Tránh các công thức lặp đi lặp lại. Hãy táo bạo và sáng tạo. ${lengthInstruction}.
+    **YÊU CẦU QUAN TRỌNG:**
+    1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ tiêu đề hoàn toàn mới và khác biệt. Tránh sử dụng các công thức lặp đi lặp lại. Mục tiêu của bạn là cung cấp những ý tưởng mới mẻ, độc đáo mỗi lần.
+    2.  **Tính thời sự:** Năm hiện tại là ${currentYear}. Đảm bảo tất cả nội dung đều phù hợp với hiện tại và tương lai, tránh đề cập đến các năm đã qua trừ khi có liên quan đến lịch sử của chủ đề.
+    3.  **Kỹ thuật:** Mỗi tiêu đề phải có một góc nhìn khác nhau, sử dụng các kỹ thuật tạo sự tò mò (curiosity gap), hứa hẹn lợi ích rõ ràng, hoặc đặt câu hỏi tu từ để tối đa hóa tỷ lệ nhấp chuột.
+    4.  **Độ dài:** ${lengthInstruction}.
     Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.`;
     const userPrompt = `Mô tả video: "${description}"`;
 
@@ -251,10 +262,14 @@ const generateFullSEOContentWithOpenAI = async (description: string, title: stri
         'Dài': 'khoảng 220-300 từ'
     };
     const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
-
+    const currentYear = new Date().getFullYear();
     const systemPrompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video và tiêu đề đã chọn, hãy tạo ra nội dung SEO tối ưu. Phân tích ngôn ngữ của đầu vào và trả lời bằng chính ngôn ngữ đó với ngữ pháp hoàn hảo.
     
-    Yêu cầu:
+    **YÊU CẦU QUAN TRỌNG:**
+    1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ mô tả và từ khóa hoàn toàn mới và khác biệt. Hãy tư duy sáng tạo để diễn đạt ý tưởng theo nhiều cách khác nhau.
+    2.  **Tính thời sự:** Năm hiện tại là ${currentYear}. Đảm bảo tất cả nội dung đều phù hợp với hiện tại và tương lai.
+
+    **CẤU TRÚC NỘI DUNG:**
     1.  **description:** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
         -   **QUAN TRỌNG:** Trong 1-2 câu đầu tiên, hãy viết một đoạn mở đầu (hook) thật hấp dẫn để giữ chân người xem.
         -   Sử dụng lối kể chuyện (storytelling) nếu phù hợp để làm cho nội dung trở nên lôi cuốn.
