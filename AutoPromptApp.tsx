@@ -1,5 +1,10 @@
 
 
+
+
+
+
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -25,11 +30,21 @@ const Loader = (): React.ReactElement => {
 const ResultPartCard = ({ part }: { part: Part }): React.ReactElement => {
   const [voiceCopied, setVoiceCopied] = useState(false);
   const [promptsCopied, setPromptsCopied] = useState(false);
+  const [individualPromptCopied, setIndividualPromptCopied] = useState<number | null>(null);
 
   const copyToClipboard = (text: string, setter: React.Dispatch<React.SetStateAction<boolean>>) => {
     navigator.clipboard.writeText(text).then(() => {
       setter(true);
       setTimeout(() => setter(false), 2000);
+    }).catch(err => {
+      console.error("Failed to copy text: ", err);
+    });
+  };
+
+  const copyIndividualPrompt = (text: string, index: number) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setIndividualPromptCopied(index);
+      setTimeout(() => setIndividualPromptCopied(null), 2000);
     }).catch(err => {
       console.error("Failed to copy text: ", err);
     });
@@ -61,11 +76,18 @@ const ResultPartCard = ({ part }: { part: Part }): React.ReactElement => {
               onClick: () => copyToClipboard(allPromptsText, setPromptsCopied),
               className: "px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none disabled:bg-green-600",
               disabled: promptsCopied
-            }, promptsCopied ? 'Đã sao chép!' : 'Sao chép')
+            }, promptsCopied ? 'Đã sao chép!' : 'Sao chép toàn bộ')
            ),
-          React.createElement("div", { className: "bg-gray-700 p-3 rounded-md border border-gray-600 max-h-60 overflow-y-auto space-y-3" },
+          React.createElement("div", { className: "bg-gray-700 p-3 rounded-md border border-gray-600 max-h-60 overflow-y-auto space-y-2" },
              part.prompts.map((prompt, index) => (
-               React.createElement("p", { key: index, className: "text-gray-200 text-xs border-b border-gray-600/50 pb-2 last:border-b-0 last:pb-0" }, prompt)
+               React.createElement("div", { key: index, className: "flex justify-between items-center border-b border-gray-600/50 py-2 last:border-b-0" },
+                  React.createElement("p", { className: "text-gray-200 text-xs pr-4" }, prompt),
+                  React.createElement("button", {
+                    onClick: () => copyIndividualPrompt(prompt, index),
+                    className: "px-3 py-1 text-xs rounded-md transition-colors duration-200 flex-shrink-0 " + (individualPromptCopied === index ? 'bg-green-600 text-white' : 'bg-gray-600 hover:bg-gray-500 text-gray-300'),
+                    disabled: individualPromptCopied === index
+                  }, individualPromptCopied === index ? 'Đã chép!' : 'Chép')
+               )
              ))
           )
         )
@@ -106,6 +128,8 @@ const AutoPromptApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
     const prompt = `
 You are a world-class creative director and video scriptwriter for viral short-form and long-form videos. Your task is to transform a user's idea into a complete production package containing both a voiceover script and a series of video generation prompts for a model like VEO 3.1.
 
+**CREATIVITY MANDATE:** Your outputs must exhibit a high degree of creativity and uniqueness. For every new request, even if the user provides the exact same idea as before, you are REQUIRED to generate a completely new and different story, a unique voiceover script, and a fresh sequence of prompts. Repetitive or formulaic responses are not acceptable. Your goal is to surprise the user with your originality on every single run.
+
 **CRITICAL RULE: THEMATIC CONSISTENCY**
 You MUST strictly adhere to the user-selected "Cinematic Style": "${cinematicStyle}". All elements in the voiceover and video prompts (setting, actions, mood, objects) must be thematically appropriate for this style. For example, if the style is 'Prehistoric', you MUST NOT include modern technology. This is a non-negotiable rule.
 
@@ -136,7 +160,7 @@ For each part, you must generate an object with three fields: "partNumber", "voi
 2.  **voiceContent**:
     - Write a compelling and natural-sounding voiceover script in VIETNAMESE for this part of the video.
     - The script should tell a story, explain a concept, or engage the viewer according to the user's idea.
-    - The length of the voiceover must be appropriate for its corresponding video segment duration (${isLongVideo ? 'approx. 3 minutes' : `${durationInMinutes} minutes`}).
+    - **LENGTH REQUIREMENT**: The length of the voiceover script for this part MUST be approximately 3400 characters. A tolerance of +/- 1% is acceptable. This is a strict requirement to ensure proper pacing.
     - Use natural language, proper grammar, and punctuation.
 3.  **prompts**:
     - Create a series of detailed, cinematic video prompts in ENGLISH for an AI video generator like VEO 3.1.
@@ -242,6 +266,24 @@ Generate the final output as a single JSON object.
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+  
+  const handleDownloadAllVoiceContent = () => {
+    if (!generatedContent || !generatedContent.parts || generatedContent.parts.length === 0) return;
+
+    const content = generatedContent.parts.map(part => 
+      `--- PHẦN ${part.partNumber} ---\n\n${part.voiceContent}`
+    ).join('\n\n\n');
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'voice_content.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     React.createElement("div", { className: "w-full h-full p-4" },
@@ -299,8 +341,9 @@ Generate the final output as a single JSON object.
             ),
             generatedContent && generatedContent.parts && (
               React.createElement("div", null,
-                React.createElement("div", { className: "flex justify-center mb-8" },
-                  React.createElement("button", { onClick: handleDownloadAllPrompts, className: "w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading }, "Tải xuống tất cả Prompts (.txt)")
+                React.createElement("div", { className: "flex flex-col sm:flex-row justify-center gap-4 mb-8" },
+                  React.createElement("button", { onClick: handleDownloadAllVoiceContent, className: "flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading }, "Tải xuống tất cả Voice (.txt)"),
+                  React.createElement("button", { onClick: handleDownloadAllPrompts, className: "flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading }, "Tải xuống tất cả Prompts (.txt)")
                 ),
                 React.createElement("div", { className: "space-y-8" },
                   generatedContent.parts.map((part, index) => React.createElement(ResultPartCard, { key: index, part: part }))
