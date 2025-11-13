@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -13,6 +11,7 @@ import AppAffiliate from './AppAffiliate';
 import MyChannelApp from './MyChannelApp';
 import TaoAnhTrendApp from './TaoAnhTrendApp';
 import VietKichBanApp from './VietKichBanApp';
+import AutoPromptApp from './AutoPromptApp';
 
 
 // --- ICONS ---
@@ -329,6 +328,7 @@ const App = () => {
         { id: 'whisk_flow', text: 'Whisk & Flow I', title: 'Prompt chuẩn hóa Whisk & Flow', icon: React.createElement(IconWhiskFlow), description: 'Tạo kịch bản và prompt, đảm bảo nhân vật giữ nguyên khuôn mặt và trang phục trong suốt video.' },
         { id: 'my_channel', text: 'Whisk & Flow II', title: 'Kịch bản & Xuất Prompt Whisk & Flow', icon: React.createElement(IconConsistentFlow), description: 'Tạo kịch bản và prompt, giữ nguyên khuôn mặt nhưng linh hoạt thay đổi trang phục nhân vật theo từng cảnh.' },
         { id: 'viet_kich_ban', text: 'Viết kịch bản', title: 'AI Biên Kịch & Đạo Diễn', icon: React.createElement(IconVietKichBan), description: 'Tạo danh sách nhân vật và chuỗi prompt chuyên nghiệp cho VEO 3.1.' },
+        { id: 'auto_prompt', text: 'Auto Prompt', title: 'Auto Prompt - Tự động hóa kịch bản VEO 3.1', icon: React.createElement(IconVietKichBan), description: 'Tạo tự động chuỗi prompt tạo Video và nội dung Voice chuyên nghiệp.' },
         { id: 'create_thumbnail', text: 'Tạo Thumbnail', title: 'AI tạo Thumbnail đỉnh cao', icon: React.createElement(IconCreateThumbnail), description: 'Tạo thumbnail cho Youtube, Tiktok, Facebook sáng tạo, giúp video của bạn tăng lượt Click.' },
         { id: 'tao_anh_trend', text: 'Tạo ảnh Trend', title: 'Tạo ảnh theo phong cách riêng', icon: React.createElement(IconSeoYoutube), description: 'Công nghệ tạo ảnh theo phong cách riêng của bạn và theo xu hướng thịnh hành.' },
         { id: 'seo_youtube', text: 'SEO Youtube', title: 'Công cụ SEO Youtube đỉnh cao', icon: React.createElement(IconSeoYoutube), description: 'Tối ưu Tiêu đề, Mô tả, và Tags cho video YouTube của bạn.' },
@@ -349,6 +349,7 @@ const App = () => {
       "whisk_flow": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "my_channel": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "viet_kich_ban": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "auto_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "create_thumbnail": "https://www.youtube.com/watch?v=9d9c5Q1nID8",
       "tao_anh_trend": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "create_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
@@ -414,6 +415,7 @@ const App = () => {
             case 'my_channel': return React.createElement(MyChannelApp, { apiKey: geminiApiKey });
             case 'prompt_json': return React.createElement(PromptJsonApp, appProps);
             case 'viet_kich_ban': return React.createElement(VietKichBanApp, { apiKey: geminiApiKey });
+            case 'auto_prompt': return React.createElement(AutoPromptApp, { apiKey: geminiApiKey });
             case 'create_thumbnail': return React.createElement(CreateThumbnailApp, { apiKey: geminiApiKey });
             case 'tao_anh_trend': return React.createElement(TaoAnhTrendApp, { apiKey: geminiApiKey });
             case 'seo_youtube': return React.createElement(SeoYoutubeApp, appProps);
