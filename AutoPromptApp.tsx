@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -148,30 +142,32 @@ This principle of strict adherence applies to ALL cinematic styles. You must con
 - Total Duration: Approximately ${durationInMinutes} minutes.
 
 **Your Task:**
-Based on the user's input, generate a JSON object containing a 'parts' array.
+Generate a JSON object containing a 'parts' array. The array will consist of the main story part(s) followed by a final interaction part.
+
+**PART 1: MAIN STORY**
 ${isLongVideo
-  ? `- The video is long, so you MUST divide the story into ${partsToGenerate} distinct parts. Each part should represent approximately 3 minutes of the story.`
+  ? `- The video is long, so you MUST divide the story into ${partsToGenerate} distinct parts.`
   : `- The video is short, so you will generate only ONE part for the entire story.`
 }
 
-For each part, you must generate an object with three fields: "partNumber", "voiceContent", and "prompts".
-
+For each story part, generate an object with "partNumber", "voiceContent", and "prompts".
 1.  **partNumber**: The sequential number of the part, starting from 1.
 2.  **voiceContent**:
-    - Write a compelling and natural-sounding voiceover script in VIETNAMESE for this part of the video.
-    - The script should tell a story, explain a concept, or engage the viewer according to the user's idea.
-    - **LENGTH REQUIREMENT**: The length of the voiceover script for this part MUST be approximately 3400 characters. A tolerance of +/- 1% is acceptable. This is a strict requirement to ensure proper pacing.
-    - Use natural language, proper grammar, and punctuation.
+    - Write a compelling and natural-sounding voiceover script in VIETNAMESE.
+    - The script should tell the story. Occasionally and naturally, pose questions to the audience to stimulate their thoughts and encourage comments.
+    - **LENGTH REQUIREMENT**: The voiceover for each part MUST be approximately 3400 characters long to fit the video duration.
 3.  **prompts**:
-    - Create a series of detailed, cinematic video prompts in ENGLISH for an AI video generator like VEO 3.1.
-    - You MUST generate exactly ${scenesPerPart} prompts for this part. Each prompt corresponds to an 8-second video clip.
-    - The sequence of prompts must visually narrate the story told in the "voiceContent" for this part.
+    - Create a series of detailed, cinematic video prompts in ENGLISH. You MUST generate exactly ${scenesPerPart} prompts for this part.
     - **Prompt Content Rules**:
-        a. DO NOT mention character names. Describe actions and subjects naturally (e.g., "a majestic eagle soars", "the scientist mixes chemicals", "a young woman looks out over a futuristic city").
-        b. Focus on actions, emotions, facial expressions, detailed settings/backgrounds, and dynamic camera movements (e.g., "slow zoom in", "dramatic tracking shot", "handheld follow shot").
-        c. Ensure visual continuity in settings that appear across multiple prompts.
-        d. Each prompt must be a unique scene; do not repeat prompts.
-        e. The prompts MUST be in ENGLISH.
+        a. **NO DIALOGUE**: Prompts MUST describe visuals and AMBIENT/ENVIRONMENTAL SOUNDS ONLY (e.g., "wind howling", "footsteps on gravel", "distant city hum"). They MUST NOT contain any character dialogue or speech.
+        b. **Content Focus**: Focus on actions, emotions, facial expressions, detailed settings, and dynamic camera movements.
+        c. **Visual Continuity**: Ensure settings that appear across multiple prompts are described consistently.
+
+**PART 2: FINAL INTERACTION (MANDATORY)**
+After generating all the main story parts, you MUST append ONE FINAL part to the 'parts' array. This part is a dedicated call-to-action.
+-   **partNumber**: Continue the sequence (e.g., if the last story part was ${partsToGenerate}, this will be ${partsToGenerate + 1}).
+-   **voiceContent**: A short VIETNAMESE script (40-60 words) that directly addresses the audience. It should reflect on the story/topic and ask engaging questions to encourage them to Like, Share, and Comment with their thoughts, feelings, or opinions on the subject.
+-   **prompts**: Exactly TWO ENGLISH prompts suitable for a video outro. They should be visually engaging but not part of the main story (e.g., "an abstract animation of swirling particles related to the video's theme", "a beautifully rendered thematic background with a subtle pulsing light").
 
 Generate the final output as a single JSON object.
 `;
