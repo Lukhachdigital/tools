@@ -173,6 +173,8 @@ const cinematicStyles = [
 const VietKichBanApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [duration, setDuration] = useState('');
+  const [numMainCharacters, setNumMainCharacters] = useState('');
+  const [numSupportingCharacters, setNumSupportingCharacters] = useState('');
   const [selectedCinematicStyle, setSelectedCinematicStyle] = useState('Hiện đại');
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [loading, setLoading] = useState(false);
@@ -183,7 +185,9 @@ const VietKichBanApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
   const generateScript = useCallback(async (
     videoIdea: string,
     durationInMinutes: number,
-    cinematicStyle: string
+    cinematicStyle: string,
+    numMain: number | null,
+    numSupporting: number | null
   ): Promise<GeneratedContent> => {
     if (!apiKey) {
       throw new Error("API Key chưa được cấu hình.");
@@ -195,6 +199,24 @@ const VietKichBanApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
     const whiskStyleInstruction = cinematicStyle === "Hoạt hình"
       ? "The style MUST be animated."
       : "The style MUST be photorealistic and NOT animated.";
+
+    let mainCharInstruction = '';
+    if (numMain !== null && !isNaN(numMain) && numMain >= 0) {
+      mainCharInstruction = `You MUST create exactly ${numMain} main character(s) ('Nhân vật chính').`;
+    }
+
+    let supCharInstruction = '';
+    if (numSupporting !== null && !isNaN(numSupporting) && numSupporting >= 0) {
+      supCharInstruction = `You MUST create exactly ${numSupporting} supporting character(s) ('Nhân vật phụ').`;
+    }
+
+    let characterInstruction;
+    if (mainCharInstruction || supCharInstruction) {
+      characterInstruction = `- Create a list of characters for the story. ${[mainCharInstruction, supCharInstruction].filter(Boolean).join(' ')}`;
+    } else {
+      characterInstruction = "- Create a list of all characters for the story, identifying main and supporting roles.";
+    }
+
 
     const prompt = `
 You are an expert Hollywood screenwriter and director, tasked with creating a concept for an epic, profound, and thrilling film. Your primary goal is to ensure thematic and visual consistency throughout the entire script.
@@ -212,7 +234,7 @@ Based on the user's idea and your strict adherence to the cinematic style, you m
 - Total Duration: Approximately ${durationInMinutes} minutes.
 
 **Task 1: Character Development & Whisk Prompts**
-- Create a list of all characters for the story, identifying main and supporting roles.
+${characterInstruction}
 - For each character, you will create an object with four fields:
     1.  **name**: The character's name. It MUST be unique and creative for this specific generation, and thematically appropriate for the cinematic style.
     2.  **role**: The character's role in the story. MUST be either 'Nhân vật chính' or 'Nhân vật phụ'.
@@ -226,7 +248,6 @@ Based on the user's idea and your strict adherence to the cinematic style, you m
 
 **Task 2: Prompt Generation for VEO 3.1**
 - You must generate exactly ${numberOfScenes} prompts, as each prompt corresponds to an 8-second video scene.
-- For each scene, write one detailed, cinematic prompt in ENGLISH.
 - **CRITICAL VEO PROMPT RULES:**
     1.  **Character Naming:** Every single prompt MUST explicitly mention at least one character by the 'name' you created in Task 1. A maximum of THREE named characters can be mentioned in a single prompt. It is absolutely critical that the spelling of the names is 100% accurate. This is a non-negotiable rule.
     2.  **Content Focus:** Do NOT describe clothing or outfits. Focus exclusively on character actions, the setting/background, character emotions, and facial expressions.
@@ -307,9 +328,15 @@ Generate a JSON object that strictly adheres to the provided schema.
 
     try {
         const ai = new window.GoogleGenAI({ apiKey });
+
+        let finalPrompt = prompt;
+        if (selectedCinematicStyle !== 'Hoạt hình') {
+          finalPrompt = `ultra photorealistic, realistic photograph, cinematic shot. ${prompt}. The final image must be absolutely realistic, not animated, not 3D, not a cartoon, not fantasy.`;
+        }
+
         const response = await ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
-            prompt: prompt,
+            prompt: finalPrompt,
             config: {
               numberOfImages: 1,
               outputMimeType: 'image/png',
@@ -337,7 +364,7 @@ Generate a JSON object that strictly adheres to the provided schema.
             [characterIndex]: { isGenerating: false, error: errorMessage }
         }));
     }
-  }, [apiKey]);
+  }, [apiKey, selectedCinematicStyle]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -354,16 +381,20 @@ Generate a JSON object that strictly adheres to the provided schema.
       setLoading(false);
       return;
     }
+    
+    const mainChars = numMainCharacters.trim() !== '' ? parseInt(numMainCharacters, 10) : null;
+    const supChars = numSupportingCharacters.trim() !== '' ? parseInt(numSupportingCharacters, 10) : null;
+
 
     try {
-      const content = await generateScript(videoIdea, durationNum, selectedCinematicStyle);
+      const content = await generateScript(videoIdea, durationNum, selectedCinematicStyle, mainChars, supChars);
       setGeneratedContent(content);
     } catch (err: any) {
       setError(err.message || "Đã xảy ra lỗi khi tạo kịch bản. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
-  }, [videoIdea, duration, selectedCinematicStyle, generateScript]);
+  }, [videoIdea, duration, selectedCinematicStyle, generateScript, numMainCharacters, numSupportingCharacters]);
 
   const handleDownloadPrompts = () => {
     if (!generatedContent || generatedContent.prompts.length === 0) return;
@@ -410,6 +441,35 @@ Generate a JSON object that strictly adheres to the provided schema.
                       required: true
                     }),
                     React.createElement("span", { className: "inline-flex items-center px-4 py-3 border border-l-0 border-gray-600 rounded-r bg-gray-700 text-gray-100 text-sm"}, "Phút")
+                  )
+                ),
+                React.createElement("div", { className: "mb-6" },
+                  React.createElement("label", { className: "block text-gray-200 text-sm font-bold mb-2" }, "Số lượng nhân vật (tùy chọn):"),
+                  React.createElement("div", { className: "flex gap-4" },
+                    React.createElement("div", { className: "flex-1" },
+                      React.createElement("label", { htmlFor: "numMainCharacters", className: "block text-gray-400 text-xs mb-1" }, "Nhân vật chính"),
+                      React.createElement("input", {
+                        type: "number",
+                        id: "numMainCharacters",
+                        className: "shadow appearance-none border border-gray-600 rounded w-full py-3 px-4 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                        placeholder: "VD: 1",
+                        min: "0",
+                        value: numMainCharacters,
+                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => setNumMainCharacters(e.target.value)
+                      })
+                    ),
+                    React.createElement("div", { className: "flex-1" },
+                      React.createElement("label", { htmlFor: "numSupportingCharacters", className: "block text-gray-400 text-xs mb-1" }, "Nhân vật phụ"),
+                      React.createElement("input", {
+                        type: "number",
+                        id: "numSupportingCharacters",
+                        className: "shadow appearance-none border border-gray-600 rounded w-full py-3 px-4 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                        placeholder: "VD: 2",
+                        min: "0",
+                        value: numSupportingCharacters,
+                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => setNumSupportingCharacters(e.target.value)
+                      })
+                    )
                   )
                 ),
                 React.createElement("div", { className: "mb-6" },
