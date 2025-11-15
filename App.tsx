@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -13,6 +15,8 @@ import MyChannelApp from './MyChannelApp';
 import TaoAnhTrendApp from './TaoAnhTrendApp';
 import VietKichBanApp from './VietKichBanApp';
 import AutoPromptApp from './AutoPromptApp';
+import AudioToPromptApp from './AudioToPromptApp';
+import AIPromptVEO31App from './AIPromptVEO31App';
 
 
 // --- ICONS ---
@@ -48,6 +52,14 @@ const IconVietKichBan = (props: React.SVGProps<SVGSVGElement>) => (
     )
 );
 
+const IconAIPromptVEO31 = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" }),
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15 13l-3 3m0 0l-3-3m3 3V8" })
+    )
+);
+
+
 const IconCreateThumbnail = (props: React.SVGProps<SVGSVGElement>) => (
     React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M3 8V6a2 2 0 012-2h2M3 16v2a2 2 0 002 2h2M16 3h2a2 2 0 012 2v2M16 21h2a2 2 0 002-2v-2" }),
@@ -70,6 +82,12 @@ const IconYoutubeExternal = (props: React.SVGProps<SVGSVGElement>) => (
 const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => (
     React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" })
+    )
+);
+
+const IconAudioToPrompt = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" })
     )
 );
 
@@ -327,6 +345,8 @@ const App = () => {
         { id: 'whisk_flow', text: 'Whisk & Flow I', title: 'Prompt chuẩn hóa Whisk & Flow', icon: React.createElement(IconWhiskFlow), description: 'Tạo kịch bản và prompt, đảm bảo nhân vật giữ nguyên khuôn mặt và trang phục trong suốt video.' },
         { id: 'my_channel', text: 'Whisk & Flow II', title: 'Kịch bản & Xuất Prompt Whisk & Flow', icon: React.createElement(IconConsistentFlow), description: 'Tạo kịch bản và prompt, giữ nguyên khuôn mặt nhưng linh hoạt thay đổi trang phục nhân vật theo từng cảnh.' },
         { id: 'viet_kich_ban', text: 'Viết kịch bản', title: 'AI Biên Kịch & Đạo Diễn', icon: React.createElement(IconVietKichBan), description: 'Tạo danh sách nhân vật và chuỗi prompt chuyên nghiệp cho VEO 3.1.' },
+        { id: 'audio_to_prompt', text: 'Audio to Script', title: 'Tạo kịch bản từ Audio', icon: React.createElement(IconAudioToPrompt), description: 'AI tự động tạo kịch bản video 8 giây từ file âm thanh của bạn.' },
+        { id: 'ai_prompt_veo31', text: 'AI Prompt VEO 3.1', title: 'Prompt VEO 3.1 Lipsync Audio', icon: React.createElement(IconAIPromptVEO31), description: 'Tạo kịch bản, nhân vật và prompt nhất quán cho VEO 3.1 theo đúng File Audio 8s' },
         { id: 'auto_prompt', text: 'Prompt & Text', title: 'Prompt & Text - Kịch bản & Voice VEO 3.1', icon: React.createElement(IconVietKichBan), description: 'Tạo tự động chuỗi prompt, nội dung Voice chuyên nghiệp.' },
         { id: 'create_thumbnail', text: 'Tạo Thumbnail', title: 'AI tạo Thumbnail đỉnh cao', icon: React.createElement(IconCreateThumbnail), description: 'Tạo thumbnail cho Youtube, Tiktok, Facebook sáng tạo, giúp video của bạn tăng lượt Click.' },
         { id: 'tao_anh_trend', text: 'Tạo ảnh Trend', title: 'Tạo ảnh theo phong cách riêng', icon: React.createElement(IconSeoYoutube), description: 'Công nghệ tạo ảnh theo phong cách riêng của bạn và theo xu hướng thịnh hành.' },
@@ -348,7 +368,9 @@ const App = () => {
       "whisk_flow": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "my_channel": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "viet_kich_ban": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "ai_prompt_veo31": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "auto_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "audio_to_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "create_thumbnail": "https://www.youtube.com/watch?v=9d9c5Q1nID8",
       "tao_anh_trend": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "create_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
@@ -419,7 +441,9 @@ const App = () => {
             case 'my_channel': return React.createElement(MyChannelApp, { apiKey: geminiApiKey });
             case 'prompt_json': return React.createElement(PromptJsonApp, appProps);
             case 'viet_kich_ban': return React.createElement(VietKichBanApp, { apiKey: geminiApiKey });
+            case 'ai_prompt_veo31': return React.createElement(AIPromptVEO31App, { apiKey: geminiApiKey });
             case 'auto_prompt': return React.createElement(AutoPromptApp, { apiKey: geminiApiKey });
+            case 'audio_to_prompt': return React.createElement(AudioToPromptApp, { apiKey: geminiApiKey });
             case 'create_thumbnail': return React.createElement(CreateThumbnailApp, { apiKey: geminiApiKey });
             case 'tao_anh_trend': return React.createElement(TaoAnhTrendApp, { apiKey: geminiApiKey });
             case 'seo_youtube': return React.createElement(SeoYoutubeApp, appProps);
