@@ -1,6 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { generatePromptsFromAudio } from './services/geminiService';
-import type { ParsedPrompt } from './types';
 
 const FileUploadIcon: React.FC = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -15,11 +14,11 @@ const Loader: React.FC = () => (
     </div>
 );
 
-const PromptResult: React.FC<{ result: ParsedPrompt }> = ({ result }) => {
+const PromptResult: React.FC<{ prompt: string; index: number }> = ({ prompt, index }) => {
     const [isCopied, setIsCopied] = useState(false);
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(result.prompt).then(() => {
+        navigator.clipboard.writeText(prompt).then(() => {
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
         }).catch(err => {
@@ -29,8 +28,8 @@ const PromptResult: React.FC<{ result: ParsedPrompt }> = ({ result }) => {
     
     return (
         <div className="relative bg-gray-700 rounded-lg p-4 mb-4 shadow-md transition-transform duration-300 border border-gray-600">
-            <h3 className="font-bold text-lg text-blue-400 pr-10">{result.header}</h3>
-            <p className="text-gray-200 mt-2 whitespace-pre-wrap text-sm">{result.prompt}</p>
+            <h3 className="font-bold text-lg text-blue-400 pr-10">Prompt {index + 1}</h3>
+            <p className="text-gray-200 mt-2 whitespace-pre-wrap text-sm">{prompt}</p>
             <button
                 onClick={handleCopy}
                 className="absolute top-3 right-3 p-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
@@ -55,13 +54,13 @@ const AudioToPromptApp: React.FC<{ apiKey: string }> = ({ apiKey }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [resultText, setResultText] = useState<string>('');
+  const [results, setResults] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState<boolean>(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setFiles(Array.from(event.target.files));
-      setResultText('');
+      setResults([]);
       setError(null);
     }
   };
@@ -74,7 +73,7 @@ const AudioToPromptApp: React.FC<{ apiKey: string }> = ({ apiKey }) => {
       const audioFiles = Array.from(event.dataTransfer.files).filter((file: File) => file.type.startsWith('audio/'));
       if(audioFiles.length > 0) {
         setFiles(audioFiles);
-        setResultText('');
+        setResults([]);
         setError(null);
       } else {
         setError("Vui lòng chỉ kéo thả file âm thanh.");
@@ -105,11 +104,11 @@ const AudioToPromptApp: React.FC<{ apiKey: string }> = ({ apiKey }) => {
     }
     setIsLoading(true);
     setError(null);
-    setResultText('');
+    setResults([]);
 
     try {
       const response = await generatePromptsFromAudio(files, apiKey);
-      setResultText(response);
+      setResults(response);
     } catch (e) {
       if (e instanceof Error) {
         setError(e.message);
@@ -121,35 +120,17 @@ const AudioToPromptApp: React.FC<{ apiKey: string }> = ({ apiKey }) => {
     }
   }, [files, apiKey]);
   
-  const parsedResults = useMemo((): ParsedPrompt[] => {
-    if (!resultText) return [];
-    try {
-      return resultText
-        .trim()
-        .split(/\n\n+/)
-        .map(entry => {
-          const lines = entry.split('\n');
-          const header = lines[0]?.replace(/\*\*/g, '') || 'Mục không xác định';
-          const prompt = lines.slice(1).join('\n');
-          return { header, prompt };
-        });
-    } catch(e) {
-      return [{ header: "Kết quả", prompt: resultText }];
-    }
-  }, [resultText]);
-  
   const handleDownload = () => {
-    if (parsedResults.length === 0) return;
-
-    const textContent = parsedResults
-      .map(result => result.prompt)
-      .join('\n');
+    if (results.length === 0) return;
+    
+    // Join prompts with two empty lines, with no extra characters.
+    const textContent = results.join('\n\n\n');
     
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'prompts.txt';
+    link.download = 'audio_prompts.txt';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -211,7 +192,7 @@ const AudioToPromptApp: React.FC<{ apiKey: string }> = ({ apiKey }) => {
           <div className="md:w-3/5 lg:w-2/3 md:h-[calc(100vh-200px)] md:overflow-y-auto custom-scrollbar md:pr-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-200">3. Kết quả</h2>
-              {parsedResults.length > 0 && !isLoading && (
+              {results.length > 0 && !isLoading && (
                 <button
                   onClick={handleDownload}
                   className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-500 transition-colors duration-300 flex items-center gap-2 text-sm"
@@ -227,15 +208,15 @@ const AudioToPromptApp: React.FC<{ apiKey: string }> = ({ apiKey }) => {
             <div className="min-h-[400px]">
               {isLoading && <Loader />}
               {error && <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded relative mb-8" role="alert"><strong className="font-bold">Lỗi! </strong><span className="block sm:inline ml-2">{error}</span></div>}
-              {!isLoading && !error && parsedResults.length === 0 && (
+              {!isLoading && !error && results.length === 0 && (
                  <div className="flex items-center justify-center h-full text-gray-500 text-center p-8">
                     Kết quả sẽ xuất hiện ở đây...
                  </div>
               )}
-              {!isLoading && parsedResults.length > 0 && (
+              {!isLoading && results.length > 0 && (
                   <div className="space-y-4 animate-fade-in">
-                      {parsedResults.map((result, index) => (
-                          <PromptResult key={index} result={result} />
+                      {results.map((prompt, index) => (
+                          <PromptResult key={index} prompt={prompt} index={index} />
                       ))}
                   </div>
               )}

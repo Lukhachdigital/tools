@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -17,6 +13,7 @@ import VietKichBanApp from './VietKichBanApp';
 import AutoPromptApp from './AutoPromptApp';
 import AudioToPromptApp from './AudioToPromptApp';
 import AIPromptVEO31App from './AIPromptVEO31App';
+import AudioChoppingApp from './AudioChoppingApp';
 
 
 // --- ICONS ---
@@ -85,6 +82,12 @@ const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => (
     )
 );
 
+const IconAudioChopping = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM3 3l18 18" })
+    )
+);
+
 const IconAudioToPrompt = (props: React.SVGProps<SVGSVGElement>) => (
     React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" })
@@ -143,6 +146,7 @@ const IconGift = (props: React.SVGProps<SVGSVGElement>) => {
 // FIX: Refactored to use a typed props variable, which is a consistent fix pattern in this file for createElement type inference issues.
 // FIX: Refactored IconYoutube to use an implicit return, resolving a TypeScript error with React.createElement.
 // FIX: Corrected a TypeScript error by defining props in a variable instead of an object literal inside React.createElement.
+// FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
 const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -151,7 +155,6 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
-    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
     const pathProps: React.SVGProps<SVGPathElement> = {
         d: "M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z"
     };
@@ -162,6 +165,7 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
 
 // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
 // FIX: Explicitly typed svgProps to resolve a TypeScript overload resolution issue with React.createElement.
+// FIX: Refactored IconFacebook to use an object literal for its child path element's props. This resolves a TypeScript overload issue with React.createElement that occurred when using a typed variable for the path's properties.
 const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -170,11 +174,10 @@ const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
-    const pathProps: React.SVGProps<SVGPathElement> = {
-        d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"
-    };
     return React.createElement('svg', svgProps,
-        React.createElement('path', pathProps)
+        React.createElement('path', {
+            d: "M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"
+        })
     );
 };
 
@@ -205,14 +208,14 @@ const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
-    // FIX: Inlined path properties into the `createElement` call to avoid a TypeScript overload resolution issue.
+    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
+    const pathProps: React.SVGProps<SVGPathElement> = { d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z" };
     return React.createElement('svg', svgProps,
-        React.createElement('path', { d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z" })
+        React.createElement('path', pathProps)
     );
 };
 
-// FIX: Updated IconSettings to accept props to resolve TypeScript errors by explicitly typing the props object.
-// FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
+// FIX: Refactored IconSettings to use an object literal for its child path element's props. This resolves a TypeScript overload issue with React.createElement that occurred when using a typed variable for the path's properties.
 const IconSettings = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -223,13 +226,12 @@ const IconSettings = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-5 h-5 mr-2",
         ...props
     };
-    const pathProps: React.SVGProps<SVGPathElement> = {
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      d: "M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 0115 0m-15 0a7.5 7.5 0 1015 0M12 4.5v.01M12 19.5v.01"
-    };
     return React.createElement('svg', svgProps,
-      React.createElement('path', pathProps)
+      React.createElement('path', {
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        d: "M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 0115 0m-15 0a7.5 7.5 0 1015 0M12 4.5v.01M12 19.5v.01"
+      })
     );
 };
 
@@ -345,6 +347,7 @@ const App = () => {
         { id: 'whisk_flow', text: 'Whisk & Flow I', title: 'Prompt chuẩn hóa Whisk & Flow', icon: React.createElement(IconWhiskFlow), description: 'Tạo kịch bản và prompt, đảm bảo nhân vật giữ nguyên khuôn mặt và trang phục trong suốt video.' },
         { id: 'my_channel', text: 'Whisk & Flow II', title: 'Kịch bản & Xuất Prompt Whisk & Flow', icon: React.createElement(IconConsistentFlow), description: 'Tạo kịch bản và prompt, giữ nguyên khuôn mặt nhưng linh hoạt thay đổi trang phục nhân vật theo từng cảnh.' },
         { id: 'viet_kich_ban', text: 'Viết kịch bản', title: 'AI Biên Kịch & Đạo Diễn', icon: React.createElement(IconVietKichBan), description: 'Tạo danh sách nhân vật và chuỗi prompt chuyên nghiệp cho VEO 3.1.' },
+        { id: 'audio_chopping', text: 'Audio Chopping AI', title: 'AI Cắt Audio Tự Động', icon: React.createElement(IconAudioChopping), description: 'Tự động cắt file audio thành các đoạn 8 giây chuẩn cho video shorts.' },
         { id: 'audio_to_prompt', text: 'Audio to Script', title: 'Tạo kịch bản từ Audio', icon: React.createElement(IconAudioToPrompt), description: 'AI tự động tạo kịch bản video 8 giây từ file âm thanh của bạn.' },
         { id: 'ai_prompt_veo31', text: 'AI Prompt VEO 3.1', title: 'Prompt VEO 3.1 Lipsync Audio', icon: React.createElement(IconAIPromptVEO31), description: 'Tạo kịch bản, nhân vật và prompt nhất quán cho VEO 3.1 theo đúng File Audio 8s' },
         { id: 'auto_prompt', text: 'Prompt & Text', title: 'Prompt & Text - Kịch bản & Voice VEO 3.1', icon: React.createElement(IconVietKichBan), description: 'Tạo tự động chuỗi prompt, nội dung Voice chuyên nghiệp.' },
@@ -370,6 +373,7 @@ const App = () => {
       "viet_kich_ban": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "ai_prompt_veo31": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "auto_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "audio_chopping": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "audio_to_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "create_thumbnail": "https://www.youtube.com/watch?v=9d9c5Q1nID8",
       "tao_anh_trend": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
@@ -443,6 +447,7 @@ const App = () => {
             case 'viet_kich_ban': return React.createElement(VietKichBanApp, { apiKey: geminiApiKey });
             case 'ai_prompt_veo31': return React.createElement(AIPromptVEO31App, { apiKey: geminiApiKey });
             case 'auto_prompt': return React.createElement(AutoPromptApp, { apiKey: geminiApiKey });
+            case 'audio_chopping': return React.createElement(AudioChoppingApp, null);
             case 'audio_to_prompt': return React.createElement(AudioToPromptApp, { apiKey: geminiApiKey });
             case 'create_thumbnail': return React.createElement(CreateThumbnailApp, { apiKey: geminiApiKey });
             case 'tao_anh_trend': return React.createElement(TaoAnhTrendApp, { apiKey: geminiApiKey });

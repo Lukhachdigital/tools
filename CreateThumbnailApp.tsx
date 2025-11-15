@@ -90,19 +90,23 @@ const Lightbox = ({ imageUrl, onClose }) => {
       document.body.removeChild(link);
     };
 
-    return React.createElement('div', {
-        className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
-        onClick: onClose
-      },
-      React.createElement('div', {
-        className: "relative w-full max-w-4xl max-h-[90vh] p-4",
-        onClick: e => e.stopPropagation()
-      },
-// FIX: Inlined image properties to resolve a TypeScript overload error with React.createElement.
+    // FIX: Extracted div props into typed variables to avoid TypeScript errors with React.createElement.
+    const outerDivProps: React.HTMLAttributes<HTMLDivElement> = {
+      className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
+      onClick: onClose
+    };
+
+    const innerDivProps: React.HTMLAttributes<HTMLDivElement> = {
+      className: "relative w-full max-w-4xl max-h-[90vh] p-4",
+      onClick: e => e.stopPropagation()
+    };
+
+    return React.createElement('div', outerDivProps,
+      React.createElement('div', innerDivProps,
         React.createElement('img', {
-            src: imageUrl,
-            alt: "Enlarged thumbnail",
-            className: "w-full h-full object-contain rounded-lg shadow-2xl"
+          src: imageUrl,
+          alt: "Enlarged thumbnail",
+          className: "w-full h-full object-contain rounded-lg shadow-2xl",
         }),
         React.createElement('div', { className: "absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4" },
           React.createElement('button', {

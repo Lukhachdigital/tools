@@ -45,7 +45,7 @@ const ResultsDisplay: React.FC<{ data: ScriptResponse }> = ({ data }) => {
     };
     
     const downloadPromptsOnly = () => {
-        const scriptContent = data.script.join('\n');
+        const scriptContent = data.script.join('\n\n');
         handleDownload(scriptContent, 'veo3_prompts.txt');
     };
 

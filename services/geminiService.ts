@@ -18,51 +18,55 @@ const fileToGenerativePart = async (file: File) => {
   };
 };
 
-export const generatePromptsFromAudio = async (files: File[], apiKey: string): Promise<string> => {
+export const generatePromptsFromAudio = async (files: File[], apiKey: string): Promise<string[]> => {
   if (!apiKey) {
     throw new Error("Gemini API key is not configured.");
   }
   const ai = new window.GoogleGenAI({ apiKey });
 
-  const prompt = `You are an expert video script director. Your task is to analyze the provided audio file(s) and generate a series of 8-second video prompts that visually represent the content of the audio.
+  const promptForSingleAudio = `You are an expert video script director. Your task is to analyze the provided audio file and generate a single, concise, visually descriptive prompt for a video generation model like VEO. The prompt should capture the essence, mood, and key information of the entire audio file. The prompt MUST be in ENGLISH.
 
-**CRITICAL INSTRUCTIONS:**
-1.  **Analyze Audio:** Listen carefully to the entire audio content provided.
-2.  **Segment into 8-Second Chunks:** Mentally divide the audio into logical 8-second segments.
-3.  **Create Prompts:** For each segment, create a concise, visually descriptive prompt for a video generation model like VEO. The prompt should capture the essence, mood, and key information of that 8-second audio chunk. The prompts MUST be in ENGLISH.
-4.  **Formatting (Strict):**
-    *   Each prompt must be preceded by a header that indicates the time segment. The header must be in the format: \`**Prompt for [Start Time]s - [End Time]s**\`. For example: \`**Prompt for 0s - 8s**\`, \`**Prompt for 8s - 16s**\`, etc.
-    *   Separate each complete entry (header + prompt) with two newlines (\`\n\n\`).
-    *   Do not include any other text, explanations, or introductory/concluding remarks. Only output the list of prompts in the specified format.
-
-Example Output Format:
-**Prompt for 0s - 8s**
-A scientist in a modern laboratory adjusts a glowing blue liquid in a beaker, with complex scientific equipment in the background.
-
-**Prompt for 8s - 16s**
-A close-up shot of the blue liquid bubbling vigorously as the scientist watches with a look of intense concentration.
-`;
-
-  const audioParts = await Promise.all(files.map(fileToGenerativePart));
+  **CRITICAL INSTRUCTIONS:**
+  1.  **Analyze Audio:** Listen carefully to the entire audio content.
+  2.  **Summarize Visually:** Create ONE single prompt that summarizes the audio content visually. It should be suitable for generating an 8-second video clip that represents the audio.
+  3.  **Output Format (Strict):**
+      *   Return ONLY the generated prompt text.
+      *   Do not include any other text, explanations, headers, or introductory/concluding remarks. Just the prompt itself.
+  `;
   
-  const contents = {
-      parts: [
-          { text: prompt },
-          ...audioParts
-      ]
-  };
+  const generationPromises = files.map(async (file) => {
+      const audioPart = await fileToGenerativePart(file);
+      const contents = {
+          parts: [
+              { text: promptForSingleAudio },
+              audioPart
+          ]
+      };
+      
+      try {
+          const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents,
+          });
+          return response.text.trim();
+      } catch (error) {
+          console.error(`Error processing file ${file.name}:`, error);
+          if (error instanceof Error && error.message.includes('API key not valid')) {
+              // Re-throw to be caught by Promise.all and fail fast
+              throw new Error('API Key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt.');
+          }
+          // Return an error message for the specific file that failed
+          return `Lỗi khi tạo prompt cho file: ${file.name}. Vui lòng thử lại.`;
+      }
+  });
 
+  // Promise.all will run requests in parallel and reject if any of them reject (e.g., API key error)
   try {
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents,
-    });
-    return response.text;
+    const prompts = await Promise.all(generationPromises);
+    return prompts;
   } catch (error) {
     console.error("Error calling Gemini API:", error);
-    if (error instanceof Error && error.message.includes('API key not valid')) {
-        throw new Error('API Key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt.');
-    }
-    throw new Error('Đã xảy ra lỗi khi giao tiếp với AI. Vui lòng thử lại.');
+    // Propagate the specific error (like the API key error)
+    throw error;
   }
 };
