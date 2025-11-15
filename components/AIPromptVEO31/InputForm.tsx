@@ -16,6 +16,8 @@ const InputForm: React.FC<InputFormProps> = ({ params, setParams, onSubmit, isLo
   const handleParamChange = (field: keyof Omit<ScriptParams, 'apiKey' | 'numPrompts'>, value: any) => {
     setParams(prev => ({ ...prev, [field]: value }));
   };
+  
+  const numPrompts = params.topic.split('\n').filter(p => p.trim() !== '').length;
 
   const formElementClasses = "space-y-2";
   const labelClasses = "block text-sm font-semibold text-slate-300";
@@ -26,7 +28,14 @@ const InputForm: React.FC<InputFormProps> = ({ params, setParams, onSubmit, isLo
   return (
     <form onSubmit={onSubmit} className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 space-y-6">
       <div className={formElementClasses}>
-        <label htmlFor="topic" className={labelClasses}>Nhập Prompt vào đây (Mỗi dòng 1 Prompt)</label>
+        <div className="flex justify-between items-center">
+            <label htmlFor="topic" className={labelClasses}>Nhập Prompt vào đây (Mỗi dòng 1 Prompt)</label>
+            {numPrompts > 0 && (
+                <span className="text-sm font-semibold text-cyan-400 bg-slate-700/50 px-2 py-1 rounded">
+                Số lượng: {numPrompts}
+                </span>
+            )}
+        </div>
         <textarea
           id="topic"
           value={params.topic}
@@ -34,7 +43,7 @@ const InputForm: React.FC<InputFormProps> = ({ params, setParams, onSubmit, isLo
           placeholder="Cảnh 1: Một nhà thám hiểm tìm thấy một thành phố đã mất trong rừng rậm...
 Cảnh 2: Anh ta bước vào một ngôi đền cổ kính..."
           rows={6}
-          className={`${inputBaseClasses} resize-y`}
+          className={`${inputBaseClasses} resize-y mt-2`}
           required
           disabled={isLoading}
         />
@@ -74,29 +83,6 @@ Cảnh 2: Anh ta bước vào một ngôi đền cổ kính..."
         </div>
       </div>
       
-      <div className="flex items-center justify-between bg-slate-700/50 p-3 rounded-lg">
-        <label className={labelClasses}>Phụ đề</label>
-        <div className="flex gap-2">
-            <button
-                type="button"
-                onClick={() => handleParamChange('subtitles', true)}
-                className={buttonClasses(params.subtitles)}
-                disabled={isLoading}
-            >
-              Bật
-            </button>
-            <button
-                type="button"
-                onClick={() => handleParamChange('subtitles', false)}
-                className={buttonClasses(!params.subtitles)}
-                disabled={isLoading}
-            >
-              Tắt
-            </button>
-        </div>
-      </div>
-
-
       <button
         type="submit"
         disabled={isLoading || !params.topic.trim()}
