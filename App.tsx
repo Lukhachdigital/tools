@@ -1,7 +1,5 @@
 
 
-
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -386,6 +384,11 @@ const App = () => {
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
+    const handleOpenApiKeyTutorial = () => {
+        const apiKeyTutorialUrl = "https://www.youtube.com/watch?v=1Pi-xnnFq70";
+        window.open(apiKeyTutorialUrl, '_blank', 'noopener,noreferrer');
+    };
+
     const Dashboard = ({ onToolClick }) => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
 
@@ -459,14 +462,23 @@ const App = () => {
              }),
             React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col" },
                 React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-6 w-full mb-4 p-4 sm:p-6" },
-                     React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
-                        React.createElement('a', homeLinkProps,
-                            React.createElement(IconHome), 
-                            "Trang chủ"
+                     React.createElement('div', { className: "flex flex-col items-start gap-3 sm:gap-4" },
+                        React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
+                            React.createElement('a', homeLinkProps,
+                                React.createElement(IconHome), 
+                                "Trang chủ"
+                            ),
+                            React.createElement('a', freeLinkProps,
+                                React.createElement(IconGift),
+                                "Tài nguyên FREE"
+                            )
                         ),
-                        React.createElement('a', freeLinkProps,
-                            React.createElement(IconGift),
-                            "Tài nguyên FREE"
+                        React.createElement('button', { 
+                            onClick: handleOpenTutorial,
+                            className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
+                        }, 
+                            React.createElement(IconTutorial),
+                            "Hướng dẫn dùng App"
                         )
                     ),
                     React.createElement('div', { className: "text-center" },
@@ -499,18 +511,18 @@ const App = () => {
                                     "Cài đặt API Key"
                                 ),
                                  React.createElement('button', { 
-                                    onClick: handleOpenTutorial,
+                                    onClick: handleOpenApiKeyTutorial,
                                     className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
                                     React.createElement(IconTutorial),
-                                    "Hướng dẫn"
+                                    "Hướng dẫn API Key"
                                 )
                             )
                         );
                      })()
                 ),
-                React.createElement('div', { className: "flex-grow flex w-full" },
-                    currentView !== 'dashboard' && React.createElement('aside', { className: 'w-64 flex-shrink-0 p-4' },
-                        React.createElement('div', { className: 'bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 h-full' },
+                React.createElement('div', { className: "flex-grow flex w-full p-4 sm:p-6 gap-6" },
+                    currentView !== 'dashboard' && React.createElement('aside', { className: 'w-64 flex-shrink-0 flex flex-col gap-4' },
+                        React.createElement('div', { className: 'bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 flex-grow' },
                             React.createElement('nav', { className: 'space-y-2' },
                                 sidebarTools.map(tool => {
                                     const isActive = currentView === tool.id;
@@ -530,7 +542,7 @@ const App = () => {
                             )
                         )
                     ),
-                    React.createElement('main', { className: currentView === 'dashboard' ? 'w-full p-4' : 'flex-grow p-4 min-w-0' },
+                    React.createElement('main', { className: currentView === 'dashboard' ? 'w-full' : 'flex-grow min-w-0' },
                         React.createElement('div', { className: 'bg-slate-900/50 p-0 sm:p-0 rounded-2xl border-none shadow-none h-full' },
                            renderCurrentView()
                         )
