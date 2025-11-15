@@ -477,13 +477,13 @@ const ThumbnailGeneratorTab = ({ apiKey }) => {
                       uploadedImage: characterImage, 
                       setUploadedImage: setCharacterImage, 
                       isGenerating, 
-                      placeholderText: "Upload ảnh khổ NGANG"
+                      placeholderText: "Upload ảnh nhân vật"
                   }),
                   React.createElement(SingleImageUploader, { 
                       uploadedImage: accessoryImage, 
                       setUploadedImage: setAccessoryImage, 
                       isGenerating, 
-                      placeholderText: "Upload ảnh khổ DỌC"
+                      placeholderText: "Upload ảnh phụ kiện"
                   })
                 ),
                 React.createElement(ImageCountSelector, { numberOfImages, setNumberOfImages, isGenerating })
