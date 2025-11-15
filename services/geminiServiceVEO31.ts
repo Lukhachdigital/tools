@@ -67,11 +67,11 @@ ${params.topic}
     - Total Number of Scenes to Generate: ${params.numPrompts} (This is a strict requirement based on the number of lines provided above)
     - Video Style: ${mappedStyle}
     - Dialogue Language: ${mappedLang}
-    - Subtitles: ${params.subtitles ? 'ON' : 'OFF'}
+    - Subtitles: OFF (This is a fixed requirement)
 
     **QUY TRÌNH LÀM VIỆC CỐT LÕI**
     1.  **Phân tích Nhân vật Đầu tiên:** Dựa trên TẤT CẢ các mô tả cảnh được cung cấp, tạo hồ sơ chi tiết cho các nhân vật chính sẽ xuất hiện.
-    2.  **Tạo Kịch bản:** Xây dựng một câu chuyện mạch lạc dựa trên các mô tả cảnh theo thứ tự. Đối với MỖI mô tả cảnh từ người dùng, tạo ra một nhắc lệnh chi tiết được phân tách bằng dấu gạch đứng có không gian (" | ") với chính xác 11 phần theo thứ tự sau: Scene & Title, Character 1 Description, Character 2 Description, Style Description, Character Voices, Camera Shot, Setting Details, Mood, Audio Cues, Dialog, Subtitles. Bạn PHẢI tạo ra chính xác ${params.numPrompts} nhắc lệnh.
+    2.  **Tạo Kịch bản:** Xây dựng một câu chuyện mạch lạc dựa trên các mô tả cảnh theo thứ tự. Đối với MỖI mô tả cảnh từ người dùng, tạo ra một nhắc lệnh chi tiết được phân tách bằng dấu gạch đứng có không gian (" | ") với chính xác 11 phần theo thứ tự sau: Scene Title, Character 1 Description, Character 2 Description, Style Description, Character Voices, Camera Shot, Setting Details, Mood, Audio Cues, Dialog, Subtitles. Bạn PHẢI tạo ra chính xác ${params.numPrompts} nhắc lệnh.
 
     **CÁC QUY TẮC QUAN TRỌNG NHẤT**
     1.  **NHẤT QUÁN NHÂN VẬT:** Sao chép MÔ TẢ VẬT LÝ CHÍNH XÁC từ characterAnalysis vào MỌI phân cảnh có nhân vật đó. KHÔNG thay đổi hoặc diễn đạt lại, trừ khi trạng thái vật lý của nhân vật thay đổi (ví dụ: "puts on a helmet").
@@ -79,6 +79,10 @@ ${params.topic}
     3.  **QUY TẮC ĐỊNH DẠNG:** Mỗi nhắc lệnh là MỘT chuỗi dài duy nhất, sử dụng " | " làm ký tự phân tách, và có chính xác 11 phần theo đúng thứ tự.
     4.  **MÔ TẢ CHI TIẾT:** Mô tả nhân vật và giọng nói phải cực kỳ chi tiết.
     5.  **DÒNG CHẢY CÂU CHUYỆN:** Các phân cảnh phải tiến triển một cách logic.
+    6.  **KHÔNG CÓ VĂN BẢN TRÊN VIDEO (CỰC KỲ QUAN TRỌNG):** Video được tạo ra TUYỆT ĐỐI KHÔNG ĐƯỢC chứa bất kỳ văn bản, tiêu đề, hoặc phụ đề nào. Để đảm bảo điều này:
+        - Phần 'Scene Title' PHẢI LUÔN LÀ "Scene Title: [None]".
+        - Phần 'Subtitles' PHẢI LUÔN LÀ "Subtitles: [None]".
+        Đây là quy tắc không thể thương lượng để đảm bảo đầu ra hình ảnh sạch.
 
     **ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ.
     `;
