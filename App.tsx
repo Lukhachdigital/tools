@@ -362,7 +362,7 @@ const App = () => {
         { href: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1", icon: React.createElement(IconYoutube), name: "Youtube", color: "bg-red-600 hover:bg-red-700" },
         { href: "https://www.facebook.com/huynhxuyenson", icon: React.createElement(IconFacebook), name: "Facebook", color: "bg-blue-600 hover:bg-blue-700" },
         { href: "https://tiktok.com/@lamyoutubeai", icon: React.createElement(IconTiktok), name: "Tiktok", color: "bg-gray-900 hover:bg-gray-800" },
-        { href: "https://zalo.me/0979007367", icon: React.createElement(IconZalo), name: "Zalo", color: "bg-blue-500 hover:bg-blue-600" },
+        { href: "https://zalo.me/g/yesdti650", icon: React.createElement(IconZalo), name: "Zalo", color: "bg-blue-500 hover:bg-blue-600" },
     ];
     
     const tutorialLinks = {
