@@ -337,7 +337,8 @@ const App = () => {
     const [currentView, setCurrentView] = useState('dashboard');
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
-    
+    const [selectedAIModel, setSelectedAIModel] = useState('gemini');
+
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
 
@@ -347,10 +348,10 @@ const App = () => {
         { id: 'whisk_flow', text: 'Whisk & Flow I', title: 'Prompt chuẩn hóa Whisk & Flow', icon: React.createElement(IconWhiskFlow), description: 'Tạo kịch bản và prompt, đảm bảo nhân vật giữ nguyên khuôn mặt và trang phục trong suốt video.' },
         { id: 'my_channel', text: 'Whisk & Flow II', title: 'Kịch bản & Xuất Prompt Whisk & Flow', icon: React.createElement(IconConsistentFlow), description: 'Tạo kịch bản và prompt, giữ nguyên khuôn mặt nhưng linh hoạt thay đổi trang phục nhân vật theo từng cảnh.' },
         { id: 'viet_kich_ban', text: 'Viết kịch bản', title: 'AI Biên Kịch & Đạo Diễn', icon: React.createElement(IconVietKichBan), description: 'Tạo danh sách nhân vật và chuỗi prompt chuyên nghiệp cho VEO 3.1.' },
+        { id: 'auto_prompt', text: 'Prompt & Text', title: 'Prompt & Text - Kịch bản & Voice VEO 3.1', icon: React.createElement(IconVietKichBan), description: 'Tạo tự động chuỗi prompt, nội dung Voice chuyên nghiệp.' },
         { id: 'audio_chopping', text: 'Audio Chopping AI', title: 'AI Cắt Audio Tự Động', icon: React.createElement(IconAudioChopping), description: 'Tự động cắt file audio thành các đoạn 8 giây chuẩn cho video shorts.' },
         { id: 'audio_to_prompt', text: 'Audio to Script', title: 'Tạo kịch bản từ Audio', icon: React.createElement(IconAudioToPrompt), description: 'AI tự động tạo kịch bản video 8 giây từ file âm thanh của bạn.' },
         { id: 'ai_prompt_veo31', text: 'AI Prompt VEO 3.1', title: 'Prompt VEO 3.1 Lipsync Audio', icon: React.createElement(IconAIPromptVEO31), description: 'Tạo kịch bản, nhân vật và prompt nhất quán cho VEO 3.1 theo đúng File Audio 8s' },
-        { id: 'auto_prompt', text: 'Prompt & Text', title: 'Prompt & Text - Kịch bản & Voice VEO 3.1', icon: React.createElement(IconVietKichBan), description: 'Tạo tự động chuỗi prompt, nội dung Voice chuyên nghiệp.' },
         { id: 'create_thumbnail', text: 'Tạo Thumbnail', title: 'AI tạo Thumbnail đỉnh cao', icon: React.createElement(IconCreateThumbnail), description: 'Tạo thumbnail cho Youtube, Tiktok, Facebook sáng tạo, giúp video của bạn tăng lượt Click.' },
         { id: 'tao_anh_trend', text: 'Tạo ảnh Trend', title: 'Tạo ảnh theo phong cách riêng', icon: React.createElement(IconSeoYoutube), description: 'Công nghệ tạo ảnh theo phong cách riêng của bạn và theo xu hướng thịnh hành.' },
         { id: 'seo_youtube', text: 'SEO Youtube', title: 'Công cụ SEO Youtube đỉnh cao', icon: React.createElement(IconSeoYoutube), description: 'Tối ưu Tiêu đề, Mô tả, và Tags cho video YouTube của bạn.' },
@@ -382,6 +383,8 @@ const App = () => {
       "youtube_external": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "app_affiliate": "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg"
     };
+
+    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'ai_prompt_veo31', 'auto_prompt', 'seo_youtube', 'youtube_external'];
 
     useEffect(() => {
         // Load API keys
@@ -514,7 +517,17 @@ const App = () => {
                          React.createElement('h1', { className: "text-3xl sm:text-4xl lg:text-5xl font-extrabold" },
                             React.createElement('span', { className: "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600" }, currentTool && currentView !== 'dashboard' ? currentTool.title : mainTitle)
                          ),
-                         React.createElement('p', { className: "text-slate-400 mt-2 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription)
+                         React.createElement('p', { className: "text-slate-400 mt-2 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription),
+                         appsWithModelSelector.includes(currentView) && React.createElement('div', { className: "mt-4 flex justify-center items-center gap-4" },
+                            React.createElement('button', {
+                                onClick: () => setSelectedAIModel('gemini'),
+                                className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gemini' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
+                            }, "Gemini 2.5 Flash"),
+                            React.createElement('button', {
+                                onClick: () => setSelectedAIModel('gpt'),
+                                className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gpt' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
+                            }, "Chat GPT 5")
+                        )
                     ),
 // FIX: Wrapped social links container in an IIFE with explicitly typed props to resolve a TypeScript error.
                      (() => {
