@@ -10,7 +10,7 @@ interface InputFormProps {
 
 const InputForm: React.FC<InputFormProps> = ({ params, setParams, onSubmit, isLoading }) => {
   
-  const videoStyles: Array<ScriptParams['videoStyle']> = ['Hoạt hình', 'Thực tế', 'Anime', 'Điện ảnh'];
+  const videoStyles: Array<ScriptParams['videoStyle']> = ['Hoạt hình', 'Thực tế', 'Anime', 'Điện ảnh', 'Hiện đại', 'Viễn tưởng'];
   const dialogueLanguages: Array<ScriptParams['dialogueLanguage']> = ['Vietnamese', 'English', 'Không thoại'];
 
   const handleParamChange = (field: keyof Omit<ScriptParams, 'apiKey' | 'numPrompts'>, value: any) => {

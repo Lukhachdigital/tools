@@ -1,12 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
 
-// Add type definitions for the global window object to satisfy TypeScript.
-declare global {
-    interface Window {
-        GoogleGenAI: typeof GoogleGenAI;
-    }
-}
-
 const fileToGenerativePart = async (file: File) => {
   const base64EncodedDataPromise = new Promise<string>((resolve) => {
     const reader = new FileReader();
@@ -24,13 +17,13 @@ export const generatePromptsFromAudio = async (files: File[], apiKey: string): P
   }
   const ai = new window.GoogleGenAI({ apiKey });
 
-  const promptForSingleAudio = `You are an expert video script director. Your task is to analyze the provided audio file and generate a single, concise, visually descriptive prompt for a video generation model like VEO. The prompt should capture the essence, mood, and key information of the entire audio file. The prompt MUST be in ENGLISH.
+  const promptForSingleAudio = `You are an expert video script director. Your task is to analyze the provided audio file and generate a single, concise, visually descriptive prompt in VIETNAMESE for a video generation model like VEO. The prompt should capture the essence, mood, and key information of the entire audio file. The prompt MUST be in VIETNAMESE.
 
   **CRITICAL INSTRUCTIONS:**
   1.  **Analyze Audio:** Listen carefully to the entire audio content.
-  2.  **Summarize Visually:** Create ONE single prompt that summarizes the audio content visually. It should be suitable for generating an 8-second video clip that represents the audio.
+  2.  **Summarize Visually:** Create ONE single VIETNAMESE prompt that summarizes the audio content visually. It should be suitable for generating an 8-second video clip that represents the audio.
   3.  **Output Format (Strict):**
-      *   Return ONLY the generated prompt text.
+      *   Return ONLY the generated prompt text in VIETNAMESE.
       *   Do not include any other text, explanations, headers, or introductory/concluding remarks. Just the prompt itself.
   `;
   

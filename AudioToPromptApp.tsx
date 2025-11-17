@@ -56,6 +56,7 @@ const AudioToPromptApp: React.FC<{ apiKey: string }> = ({ apiKey }) => {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState<boolean>(false);
+  const [isAllCopied, setIsAllCopied] = useState<boolean>(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -136,6 +137,18 @@ const AudioToPromptApp: React.FC<{ apiKey: string }> = ({ apiKey }) => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+  
+  const handleCopyAll = () => {
+    if (results.length === 0) return;
+    const textContent = results.join('\n\n\n');
+    navigator.clipboard.writeText(textContent).then(() => {
+        setIsAllCopied(true);
+        setTimeout(() => setIsAllCopied(false), 2000);
+    }).catch(err => {
+        console.error('Failed to copy all prompts: ', err);
+        setError("Không thể sao chép prompts.");
+    });
+  };
 
   return (
     <div className="w-full h-full p-4">
@@ -193,16 +206,24 @@ const AudioToPromptApp: React.FC<{ apiKey: string }> = ({ apiKey }) => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-200">3. Kết quả</h2>
               {results.length > 0 && !isLoading && (
-                <button
-                  onClick={handleDownload}
-                  className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-500 transition-colors duration-300 flex items-center gap-2 text-sm"
-                  aria-label="Tải về tất cả prompts"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                  <span>Tải về (.txt)</span>
-                </button>
+                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleCopyAll}
+                        className="bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-500 transition-colors duration-300 flex items-center gap-2 text-sm"
+                    >
+                        {isAllCopied ? 'Đã sao chép!' : 'Sao chép tất cả'}
+                    </button>
+                    <button
+                        onClick={handleDownload}
+                        className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-500 transition-colors duration-300 flex items-center gap-2 text-sm"
+                        aria-label="Tải về tất cả prompts"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        <span>Tải về (.txt)</span>
+                    </button>
+                </div>
               )}
             </div>
             <div className="min-h-[400px]">
