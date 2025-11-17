@@ -170,7 +170,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const VietKichBanApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
+const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [duration, setDuration] = useState('');
   const [numMainCharacters, setNumMainCharacters] = useState('');
@@ -189,10 +189,6 @@ const VietKichBanApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
     numMain: number | null,
     numSupporting: number | null
   ): Promise<GeneratedContent> => {
-    if (!apiKey) {
-      throw new Error("API Key chưa được cấu hình.");
-    }
-    const ai = new window.GoogleGenAI({ apiKey });
     
     const numberOfScenes = Math.ceil((durationInMinutes * 60) / 8);
 
@@ -218,7 +214,7 @@ const VietKichBanApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
     }
 
 
-    const prompt = `
+    const commonPrompt = `
 You are an expert Hollywood screenwriter and director, tasked with creating a concept for an epic, profound, and thrilling film. Your primary goal is to ensure thematic and visual consistency throughout the entire script.
 
 **CREATIVITY MANDATE:** Your outputs must exhibit a high degree of creativity and uniqueness. For every new request, even if the user provides the exact same idea as before, you are REQUIRED to generate a completely new and different story, a unique set of characters (both main and supporting) with original names, and a fresh sequence of prompts. Repetitive or formulaic responses are not acceptable. Your goal is to surprise the user with your originality on every single run.
@@ -227,11 +223,6 @@ You are an expert Hollywood screenwriter and director, tasked with creating a co
 You MUST strictly adhere to the user-selected "Cinematic Style". Analyze it deeply. If the style is "${cinematicStyle}", all characters, actions, settings, and objects in both the character descriptions and the VEO prompts MUST be appropriate for that era and genre. For example, if the user's idea is 'a forest man saving animals' and the style is 'prehistoric', you absolutely CANNOT include modern items like cameras, walkie-talkies, or guns. This rule is non-negotiable and takes precedence over all other creative instructions.
 
 Based on the user's idea and your strict adherence to the cinematic style, you must perform two tasks and return the result as a single JSON object.
-
-**User Input:**
-- Idea: "${videoIdea}"
-- Cinematic Style: "${cinematicStyle}"
-- Total Duration: Approximately ${durationInMinutes} minutes.
 
 **Task 1: Character Development & Whisk Prompts**
 ${characterInstruction}
@@ -254,70 +245,100 @@ ${characterInstruction}
     3.  **DETAILED & CONSISTENT SETTINGS:** Before you write the prompts, you must internally plan the key locations. If a specific location (e.g., "the ancient, vine-covered temple entrance," "the neon-lit cyberpunk cockpit") appears in multiple scenes, you MUST use a consistent and IDENTICAL detailed description for that background in each relevant prompt to ensure visual continuity. Be very specific about the elements that make up the setting.
     4.  **Language:** All prompts MUST be in ENGLISH.
     5.  **Cinematic Style**: Each prompt must also incorporate descriptive words that reflect the chosen '${cinematicStyle}' style. For example, if the style is 'Viễn tưởng' (Sci-Fi), use terms like 'holographic glow', 'sleek metallic surfaces', 'cybernetic implants'.
-
-Generate a JSON object that strictly adheres to the provided schema.
 `;
 
-    const schema = {
-        type: window.GenAIType.OBJECT,
-        properties: {
-            characterList: {
-                type: window.GenAIType.ARRAY,
-                description: "A list of character objects, distinguishing between main and supporting roles.",
-                items: {
-                    type: window.GenAIType.OBJECT,
-                    properties: {
-                        name: { 
-                            type: window.GenAIType.STRING,
-                            description: "The character's name."
-                        },
-                        role: { 
-                            type: window.GenAIType.STRING,
-                            description: "The character's role, either 'Nhân vật chính' or 'Nhân vật phụ'."
-                        },
-                        description: { 
-                            type: window.GenAIType.STRING,
-                            description: "The character's detailed description in Vietnamese."
-                        },
-                        whiskPrompt: { 
-                            type: window.GenAIType.STRING,
-                            description: "A detailed English prompt for Whisk AI to generate the character's image against a solid white background."
+    const userPrompt = `
+- Idea: "${videoIdea}"
+- Cinematic Style: "${cinematicStyle}"
+- Total Duration: Approximately ${durationInMinutes} minutes.
+`;
+    
+    try {
+        if (selectedAIModel === 'gemini') {
+            if (!geminiApiKey) {
+                throw new Error("API Key Gemini chưa được cấu hình.");
+            }
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+
+            const schema = {
+                type: window.GenAIType.OBJECT,
+                properties: {
+                    characterList: {
+                        type: window.GenAIType.ARRAY,
+                        description: "A list of character objects, distinguishing between main and supporting roles.",
+                        items: {
+                            type: window.GenAIType.OBJECT,
+                            properties: {
+                                name: { type: window.GenAIType.STRING, description: "The character's name." },
+                                role: { type: window.GenAIType.STRING, description: "The character's role, either 'Nhân vật chính' or 'Nhân vật phụ'." },
+                                description: { type: window.GenAIType.STRING, description: "The character's detailed description in Vietnamese." },
+                                whiskPrompt: { type: window.GenAIType.STRING, description: "A detailed English prompt for Whisk AI to generate the character's image against a solid white background." }
+                            },
+                            required: ["name", "role", "description", "whiskPrompt"]
                         }
                     },
-                    required: ["name", "role", "description", "whiskPrompt"]
-                }
-            },
-            prompts: {
-                type: window.GenAIType.ARRAY,
-                items: { type: window.GenAIType.STRING },
-                description: `An array of exactly ${numberOfScenes} English video generation prompts for VEO 3.1.`
+                    prompts: {
+                        type: window.GenAIType.ARRAY,
+                        items: { type: window.GenAIType.STRING },
+                        description: `An array of exactly ${numberOfScenes} English video generation prompts for VEO 3.1.`
+                    }
+                },
+                required: ["characterList", "prompts"]
+            };
+
+            const response = await ai.models.generateContent({
+              model: "gemini-2.5-pro",
+              contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}\n\nGenerate a JSON object that strictly adheres to the provided schema.`,
+              config: {
+                responseMimeType: "application/json",
+                responseSchema: schema,
+              },
+            });
+      
+            const jsonStr = response.text.trim();
+            return JSON.parse(jsonStr) as GeneratedContent;
+
+        } else { // OpenAI
+            if (!openaiApiKey) {
+                throw new Error("API Key OpenAI chưa được cấu hình.");
             }
-        },
-        required: ["characterList", "prompts"]
-    };
+            const systemPrompt = `${commonPrompt}\n\nGenerate a JSON object that strictly adheres to the following structure: { "characterList": [ ... ], "prompts": [ ... ] }`;
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
 
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
 
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: schema,
-        },
-      });
+            const data = await response.json();
+            const jsonText = data.choices[0].message.content;
+            return JSON.parse(jsonText) as GeneratedContent;
+        }
 
-      const jsonStr = response.text.trim();
-      return JSON.parse(jsonStr) as GeneratedContent;
     } catch (error) {
       console.error("Error generating script:", error);
       throw new Error("Không thể tạo kịch bản. Vui lòng thử lại.");
     }
-  }, [apiKey]);
+  }, [geminiApiKey, openaiApiKey, selectedAIModel]);
   
   const handleGenerateCharacterImage = useCallback(async (characterIndex: number, prompt: string, aspectRatio: '16:9' | '9:16') => {
-    if (!apiKey) {
-      setError("API Key chưa được cấu hình.");
+    if (!geminiApiKey) { // Image generation is done via Gemini
+      setError("API Key Gemini chưa được cấu hình.");
       return;
     }
 
@@ -327,7 +348,7 @@ Generate a JSON object that strictly adheres to the provided schema.
     }));
 
     try {
-        const ai = new window.GoogleGenAI({ apiKey });
+        const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
 
         let finalPrompt = prompt;
         if (selectedCinematicStyle !== 'Hoạt hình') {
@@ -364,7 +385,7 @@ Generate a JSON object that strictly adheres to the provided schema.
             [characterIndex]: { isGenerating: false, error: errorMessage }
         }));
     }
-  }, [apiKey, selectedCinematicStyle]);
+  }, [geminiApiKey, selectedCinematicStyle]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

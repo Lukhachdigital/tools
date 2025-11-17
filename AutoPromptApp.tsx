@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -96,7 +97,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const AutoPromptApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
+const AutoPromptApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [duration, setDuration] = useState('');
   const [selectedCinematicStyle, setSelectedCinematicStyle] = useState('Hiện đại');
@@ -109,17 +110,13 @@ const AutoPromptApp = ({ apiKey }: { apiKey: string }): React.ReactElement => {
     durationInMinutes: number,
     cinematicStyle: string
   ): Promise<GeneratedContent> => {
-    if (!apiKey) {
-      throw new Error("API Key chưa được cấu hình.");
-    }
-    const ai = new window.GoogleGenAI({ apiKey });
     
     const totalScenes = Math.ceil((durationInMinutes * 60) / 8);
     const isLongVideo = durationInMinutes >= 5;
     const partsToGenerate = isLongVideo ? Math.ceil(durationInMinutes / 3) : 1;
     const scenesPerPart = Math.ceil(totalScenes / partsToGenerate);
 
-    const prompt = `
+    const commonPrompt = `
 You are a world-class creative director and video scriptwriter for viral short-form and long-form videos. Your task is to transform a user's idea into a complete production package containing both a voiceover script and a series of video generation prompts for a model like VEO 3.1.
 
 **CREATIVITY MANDATE:** Your outputs must exhibit a high degree of creativity and uniqueness. For every new request, even if the user provides the exact same idea as before, you are REQUIRED to generate a completely new and different story, a unique voiceover script, and a fresh sequence of prompts. Repetitive or formulaic responses are not acceptable. Your goal is to surprise the user with your originality on every single run.
@@ -135,11 +132,6 @@ This logical adherence to the premise is paramount for the "Giả thuyết" styl
 
 **GENERAL THEMATIC ADHERENCE (ALL STYLES):**
 This principle of strict adherence applies to ALL cinematic styles. You must constantly ask: "Does this object, action, or setting make logical sense within the established rules of this world (based on style and idea)?" If the answer is no, you must not include it.
-
-**User Input:**
-- Idea: "${videoIdea}"
-- Cinematic Style: "${cinematicStyle}"
-- Total Duration: Approximately ${durationInMinutes} minutes.
 
 **Your Task:**
 Generate a JSON object containing a 'parts' array. The array will consist of the main story part(s) followed by a final interaction part.
@@ -168,58 +160,94 @@ After generating all the main story parts, you MUST append ONE FINAL part to the
 -   **partNumber**: Continue the sequence (e.g., if the last story part was ${partsToGenerate}, this will be ${partsToGenerate + 1}).
 -   **voiceContent**: A short VIETNAMESE script (40-60 words) that directly addresses the audience. It should reflect on the story/topic and ask engaging questions to encourage them to Like, Share, and Comment with their thoughts, feelings, or opinions on the subject.
 -   **prompts**: Exactly TWO ENGLISH prompts suitable for a video outro. They should be visually engaging but not part of the main story (e.g., "an abstract animation of swirling particles related to the video's theme", "a beautifully rendered thematic background with a subtle pulsing light").
-
-Generate the final output as a single JSON object.
 `;
 
-    const schema = {
-        type: window.GenAIType.OBJECT,
-        properties: {
-            parts: {
-                type: window.GenAIType.ARRAY,
-                description: "An array of video parts, each containing a voiceover script and corresponding video prompts.",
-                items: {
-                    type: window.GenAIType.OBJECT,
-                    properties: {
-                        partNumber: { 
-                            type: window.GenAIType.INTEGER,
-                            description: "The sequential number of the part."
-                        },
-                        voiceContent: { 
-                            type: window.GenAIType.STRING,
-                            description: "The voiceover script for this part in Vietnamese."
-                        },
-                        prompts: {
-                            type: window.GenAIType.ARRAY,
-                            items: { type: window.GenAIType.STRING },
-                            description: `An array of English video generation prompts for this part.`
-                        }
-                    },
-                    required: ["partNumber", "voiceContent", "prompts"]
-                }
-            }
-        },
-        required: ["parts"]
-    };
-
+    const userPrompt = `
+- Idea: "${videoIdea}"
+- Cinematic Style: "${cinematicStyle}"
+- Total Duration: Approximately ${durationInMinutes} minutes.
+`;
 
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: schema,
-        },
-      });
+        if (selectedAIModel === 'gemini') {
+            if (!geminiApiKey) {
+              throw new Error("API Key Gemini chưa được cấu hình.");
+            }
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+            
+            const schema = {
+                type: window.GenAIType.OBJECT,
+                properties: {
+                    parts: {
+                        type: window.GenAIType.ARRAY,
+                        description: "An array of video parts, each containing a voiceover script and corresponding video prompts.",
+                        items: {
+                            type: window.GenAIType.OBJECT,
+                            properties: {
+                                partNumber: { type: window.GenAIType.INTEGER, description: "The sequential number of the part." },
+                                voiceContent: { type: window.GenAIType.STRING, description: "The voiceover script for this part in Vietnamese." },
+                                prompts: {
+                                    type: window.GenAIType.ARRAY,
+                                    items: { type: window.GenAIType.STRING },
+                                    description: `An array of English video generation prompts for this part.`
+                                }
+                            },
+                            required: ["partNumber", "voiceContent", "prompts"]
+                        }
+                    }
+                },
+                required: ["parts"]
+            };
 
-      const jsonStr = response.text.trim();
-      return JSON.parse(jsonStr) as GeneratedContent;
+            const response = await ai.models.generateContent({
+              model: "gemini-2.5-pro",
+              contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}\n\nGenerate the final output as a single JSON object.`,
+              config: {
+                responseMimeType: "application/json",
+                responseSchema: schema,
+              },
+            });
+      
+            const jsonStr = response.text.trim();
+            return JSON.parse(jsonStr) as GeneratedContent;
+        } else { // OpenAI
+            if (!openaiApiKey) {
+                throw new Error("API Key OpenAI chưa được cấu hình.");
+            }
+
+            const systemPrompt = `${commonPrompt}\n\nGenerate the final output as a single valid JSON object with a 'parts' array.`;
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const jsonText = data.choices[0].message.content;
+            return JSON.parse(jsonText) as GeneratedContent;
+        }
+
     } catch (error) {
       console.error("Error generating script:", error);
       throw new Error("Không thể tạo kịch bản. Vui lòng thử lại.");
     }
-  }, [apiKey]);
+  }, [geminiApiKey, openaiApiKey, selectedAIModel]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

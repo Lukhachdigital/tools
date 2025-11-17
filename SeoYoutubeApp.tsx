@@ -302,7 +302,7 @@ const generateFullSEOContentWithOpenAI = async (description: string, title: stri
 // MAIN APP COMPONENT
 // =================================================================
 
-const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey }) => {
+const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [videoDescription, setVideoDescription] = useState('');
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
@@ -314,9 +314,13 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey }) => {
   const [selectedDescStyle, setSelectedDescStyle] = useState<string | null>('Tiêu chuẩn');
   
   const handleGenerateTitles = useCallback(async () => {
-    if (!geminiApiKey && !openaiApiKey) {
-      setError('Vui lòng vào "Cài đặt API Key" để thêm key.');
+    if (selectedAIModel === 'gemini' && !geminiApiKey) {
+      setError('Vui lòng vào "Cài đặt API Key" để thêm key Gemini.');
       return;
+    }
+    if (selectedAIModel === 'gpt' && !openaiApiKey) {
+        setError('Vui lòng vào "Cài đặt API Key" để thêm key OpenAI.');
+        return;
     }
     if (!videoDescription.trim()) {
       setError('Vui lòng nhập mô tả video.');
@@ -328,16 +332,14 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey }) => {
     setSelectedTitle(null);
     setSeoContent(null);
 
-    const lengthConstraint = selectedTitleLength; // Read from state
+    const lengthConstraint = selectedTitleLength;
 
     try {
       let titles;
-      if (geminiApiKey) {
+      if (selectedAIModel === 'gemini') {
         titles = await generateTitlesWithGemini(videoDescription, geminiApiKey, lengthConstraint);
-      } else if (openaiApiKey) {
-        titles = await generateTitlesWithOpenAI(videoDescription, openaiApiKey, lengthConstraint);
       } else {
-        throw new Error("Không có API key nào được cung cấp.");
+        titles = await generateTitlesWithOpenAI(videoDescription, openaiApiKey, lengthConstraint);
       }
       setSuggestedTitles(titles);
     } catch (err: any) {
@@ -345,11 +347,15 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey }) => {
     } finally {
       setIsLoadingTitles(false);
     }
-  }, [videoDescription, geminiApiKey, openaiApiKey, selectedTitleLength]);
+  }, [videoDescription, geminiApiKey, openaiApiKey, selectedTitleLength, selectedAIModel]);
 
   const handleGenerateContent = useCallback(async (title: string) => {
-    if (!geminiApiKey && !openaiApiKey) {
-        setError('API Key không tìm thấy. Vui lòng nhập lại trong "Cài đặt API Key".');
+    if (selectedAIModel === 'gemini' && !geminiApiKey) {
+        setError('Vui lòng vào "Cài đặt API Key" để thêm key Gemini.');
+        return;
+    }
+    if (selectedAIModel === 'gpt' && !openaiApiKey) {
+        setError('Vui lòng vào "Cài đặt API Key" để thêm key OpenAI.');
         return;
     }
     setSelectedTitle(title);
@@ -357,16 +363,14 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey }) => {
     setSeoContent(null);
     setError(null);
 
-    const descStyle = selectedDescStyle; // Read from state
+    const descStyle = selectedDescStyle;
 
     try {
       let content;
-      if (geminiApiKey) {
+      if (selectedAIModel === 'gemini') {
         content = await generateFullSEOContentWithGemini(videoDescription, title, geminiApiKey, descStyle);
-      } else if (openaiApiKey) {
-        content = await generateFullSEOContentWithOpenAI(videoDescription, title, openaiApiKey, descStyle);
       } else {
-        throw new Error("Không có API key nào được cung cấp.");
+        content = await generateFullSEOContentWithOpenAI(videoDescription, title, openaiApiKey, descStyle);
       }
       setSeoContent(content);
     } catch (err: any)
@@ -375,7 +379,7 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey }) => {
     } finally {
       setIsLoadingContent(false);
     }
-  }, [videoDescription, geminiApiKey, openaiApiKey, selectedDescStyle]);
+  }, [videoDescription, geminiApiKey, openaiApiKey, selectedDescStyle, selectedAIModel]);
 
 
   const renderSEOContent = () => {
@@ -453,7 +457,7 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey }) => {
                 ),
                 React.createElement('button', {
                   onClick: handleGenerateTitles,
-                  disabled: isLoadingTitles || (!geminiApiKey && !openaiApiKey),
+                  disabled: isLoadingTitles,
                   className: "w-full flex justify-center items-center gap-2 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                 },
                   isLoadingTitles ? React.createElement(LoadingSpinner, null) : React.createElement('i', { className: "fas fa-magic" }),

@@ -6,15 +6,19 @@ import type { ScriptParams, ScriptResponse } from './types/veo31';
 import { ScriptIcon } from './components/AIPromptVEO31/icons';
 
 interface AIPromptVEO31AppProps {
-  apiKey: string;
+  geminiApiKey: string;
+  openaiApiKey: string;
+  selectedAIModel: string;
 }
 
-const AIPromptVEO31App: React.FC<AIPromptVEO31AppProps> = ({ apiKey }) => {
+const AIPromptVEO31App: React.FC<AIPromptVEO31AppProps> = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
+  // FIX: Updated the state type and initial value to include `apiType`, resolving a prop type mismatch with the InputForm component.
   const [params, setParams] = useState<Omit<ScriptParams, 'apiKey' | 'numPrompts'>>({
     topic: '',
     videoStyle: 'Điện ảnh',
     dialogueLanguage: 'Không thoại',
     subtitles: false,
+    apiType: selectedAIModel as 'gemini' | 'gpt',
   });
   const [scriptData, setScriptData] = useState<ScriptResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -36,7 +40,8 @@ const AIPromptVEO31App: React.FC<AIPromptVEO31AppProps> = ({ apiKey }) => {
     try {
       const fullParams: ScriptParams = { 
         ...params, 
-        apiKey,
+        apiKey: selectedAIModel === 'gemini' ? geminiApiKey : openaiApiKey,
+        apiType: selectedAIModel as 'gemini' | 'gpt',
         numPrompts: userPrompts.length 
       };
       const response = await generateScript(fullParams);

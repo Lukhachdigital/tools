@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -200,6 +201,7 @@ const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
 };
 
 // FIX: Updated IconZalo to accept props to resolve TypeScript errors by explicitly typing the props object.
+// FIX: Refactored IconZalo to use an object literal for its child path element's props. This resolves a TypeScript overload issue with React.createElement that occurred when using a typed variable for the path's properties.
 const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -208,10 +210,8 @@ const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
-    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
-    const pathProps: React.SVGProps<SVGPathElement> = { d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z" };
     return React.createElement('svg', svgProps,
-        React.createElement('path', pathProps)
+        React.createElement('path', { d: "M256,0C114.615,0,0,105.29,0,236.235c0,61.905,27.36,118.42,72.715,158.82L29.92,488.085l129.58-31.54 c30.555,9.21,63.15,14.155,96.5,14.155C397.385,470.7,512,365.41,512,234.465C512,105.29,397.385,0,256,0z M176.435,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S200.455,329.515,176.435,329.515z M335.565,329.515 c-24.02,0-43.5-19.48-43.5-43.5s19.48-43.5,43.5-43.5s43.5,19.48,43.5,43.5S359.585,329.515,335.565,329.515z" })
     );
 };
 
@@ -342,7 +342,7 @@ const App = () => {
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
 
-    const sidebarTools = [
+    const allTools = [
         { id: 'dashboard', text: 'Bảng điều khiển', title: 'AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng', icon: React.createElement(IconDashboard), description: 'Tổng quan các công cụ sáng tạo' },
         { id: 'prompt_json', text: 'Prompt JSON', title: 'Viết kịch bản và xuất Prompt chuẩn JSON', icon: React.createElement(IconPromptJson), description: 'Tự động tạo kịch bản video và chuỗi Prompt JSON tương ứng thích hợp tạo video.' },
         { id: 'whisk_flow', text: 'Whisk & Flow I', title: 'Prompt chuẩn hóa Whisk & Flow', icon: React.createElement(IconWhiskFlow), description: 'Tạo kịch bản và prompt, đảm bảo nhân vật giữ nguyên khuôn mặt và trang phục trong suốt video.' },
@@ -354,11 +354,30 @@ const App = () => {
         { id: 'ai_prompt_veo31', text: 'AI Prompt VEO 3.1', title: 'Prompt VEO 3.1 Lipsync Audio', icon: React.createElement(IconAIPromptVEO31), description: 'Tạo kịch bản, nhân vật và prompt nhất quán cho VEO 3.1 theo đúng File Audio 8s' },
         { id: 'create_thumbnail', text: 'Tạo Thumbnail', title: 'AI tạo Thumbnail đỉnh cao', icon: React.createElement(IconCreateThumbnail), description: 'Tạo thumbnail cho Youtube, Tiktok, Facebook sáng tạo, giúp video của bạn tăng lượt Click.' },
         { id: 'tao_anh_trend', text: 'Tạo ảnh Trend', title: 'Tạo ảnh theo phong cách riêng', icon: React.createElement(IconSeoYoutube), description: 'Công nghệ tạo ảnh theo phong cách riêng của bạn và theo xu hướng thịnh hành.' },
+        { id: 'app_affiliate', text: 'App Affiliate', title: 'App Affiliate Video Shorts', icon: React.createElement(IconAppAffiliate), description: 'Sáng tạo vô hạn video Viral cho Tiktok, Facebook Reels, Shopee.' },
         { id: 'seo_youtube', text: 'SEO Youtube', title: 'Công cụ SEO Youtube đỉnh cao', icon: React.createElement(IconSeoYoutube), description: 'Tối ưu Tiêu đề, Mô tả, và Tags cho video YouTube của bạn.' },
         { id: 'youtube_external', text: 'Youtube ngoại', title: 'Công cụ tối ưu Youtube view ngoại', icon: React.createElement(IconYoutubeExternal), description: 'Dịch nội dung sang nhiều ngôn ngữ chuẩn ngữ pháp để tiếp cận khán giả toàn cầu.' },
-        { id: 'app_affiliate', text: 'App Affiliate', title: 'App Affiliate Video Shorts', icon: React.createElement(IconAppAffiliate), description: 'Sáng tạo vô hạn video Viral cho Tiktok, Facebook Reels, Shopee.' },
     ];
     
+    const orderedIds = [
+        'dashboard', 
+        'prompt_json', 
+        'whisk_flow', 
+        'my_channel', 
+        'viet_kich_ban', 
+        'auto_prompt', 
+        'audio_chopping', 
+        'audio_to_prompt', 
+        'ai_prompt_veo31', 
+        'create_thumbnail', 
+        'tao_anh_trend', 
+        'app_affiliate', 
+        'seo_youtube', 
+        'youtube_external'
+    ];
+
+    const sidebarTools = orderedIds.map(id => allTools.find(tool => tool.id === id)).filter(Boolean);
+
     const socialLinks = [
         { href: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1", icon: React.createElement(IconYoutube), name: "Youtube", color: "bg-red-600 hover:bg-red-700" },
         { href: "https://www.facebook.com/huynhxuyenson", icon: React.createElement(IconFacebook), name: "Facebook", color: "bg-blue-600 hover:bg-blue-700" },
@@ -384,7 +403,7 @@ const App = () => {
       "app_affiliate": "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg"
     };
 
-    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'ai_prompt_veo31', 'auto_prompt', 'seo_youtube', 'youtube_external'];
+    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'ai_prompt_veo31', 'auto_prompt', 'seo_youtube', 'youtube_external', 'prompt_json'];
 
     useEffect(() => {
         // Load API keys
@@ -442,20 +461,20 @@ const App = () => {
     };
 
     const renderCurrentView = () => {
-        const appProps = { geminiApiKey, openaiApiKey };
+        const appProps = { geminiApiKey, openaiApiKey, selectedAIModel };
         switch (currentView) {
-            case 'whisk_flow': return React.createElement(WhiskFlowApp, { apiKey: geminiApiKey });
-            case 'my_channel': return React.createElement(MyChannelApp, { apiKey: geminiApiKey });
+            case 'whisk_flow': return React.createElement(WhiskFlowApp, appProps);
+            case 'my_channel': return React.createElement(MyChannelApp, appProps);
             case 'prompt_json': return React.createElement(PromptJsonApp, appProps);
-            case 'viet_kich_ban': return React.createElement(VietKichBanApp, { apiKey: geminiApiKey });
-            case 'ai_prompt_veo31': return React.createElement(AIPromptVEO31App, { apiKey: geminiApiKey });
-            case 'auto_prompt': return React.createElement(AutoPromptApp, { apiKey: geminiApiKey });
+            case 'viet_kich_ban': return React.createElement(VietKichBanApp, appProps);
+            case 'ai_prompt_veo31': return React.createElement(AIPromptVEO31App, appProps);
+            case 'auto_prompt': return React.createElement(AutoPromptApp, appProps);
             case 'audio_chopping': return React.createElement(AudioChoppingApp, null);
             case 'audio_to_prompt': return React.createElement(AudioToPromptApp, { apiKey: geminiApiKey });
             case 'create_thumbnail': return React.createElement(CreateThumbnailApp, { apiKey: geminiApiKey });
             case 'tao_anh_trend': return React.createElement(TaoAnhTrendApp, { apiKey: geminiApiKey });
             case 'seo_youtube': return React.createElement(SeoYoutubeApp, appProps);
-            case 'youtube_external': return React.createElement(YoutubeExternalApp, { apiKey: geminiApiKey });
+            case 'youtube_external': return React.createElement(YoutubeExternalApp, appProps);
             case 'app_affiliate': return React.createElement(AppAffiliate, { apiKey: geminiApiKey });
             case 'dashboard':
             default:
@@ -535,15 +554,18 @@ const App = () => {
                             className: "flex items-center justify-end flex-wrap gap-3"
                         };
                         return React.createElement('div', divProps,
-                            socialLinks.map(link => 
-                                React.createElement('a', { 
+// FIX: Extracted link properties into a typed variable to resolve TypeScript type inference issues with React.createElement.
+                            socialLinks.map(link => {
+                                const linkProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {
                                     key: link.name,
-                                    href: link.href, 
-                                    target: "_blank", 
-                                    rel: "noopener noreferrer", 
+                                    href: link.href,
+                                    target: "_blank",
+                                    rel: "noopener noreferrer",
                                     'aria-label': link.name,
                                     className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
-                                }, link.icon)
+                                };
+                                return React.createElement('a', linkProps, link.icon);
+                            }
                             ),
                             React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
                                 React.createElement('button', { 

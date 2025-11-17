@@ -2,11 +2,6 @@ import type { ScriptParams, ScriptResponse } from '../types/veo31';
 import { GoogleGenAI, Type } from '@google/genai';
 
 export const generateScript = async (params: ScriptParams): Promise<ScriptResponse> => {
-    if (!params.apiKey) {
-        throw new Error("API Key chưa được cấu hình. Vui lòng vào Cài đặt API Key trong menu chính.");
-    }
-    const ai = new window.GoogleGenAI({ apiKey: params.apiKey });
-
     const styleMap = {
         'Hoạt hình': 'Cartoon',
         'Thực tế': 'Realistic',
@@ -25,19 +20,7 @@ export const generateScript = async (params: ScriptParams): Promise<ScriptRespon
     const mappedStyle = styleMap[params.videoStyle];
     const mappedLang = langMap[params.dialogueLanguage];
 
-    const responseSchema = {
-        type: Type.OBJECT,
-        properties: {
-            script: {
-                type: Type.ARRAY,
-                description: `Một mảng gồm chính xác ${params.numPrompts} chuỗi kịch bản được phân tách bằng dấu gạch đứng.`,
-                items: { type: Type.STRING }
-            }
-        },
-        required: ["script"]
-    };
-
-    const prompt = `
+    const commonPrompt = `
     BẠN LÀ MỘT ĐẠO DIỄN PHIM VÀ KỸ SƯ NHẮC LỆNH (PROMPT ENGINEER) CHUYÊN NGHIỆP CHO VEO 3.1. NHIỆM VỤ CỐT LÕI CỦA BẠN LÀ CHUYỂN THỂ TRUNG THỰC CÁC MÔ TẢ CẢNH CỦA NGƯỜI DÙNG THÀNH CÁC NHẮC LỆNH VIDEO CHI TIẾT, ĐẬM CHẤT ĐIỆN ẢNH.
 
     **Yêu cầu của người dùng:**
@@ -71,24 +54,72 @@ ${params.topic}
 
     **QUY TRÌNH LÀM VIỆC:**
     Đối với MỖI mô tả cảnh từ người dùng, hãy tạo ra một nhắc lệnh VEO 3.1 chi tiết. Nhắc lệnh này phải được phân tách bằng dấu gạch đứng có không gian (" | ") với chính xác 11 phần theo thứ tự sau: Scene Title, Character 1 Description, Character 2 Description, Style Description, Character Voices, Camera Shot, Setting Details, Mood, Audio Cues, Dialog, Subtitles. Bạn PHẢI tạo ra chính xác ${params.numPrompts} nhắc lệnh.
-
-    **ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ chứa một khóa duy nhất là "script".
     `;
 
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-pro",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: responseSchema,
-            },
-        });
-        const jsonText = response.text.trim();
-        return JSON.parse(jsonText) as ScriptResponse;
+        if (params.apiType === 'gpt') {
+             if (!params.apiKey) {
+                throw new Error("API Key OpenAI chưa được cấu hình.");
+            }
+            const systemPrompt = `${commonPrompt}\n\n**ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ chứa một khóa duy nhất là "script". Giá trị của "script" phải là một mảng chuỗi (array of strings).`;
+            const userPrompt = `Vui lòng tạo kịch bản dựa trên các yêu cầu đã được cung cấp.`;
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${params.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            const jsonText = data.choices[0].message.content;
+            return JSON.parse(jsonText) as ScriptResponse;
+        } else { // Gemini
+            if (!params.apiKey) {
+                throw new Error("API Key Gemini chưa được cấu hình.");
+            }
+            const ai = new window.GoogleGenAI({ apiKey: params.apiKey });
+            const responseSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    script: {
+                        type: Type.ARRAY,
+                        description: `Một mảng gồm chính xác ${params.numPrompts} chuỗi kịch bản được phân tách bằng dấu gạch đứng.`,
+                        items: { type: Type.STRING }
+                    }
+                },
+                required: ["script"]
+            };
+
+            const prompt = `${commonPrompt}\n\n**ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ chứa một khóa duy nhất là "script".`;
+
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-pro",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema,
+                },
+            });
+            const jsonText = response.text.trim();
+            return JSON.parse(jsonText) as ScriptResponse;
+        }
     } catch (error) {
         console.error("Lỗi khi tạo kịch bản:", error);
-        if (error instanceof Error && error.message.includes('API key not valid')) {
+        if (error instanceof Error && (error.message.includes('API key not valid') || error.message.includes('Incorrect API key'))) {
             throw new Error('API Key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt.');
         }
         throw new Error("Không thể tạo kịch bản từ AI. Vui lòng thử lại.");

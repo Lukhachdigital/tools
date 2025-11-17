@@ -36,7 +36,7 @@ const ResultCard = ({ language, text }) => {
 };
 
 
-const YoutubeExternalApp = ({ apiKey }): React.ReactElement => {
+const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
     const [text, setText] = useState('');
     const [selectedLanguages, setSelectedLanguages] = useState(['English']);
     const [results, setResults] = useState([]);
@@ -63,11 +63,14 @@ const YoutubeExternalApp = ({ apiKey }): React.ReactElement => {
     };
 
     const handleTranslate = async () => {
-        if (!apiKey) {
-            setError('API Key chưa được cài đặt.');
+        if (selectedAIModel === 'gemini' && !geminiApiKey) {
+            setError('API Key Gemini chưa được cài đặt.');
             return;
         }
-        const ai = new window.GoogleGenAI({ apiKey });
+        if (selectedAIModel === 'gpt' && !openaiApiKey) {
+            setError('API Key OpenAI chưa được cài đặt.');
+            return;
+        }
 
         if (!text) {
             setError('Vui lòng nhập văn bản cần dịch.');
@@ -82,36 +85,65 @@ const YoutubeExternalApp = ({ apiKey }): React.ReactElement => {
         setError('');
         setResults([]);
 
+        const commonPrompt = `Bạn là một chuyên gia dịch thuật với độ chính xác tuyệt đối.
+        **Yêu cầu BẮT BUỘC và KHÔNG THAY ĐỔI:**
+        1.  **Dịch Chính Xác:** Dịch toàn bộ nội dung sang ngôn ngữ đích.
+        2.  **Bảo Toàn Ý Nghĩa:** Giữ nguyên 100% ý nghĩa và văn phong gốc.
+        3.  **Bảo Toàn Cấu Trúc:** Giữ nguyên 100% cấu trúc của văn bản gốc, bao gồm tất cả các lần xuống dòng, khoảng trắng, và định dạng. Không được thêm, bớt hay thay đổi bất kỳ ký tự nào không phải là bản dịch.
+        4.  **Dịch Hashtag:** Dịch nghĩa của các hashtag sang ngôn ngữ đích, trừ khi chúng là danh từ riêng (tên người, thương hiệu). Ví dụ: "#lamdep" phải được dịch, nhưng "#huynhxuyenson" giữ nguyên.
+        5.  **Kết Quả Cuối Cùng:** Chỉ trả về văn bản đã dịch thuần túy. KHÔNG thêm bất kỳ lời giải thích, ghi chú, hay văn bản nào khác.
+
+        Văn bản gốc:
+        ---
+        ${text}
+        ---
+        Bản dịch:`;
+
+
         try {
-            const translationPromises = selectedLanguages.map(async (lang) => {
-                const prompt = `Bạn là một chuyên gia dịch thuật với độ chính xác tuyệt đối. Dịch đoạn văn bản sau đây sang ngôn ngữ ${lang}.
-                **Yêu cầu BẮT BUỘC và KHÔNG THAY ĐỔI:**
-                1.  **Dịch Chính Xác:** Dịch toàn bộ nội dung sang ngôn ngữ đích.
-                2.  **Bảo Toàn Ý Nghĩa:** Giữ nguyên 100% ý nghĩa và văn phong gốc.
-                3.  **Bảo Toàn Cấu Trúc:** Giữ nguyên 100% cấu trúc của văn bản gốc, bao gồm tất cả các lần xuống dòng, khoảng trắng, và định dạng. Không được thêm, bớt hay thay đổi bất kỳ ký tự nào không phải là bản dịch.
-                4.  **Dịch Hashtag:** Dịch nghĩa của các hashtag sang ngôn ngữ đích, trừ khi chúng là danh từ riêng (tên người, thương hiệu). Ví dụ: "#lamdep" phải được dịch, nhưng "#huynhxuyenson" giữ nguyên.
-                5.  **Kết Quả Cuối Cùng:** Chỉ trả về văn bản đã dịch thuần túy. KHÔNG thêm bất kỳ lời giải thích, ghi chú, hay văn bản nào khác.
-
-                Văn bản gốc:
-                ---
-                ${text}
-                ---
-                Bản dịch:`;
-                
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
+            let translationPromises;
+            if (selectedAIModel === 'gemini') {
+                const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+                translationPromises = selectedLanguages.map(async (lang) => {
+                    const prompt = `Dịch đoạn văn bản sau đây sang ngôn ngữ ${lang}.\n${commonPrompt}`;
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-2.5-flash',
+                        contents: prompt,
+                    });
+                    return { language: lang, translation: response.text };
                 });
-
-                return { language: lang, translation: response.text };
-            });
+            } else { // OpenAI
+                translationPromises = selectedLanguages.map(async (lang) => {
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${openaiApiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4o',
+                            messages: [
+                                { role: 'system', content: `Dịch văn bản sau sang ${lang}. ${commonPrompt}` },
+                                { role: 'user', content: text }
+                            ],
+                            temperature: 0.2
+                        })
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Lỗi dịch sang ${lang}: ${errorData.error?.message}`);
+                    }
+                    const data = await response.json();
+                    return { language: lang, translation: data.choices[0].message.content };
+                });
+            }
 
             const newResults = await Promise.all(translationPromises);
             setResults(newResults);
 
         } catch (e) {
             console.error(e);
-            setError('Không thể dịch văn bản. Vui lòng thử lại sau.');
+            setError(e instanceof Error ? e.message : 'Không thể dịch văn bản. Vui lòng thử lại sau.');
         } finally {
             setIsLoading(false);
         }

@@ -135,14 +135,13 @@ const getApiErrorMessage = (error) => {
 };
 
 
-const PromptJsonApp = ({ geminiApiKey, openaiApiKey }) => {
+const PromptJsonApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [idea, setIdea] = useState('');
   const [duration, setDuration] = useState('');
   const [results, setResults] = useState<Scene[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [copiedScene, setCopiedScene] = useState(null);
-  const [apiProvider, setApiProvider] = useState('google');
 
   const systemInstruction = `You are an expert scriptwriter and AI prompt engineer. Your task is to transform a user's simple idea into a detailed script. For each scene, you must generate a highly structured, detailed JSON prompt object designed to guide another AI in creating a consistent video clip.
 
@@ -197,11 +196,11 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
 }`;
 
   const handleGenerate = async () => {
-    if (apiProvider === 'google' && !geminiApiKey) {
+    if (selectedAIModel === 'gemini' && !geminiApiKey) {
       setError("Chưa có Google Gemini API key. Vui lòng vào Cài đặt API Key để thêm key.");
       return;
     }
-    if (apiProvider === 'openai' && !openaiApiKey) {
+    if (selectedAIModel === 'gpt' && !openaiApiKey) {
       setError("Chưa có OpenAI API key. Vui lòng vào Cài đặt API Key để thêm key.");
       return;
     }
@@ -224,7 +223,7 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
     }
 
     try {
-      if (apiProvider === 'google') {
+      if (selectedAIModel === 'gemini') {
         const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
@@ -419,25 +418,6 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
                 return React.createElement(Input, inputProps);
             })()
           ),
-          React.createElement('div', null,
-            React.createElement('label', { className: "block text-sm font-semibold mb-1" }, "3. Chọn AI Model"),
-            React.createElement('div', { className: "flex space-x-2 rounded-lg bg-slate-800 p-1 border border-slate-700" },
-              React.createElement(Button, { 
-                variant: apiProvider === 'google' ? 'active' : 'secondary', 
-                onClick: () => setApiProvider('google'),
-                className: "flex-1 text-xs sm:text-sm",
-                disabled: isGenerating,
-                children: "Google Gemini"
-              }),
-              React.createElement(Button, { 
-                variant: apiProvider === 'openai' ? 'active' : 'secondary', 
-                onClick: () => setApiProvider('openai'),
-                className: "flex-1 text-xs sm:text-sm",
-                disabled: isGenerating,
-                children: "OpenAI GPT-4o"
-              })
-            )
-          ),
           React.createElement(Button, {
             variant: "primary",
             className: "w-full text-lg py-3",
@@ -445,7 +425,7 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
             disabled: isGenerating || !idea.trim(),
             children: isGenerating ? 
               React.createElement('span', { className: "flex items-center justify-center" }, React.createElement(Spinner), " Đang tạo...") : 
-              '4. Tạo kịch bản & Prompt'
+              '3. Tạo kịch bản & Prompt'
           })
         ),
         
