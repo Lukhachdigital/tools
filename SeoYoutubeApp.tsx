@@ -81,15 +81,16 @@ const generateTitlesWithGemini = async (description: string, apiKey: string, len
             lengthInstruction = `Các tiêu đề phải có độ dài từ ${min} đến ${max} ký tự`;
         }
     }
-    const currentYear = new Date().getFullYear();
-    const prompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung với khả năng tạo ra các tiêu đề lan truyền.
-    Phân tích ngôn ngữ của mô tả video sau. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề độc đáo, hấp dẫn.
+    
+    const prompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung (Clickbait Expert) với khả năng tạo ra các tiêu đề lan truyền (Viral Titles).
+    Phân tích ngôn ngữ của mô tả video sau. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề ĐỈNH CAO, cực kỳ thu hút.
     
     **YÊU CẦU QUAN TRỌNG:**
-    1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ tiêu đề hoàn toàn mới và khác biệt. Tránh sử dụng các công thức lặp đi lặp lại. Mục tiêu của bạn là cung cấp những ý tưởng mới mẻ, độc đáo mỗi lần.
-    2.  **Tính thời sự:** Năm hiện tại là ${currentYear}. Đảm bảo tất cả nội dung đều phù hợp với hiện tại và tương lai, tránh đề cập đến các năm đã qua trừ khi có liên quan đến lịch sử của chủ đề.
-    3.  **Kỹ thuật:** Mỗi tiêu đề phải có một góc nhìn khác nhau, sử dụng các kỹ thuật tạo sự tò mò (curiosity gap), hứa hẹn lợi ích rõ ràng, hoặc đặt câu hỏi tu từ để tối đa hóa tỷ lệ nhấp chuột.
-    4.  **Độ dài:** ${lengthInstruction}.
+    1.  **Tối đa hóa sự tò mò (High Curiosity):** Tiêu đề phải tạo ra "khoảng trống tò mò" (curiosity gap) khiến người xem không thể không bấm vào. Sử dụng các từ ngữ mạnh (Power Words), gây sốc nhẹ, cảm xúc mạnh hoặc hứa hẹn một bí mật/giải pháp bất ngờ. Hook phải thật sắc bén.
+    2.  **Đa dạng & Sáng tạo (High Variance):** 5 tiêu đề phải có 5 góc nhìn/cấu trúc hoàn toàn khác nhau. TRÁNH lặp lại công thức. KHÔNG được giống với các lần tạo trước. Hãy suy nghĩ vượt khuôn khổ (Think outside the box).
+    3.  **Không sử dụng năm (No Year):** TUYỆT ĐỐI KHÔNG đưa năm cụ thể (ví dụ: 2024, 2025...) vào tiêu đề trừ khi mô tả video yêu cầu rõ ràng về báo cáo năm. Hãy tập trung vào giá trị cốt lõi để video luôn hợp thời (evergreen).
+    4.  **Kỹ thuật Hook:** Sử dụng câu hỏi tu từ, phủ định (Đừng làm X trước khi biết Y), con số cụ thể, hoặc sự so sánh đối lập để tăng CTR.
+    5.  **Độ dài:** ${lengthInstruction}.
 
     Mô tả video: "${description}"
 
@@ -99,6 +100,7 @@ const generateTitlesWithGemini = async (description: string, apiKey: string, len
         model: geminiModel,
         contents: prompt,
         config: {
+            temperature: 1.2, // Increase creativity and variance
             responseMimeType: "application/json",
             responseSchema: {
                 type: window.GenAIType.OBJECT,
@@ -133,7 +135,7 @@ const generateFullSEOContentWithGemini = async (description: string, title: stri
             'Dài': 'khoảng 220-300 từ'
         };
         const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
-        const currentYear = new Date().getFullYear();
+        
         const prompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Phân tích ngôn ngữ của mô tả video và tiêu đề. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra nội dung SEO tối ưu.
 
         Mô tả video gốc: "${description}"
@@ -141,7 +143,7 @@ const generateFullSEOContentWithGemini = async (description: string, title: stri
 
         **YÊU CẦU QUAN TRỌNG:**
         1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ mô tả và từ khóa hoàn toàn mới và khác biệt. Hãy tư duy sáng tạo để diễn đạt ý tưởng theo nhiều cách khác nhau.
-        2.  **Tính thời sự:** Năm hiện tại là ${currentYear}. Đảm bảo tất cả nội dung đều phù hợp với hiện tại và tương lai.
+        2.  **Tính bền vững (Evergreen):** Nội dung phải có giá trị lâu dài. TRÁNH đề cập đến năm cụ thể (như 2024, 2025) để video không bị lỗi thời, trừ khi chủ đề bắt buộc.
 
         **CẤU TRÚC NỘI DUNG:**
         1.  **Mô tả (Description):** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
@@ -190,7 +192,7 @@ const generateFullSEOContentWithGemini = async (description: string, title: stri
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const openAiModel = 'gpt-4o';
 
-const callOpenAI = async (apiKey: string, messages: object[]) => {
+const callOpenAI = async (apiKey: string, messages: object[], temperature: number = 0.7) => {
     const response = await fetch(OPENAI_API_URL, {
         method: 'POST',
         headers: {
@@ -201,7 +203,7 @@ const callOpenAI = async (apiKey: string, messages: object[]) => {
             model: openAiModel,
             messages: messages,
             response_format: { type: "json_object" },
-            temperature: 0.7,
+            temperature: temperature,
         })
     });
 
@@ -229,15 +231,17 @@ const generateTitlesWithOpenAI = async (description: string, apiKey: string, len
             lengthInstruction = `Các tiêu đề phải có độ dài từ ${min} đến ${max} ký tự`;
         }
     }
-    const currentYear = new Date().getFullYear();
-    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung với khả năng tạo ra các tiêu đề lan truyền.
-    Nhiệm vụ của bạn là phân tích ngôn ngữ của mô tả video do người dùng cung cấp. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề độc đáo, hấp dẫn.
+    
+    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung (Clickbait Expert) với khả năng tạo ra các tiêu đề lan truyền (Viral Titles).
+    Nhiệm vụ của bạn là phân tích ngôn ngữ của mô tả video do người dùng cung cấp. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề ĐỈNH CAO, cực kỳ thu hút.
     **YÊU CẦU QUAN TRỌNG:**
-    1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ tiêu đề hoàn toàn mới và khác biệt. Tránh sử dụng các công thức lặp đi lặp lại. Mục tiêu của bạn là cung cấp những ý tưởng mới mẻ, độc đáo mỗi lần.
-    2.  **Tính thời sự:** Năm hiện tại là ${currentYear}. Đảm bảo tất cả nội dung đều phù hợp với hiện tại và tương lai, tránh đề cập đến các năm đã qua trừ khi có liên quan đến lịch sử của chủ đề.
-    3.  **Kỹ thuật:** Mỗi tiêu đề phải có một góc nhìn khác nhau, sử dụng các kỹ thuật tạo sự tò mò (curiosity gap), hứa hẹn lợi ích rõ ràng, hoặc đặt câu hỏi tu từ để tối đa hóa tỷ lệ nhấp chuột.
-    4.  **Độ dài:** ${lengthInstruction}.
+    1.  **Tối đa hóa sự tò mò (High Curiosity):** Tiêu đề phải tạo ra "khoảng trống tò mò" (curiosity gap) khiến người xem không thể không bấm vào. Sử dụng các từ ngữ mạnh (Power Words), gây sốc nhẹ, cảm xúc mạnh hoặc hứa hẹn một bí mật/giải pháp bất ngờ.
+    2.  **Đa dạng & Sáng tạo (High Variance):** 5 tiêu đề phải có 5 góc nhìn/cấu trúc hoàn toàn khác nhau. TRÁNH lặp lại công thức. KHÔNG được giống với các lần tạo trước.
+    3.  **Không sử dụng năm (No Year):** TUYỆT ĐỐI KHÔNG đưa năm cụ thể (ví dụ: 2024, 2025...) vào tiêu đề trừ khi mô tả video yêu cầu rõ ràng về báo cáo năm. Hãy tập trung vào giá trị cốt lõi để video luôn hợp thời (evergreen).
+    4.  **Kỹ thuật Hook:** Sử dụng câu hỏi tu từ, phủ định (Đừng làm X trước khi biết Y), con số cụ thể, hoặc sự so sánh đối lập để tăng CTR.
+    5.  **Độ dài:** ${lengthInstruction}.
     Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.`;
+    
     const userPrompt = `Mô tả video: "${description}"`;
 
     const messages = [
@@ -246,7 +250,8 @@ const generateTitlesWithOpenAI = async (description: string, apiKey: string, len
     ];
 
     try {
-        const result = await callOpenAI(apiKey, messages);
+        // Use high temperature for titles to ensure uniqueness and creativity
+        const result = await callOpenAI(apiKey, messages, 1.0);
         return result.titles || [];
     } catch (error) {
         console.error("Error generating titles with OpenAI:", error);
@@ -262,12 +267,12 @@ const generateFullSEOContentWithOpenAI = async (description: string, title: stri
         'Dài': 'khoảng 220-300 từ'
     };
     const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
-    const currentYear = new Date().getFullYear();
+    
     const systemPrompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video và tiêu đề đã chọn, hãy tạo ra nội dung SEO tối ưu. Phân tích ngôn ngữ của đầu vào và trả lời bằng chính ngôn ngữ đó với ngữ pháp hoàn hảo.
     
     **YÊU CẦU QUAN TRỌNG:**
     1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ mô tả và từ khóa hoàn toàn mới và khác biệt. Hãy tư duy sáng tạo để diễn đạt ý tưởng theo nhiều cách khác nhau.
-    2.  **Tính thời sự:** Năm hiện tại là ${currentYear}. Đảm bảo tất cả nội dung đều phù hợp với hiện tại và tương lai.
+    2.  **Tính bền vững (Evergreen):** Nội dung phải có giá trị lâu dài. TRÁNH đề cập đến năm cụ thể (như 2024, 2025) để video không bị lỗi thời, trừ khi chủ đề bắt buộc.
 
     **CẤU TRÚC NỘI DUNG:**
     1.  **description:** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
@@ -290,7 +295,7 @@ const generateFullSEOContentWithOpenAI = async (description: string, title: stri
     ];
     
     try {
-        const result = await callOpenAI(apiKey, messages);
+        const result = await callOpenAI(apiKey, messages, 0.7);
         return result;
     } catch (error) {
         console.error("Error generating full SEO content with OpenAI:", error);
