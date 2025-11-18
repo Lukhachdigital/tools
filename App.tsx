@@ -1,8 +1,3 @@
-
-
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -292,7 +287,8 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                 },
 // FIX: Refactored to use a typed props variable inside an IIFE to resolve a TypeScript type inference issue with React.createElement.
                     (() => {
-                        const svgProps: React.SVGProps<SVGSVGElement> = {
+                        // FIX: Use React.ComponentProps<'svg'> to ensure compatibility with React.createElement('svg', ...)
+                        const svgProps: React.ComponentProps<'svg'> = {
                             xmlns: "http://www.w3.org/2000/svg",
                             fill: "none",
                             viewBox: "0 0 24 24",
@@ -344,7 +340,8 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
     );
 };
 
-const UpgradeNoticeWrapper: React.FC<{ children: React.ReactNode; targetAppId: string; onNavigate: (id: string) => void; }> = ({ children, targetAppId, onNavigate }) => {
+// FIX: Changed UpgradeNoticeWrapper to a standard functional component instead of React.FC to handle children prop flexibly in createElement.
+const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: { children: React.ReactNode; targetAppId: string; onNavigate: (id: string) => void; }) => {
     const [showNotice, setShowNotice] = useState(true);
 
     if (!showNotice) {
@@ -354,7 +351,7 @@ const UpgradeNoticeWrapper: React.FC<{ children: React.ReactNode; targetAppId: s
     return React.createElement('div', { className: "relative w-full h-full" },
         React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" }, children),
         React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" },
-            React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-lg text-center p-8" },
+            React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" },
                 React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" }, "Chức năng này đã được nâng cấp!"),
                 React.createElement('p', { className: "text-slate-300 mb-6" }, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
                 React.createElement('div', { className: "flex justify-center items-center gap-4" },
@@ -605,14 +602,14 @@ const App = () => {
 // FIX: Extracted link properties into a typed variable to resolve TypeScript type inference issues with React.createElement.
                             socialLinks.map(link => {
                                 const linkProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {
-                                    key: link.name,
                                     href: link.href,
                                     target: "_blank",
                                     rel: "noopener noreferrer",
                                     'aria-label': link.name,
                                     className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
                                 };
-                                return React.createElement('a', linkProps, link.icon);
+                                // FIX: Removed 'key' from linkProps object and passed it directly to createElement to resolve TypeScript error "Object literal may only specify known properties".
+                                return React.createElement('a', { key: link.name, ...linkProps }, link.icon);
                             }
                             ),
                             React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
