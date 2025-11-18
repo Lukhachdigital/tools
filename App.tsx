@@ -1,5 +1,8 @@
 
 
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -341,23 +344,34 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
     );
 };
 
-const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }) => {
+const UpgradeNoticeWrapper: React.FC<{ children: React.ReactNode; targetAppId: string; onNavigate: (id: string) => void; }> = ({ children, targetAppId, onNavigate }) => {
+    const [showNotice, setShowNotice] = useState(true);
+
+    if (!showNotice) {
+        return React.createElement(React.Fragment, null, children);
+    }
+
     return React.createElement('div', { className: "relative w-full h-full" },
         React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" }, children),
         React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" },
             React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-lg text-center p-8" },
                 React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" }, "Chức năng này đã được nâng cấp!"),
                 React.createElement('p', { className: "text-slate-300 mb-6" }, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
-                React.createElement('button', {
-                    onClick: () => onNavigate(targetAppId),
-                    className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center mx-auto"
-                },
-                    "Chuyển đến ứng dụng mới"
+                React.createElement('div', { className: "flex justify-center items-center gap-4" },
+                    React.createElement('button', {
+                        onClick: () => setShowNotice(false),
+                        className: "bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300"
+                    }, "Sử dụng ứng dụng này"),
+                    React.createElement('button', {
+                        onClick: () => onNavigate(targetAppId),
+                        className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300"
+                    }, "Chuyển đến ứng dụng mới")
                 )
             )
         )
     );
 };
+
 
 const App = () => {
     const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -453,7 +467,7 @@ const App = () => {
         localStorage.setItem(OPENAI_API_KEY, openai);
     };
 
-    const handleToolClick = (toolId) => {
+    const handleToolClick = (toolId: string) => {
         setCurrentView(toolId);
     };
 
@@ -619,10 +633,10 @@ const App = () => {
                      })()
                 ),
                 React.createElement('div', { className: "flex-grow flex w-full p-4 sm:p-6 gap-6" },
-                    currentView !== 'dashboard' && React.createElement('aside', { className: 'w-64 flex-shrink-0 flex flex-col gap-4' },
+                    currentView !== 'dashboard' && React.createElement('aside', { className: 'w-80 flex-shrink-0 flex flex-col gap-4' },
                         React.createElement('div', { className: 'bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 flex-grow' },
                             React.createElement('nav', { className: 'space-y-2' },
-                                sidebarTools.map(tool => {
+                                sidebarTools.map((tool, index) => {
                                     const isActive = currentView === tool.id;
                                     const buttonClasses = `
                                         w-full flex items-center p-3 rounded-lg text-left text-base font-semibold transition-all duration-200
@@ -634,7 +648,7 @@ const App = () => {
                                         onClick: () => handleToolClick(tool.id)
                                     },
                                         tool.icon,
-                                        React.createElement('span', null, tool.text)
+                                        React.createElement('span', null, tool.id === 'dashboard' ? tool.text : `${index}. ${tool.text}`)
                                     );
                                 })
                             )
