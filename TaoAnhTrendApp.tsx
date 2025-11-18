@@ -115,7 +115,7 @@ const SingleImageUploader = ({ uploadedImage, setUploadedImage, isGenerating, pl
       React.createElement('div', {className: 'flex-1 flex flex-col'},
         label && React.createElement('label', { className: "block text-sm text-center font-semibold mb-2" }, label),
         React.createElement('div', { 
-          className: "w-full h-32 bg-slate-800 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-slate-700 transition relative group",
+          className: `w-full h-32 bg-slate-800 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center transition relative group ${isGenerating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-slate-700'}`,
           onClick: () => !isGenerating && fileInputRef.current?.click()
         },
           React.createElement('input', { 
@@ -236,7 +236,7 @@ const ResultsPanel = ({ results }: ResultsPanelProps) => {
 // =================================================================
 // MAIN COMPONENT LOGIC
 // =================================================================
-const TrendImageGeneratorTab = ({ apiKey }) => {
+const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [theme, setTheme] = useState('');
   const [creativeNotes, setCreativeNotes] = useState('');
   const [results, setResults] = useState([]);
@@ -246,91 +246,122 @@ const TrendImageGeneratorTab = ({ apiKey }) => {
   const [characterImage2, setCharacterImage2] = useState<UploadedImage | null>(null);
   const [aspectRatio, setAspectRatio] = useState('16:9');
 
+  const isGpt = selectedAIModel === 'gpt';
+
   const generateImage = async (taskTheme, index) => {
      setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'generating' } : res));
 
      try {
-        if (!apiKey) {
-            throw new Error("API Key is missing. Please configure it in the main settings.");
-        }
-        
-        const uploadedImages = [characterImage1, characterImage2].filter(Boolean);
-        const ai = new window.GoogleGenAI({ apiKey });
-
-        if (uploadedImages.length > 0) {
-            const parts = [];
-            const finalPrompt = `
-                **MISSION: CREATIVE GROUP PORTRAIT**
-                Your mission is to generate a single, high-resolution, photorealistic group portrait.
-
-                **[CORE TASK & NON-NEGOTIABLE RULES]**
-                1.  **COMBINE CHARACTERS:** You are provided with ${uploadedImages.length} separate image(s), each featuring one person. Your primary task is to create a SINGLE, new, cohesive image that includes ALL ${uploadedImages.length} of these individuals together.
-                2.  **ASPECT RATIO:** The final image's aspect ratio MUST be determined by the aspect ratio of the FIRST uploaded character image. This is a critical instruction for visual consistency.
-                3.  **FACIAL IDENTITY (ABSOLUTE PRIORITY):** The face, features, and identity of EACH person from the uploaded photos MUST be preserved with 100% accuracy. This is the most critical instruction. Do not alter their faces.
-                4.  **THEME & SETTING:** The entire scene, including the background, clothing, and atmosphere, must be creatively reimagined based on the user's theme: "${taskTheme}".
-                5.  **USER GUIDANCE:** Incorporate these creative notes from the user: "${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a visually stunning and creative image.'}"
-                6.  **NO TEXT:** The final image must NOT contain any text, letters, or numbers. This is a strict rule.
-                7.  **PHOTOREALISM:** The final image should be photorealistic and high-quality. Avoid cartoon or animated styles unless specifically requested in the theme or creative notes.
-
-                **FINAL MANDATORY CHECKLIST:**
-                1.  **CHARACTERS:** Does the image contain all ${uploadedImages.length} people and are their faces recognizable? -> If not, FAIL.
-                2.  **THEME:** Does the scene match the theme? -> If not, FAIL.
-                3.  **TEXT:** Is there absolutely NO TEXT on the image? -> If not, FAIL.
-            `;
-            
-            parts.push({ text: finalPrompt });
-            uploadedImages.forEach(img => {
-                parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
-            });
-
-            const apiContents = { parts };
-
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-image',
-                contents: apiContents,
-                config: { responseModalities: [window.GenAIModality.IMAGE] },
-            });
-            
-            const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-            if (!imagePart || !imagePart.inlineData) {
-                throw new Error('Image generation succeeded, but no image data was returned.');
+        if (selectedAIModel === 'gemini') {
+            if (!geminiApiKey) {
+                throw new Error("API Key Gemini chưa được cấu hình.");
             }
+            const uploadedImages = [characterImage1, characterImage2].filter(Boolean);
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
 
-            const base64ImageBytes = imagePart.inlineData.data;
-            const imageUrl = `data:${imagePart.inlineData.mimeType};base64,${base64ImageBytes}`;
+            if (uploadedImages.length > 0) {
+                const parts = [];
+                const finalPrompt = `
+                    **MISSION: CREATIVE GROUP PORTRAIT**
+                    Your mission is to generate a single, high-resolution, photorealistic group portrait.
 
-            setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
+                    **[CORE TASK & NON-NEGOTIABLE RULES]**
+                    1.  **COMBINE CHARACTERS:** You are provided with ${uploadedImages.length} separate image(s), each featuring one person. Your primary task is to create a SINGLE, new, cohesive image that includes ALL ${uploadedImages.length} of these individuals together.
+                    2.  **ASPECT RATIO:** The final image's aspect ratio MUST be determined by the aspect ratio of the FIRST uploaded character image. This is a critical instruction for visual consistency.
+                    3.  **FACIAL IDENTITY (ABSOLUTE PRIORITY):** The face, features, and identity of EACH person from the uploaded photos MUST be preserved with 100% accuracy. This is the most critical instruction. Do not alter their faces.
+                    4.  **THEME & SETTING:** The entire scene, including the background, clothing, and atmosphere, must be creatively reimagined based on the user's theme: "${taskTheme}".
+                    5.  **USER GUIDANCE:** Incorporate these creative notes from the user: "${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a visually stunning and creative image.'}"
+                    6.  **NO TEXT:** The final image must NOT contain any text, letters, or numbers. This is a strict rule.
+                    7.  **PHOTOREALISM:** The final image should be photorealistic and high-quality. Avoid cartoon or animated styles unless specifically requested in the theme or creative notes.
 
-        } else {
-            // New logic for imagen-4.0-generate-001 (text-only)
-            const finalImagenPrompt = `
-              **MISSION: Create ONE viral-quality image (VISUALS ONLY).**
-
-              **[DESIGN & STYLE REQUIREMENTS]**
-              *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${taskTheme}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
-              *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles.
-              *   **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly creative image.'}
-              ---
-              **FINAL GOAL:** A visually stunning image that represents the theme perfectly, with absolutely NO TEXT.
-            `;
-
-            const response = await ai.models.generateImages({
-                model: 'imagen-4.0-generate-001',
-                prompt: finalImagenPrompt,
-                config: {
-                  numberOfImages: 1,
-                  outputMimeType: 'image/png',
-                  aspectRatio: aspectRatio,
-                },
-            });
-
-            if (!response.generatedImages?.[0]?.image?.imageBytes) {
-                throw new Error('Image generation succeeded, but no image data was returned from Imagen.');
+                    **FINAL MANDATORY CHECKLIST:**
+                    1.  **CHARACTERS:** Does the image contain all ${uploadedImages.length} people and are their faces recognizable? -> If not, FAIL.
+                    2.  **THEME:** Does the scene match the theme? -> If not, FAIL.
+                    3.  **TEXT:** Is there absolutely NO TEXT on the image? -> If not, FAIL.
+                `;
+                
+                parts.push({ text: finalPrompt });
+                uploadedImages.forEach(img => {
+                    parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
+                });
+                const apiContents = { parts };
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-image',
+                    contents: apiContents,
+                    config: { responseModalities: [window.GenAIModality.IMAGE] },
+                });
+                const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                if (!imagePart || !imagePart.inlineData) {
+                    throw new Error('Image generation succeeded, but no image data was returned.');
+                }
+                const base64ImageBytes = imagePart.inlineData.data;
+                const imageUrl = `data:${imagePart.inlineData.mimeType};base64,${base64ImageBytes}`;
+                setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
+            } else {
+                const finalImagenPrompt = `
+                  **MISSION: Create ONE viral-quality image (VISUALS ONLY).**
+                  **[DESIGN & STYLE REQUIREMENTS]**
+                  *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${taskTheme}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
+                  *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles.
+                  *   **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly creative image.'}
+                  ---
+                  **FINAL GOAL:** A visually stunning image that represents the theme perfectly, with absolutely NO TEXT.
+                `;
+                const response = await ai.models.generateImages({
+                    model: 'imagen-4.0-generate-001',
+                    prompt: finalImagenPrompt,
+                    config: {
+                      numberOfImages: 1,
+                      outputMimeType: 'image/png',
+                      aspectRatio: aspectRatio,
+                    },
+                });
+                if (!response.generatedImages?.[0]?.image?.imageBytes) {
+                    throw new Error('Image generation succeeded, but no image data was returned from Imagen.');
+                }
+                const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+                const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                setResults(prev => prev.map((res, idx) => 
+                    idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
+                ));
             }
-
-            const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-            const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-
+        } else { // OpenAI
+            if (!openaiApiKey) {
+                throw new Error("API Key OpenAI chưa được cấu hình.");
+            }
+            const uploadedImages = [characterImage1, characterImage2].filter(Boolean);
+            if (uploadedImages.length > 0) {
+                throw new Error("Tính năng kết hợp ảnh nhân vật chỉ được hỗ trợ bởi Gemini. Vui lòng chọn model Gemini để sử dụng.");
+            }
+            const finalDallePrompt = `
+                **MISSION: Create ONE viral-quality image (VISUALS ONLY).**
+                **[DESIGN & STYLE REQUIREMENTS]**
+                *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${taskTheme}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
+                *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles.
+                *   **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly creative image.'}
+                ---
+                **FINAL GOAL:** A visually stunning image that represents the theme perfectly, with absolutely NO TEXT.
+            `;
+            const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792', '1:1': '1024x1024' };
+            const response = await fetch('https://api.openai.com/v1/images/generations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+              body: JSON.stringify({
+                model: 'dall-e-3',
+                prompt: finalDallePrompt,
+                n: 1,
+                size: sizeMap[aspectRatio] || '1024x1024',
+                response_format: 'b64_json',
+                quality: 'hd',
+                style: 'vivid'
+              })
+            });
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(`OpenAI DALL-E Error: ${errorData.error.message}`);
+            }
+            const data = await response.json();
+            const imageUrl = `data:image/png;base64,${data.data[0].b64_json}`;
             setResults(prev => prev.map((res, idx) => 
                 idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
             ));
@@ -344,9 +375,13 @@ const TrendImageGeneratorTab = ({ apiKey }) => {
   };
 
   const handleGenerateClick = async () => {
-    if (!apiKey) {
-      alert('Vui lòng cài đặt API Key trước khi tạo.');
-      return;
+    if (isGpt && !openaiApiKey) {
+        alert('Vui lòng cài đặt API Key OpenAI trước khi tạo.');
+        return;
+    }
+    if (!isGpt && !geminiApiKey) {
+        alert('Vui lòng cài đặt API Key Gemini trước khi tạo.');
+        return;
     }
     if (!characterImage1 && !theme.trim()) {
       alert('Vui lòng nhập chủ đề hoặc tải ít nhất một ảnh nhân vật.');
@@ -400,6 +435,7 @@ const TrendImageGeneratorTab = ({ apiKey }) => {
           React.createElement('div', { className: "bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4" },
               React.createElement('div', null,
                   React.createElement('label', { className: "block text-sm font-semibold mb-2" }, "Upload ảnh nhân vật"),
+                  isGpt && React.createElement('p', { className: "text-xs text-center text-yellow-400 p-2 bg-yellow-900/50 rounded-md mb-2" }, "Tính năng upload và kết hợp ảnh chỉ hỗ trợ model Gemini."),
                   React.createElement(AspectRatioSelector, {
                       selectedRatio: aspectRatio,
                       onSelect: setAspectRatio,
@@ -411,14 +447,14 @@ const TrendImageGeneratorTab = ({ apiKey }) => {
                           label: "Nhân vật 1",
                           uploadedImage: characterImage1, 
                           setUploadedImage: setCharacterImage1, 
-                          isGenerating, 
+                          isGenerating: isGenerating || isGpt, 
                           placeholderText: "Upload ảnh 1"
                       }),
                       React.createElement(SingleImageUploader, { 
                           label: "Nhân vật 2",
                           uploadedImage: characterImage2, 
                           setUploadedImage: setCharacterImage2, 
-                          isGenerating, 
+                          isGenerating: isGenerating || isGpt, 
                           placeholderText: "Upload ảnh 2"
                       })
                   )
@@ -461,11 +497,11 @@ const TrendImageGeneratorTab = ({ apiKey }) => {
   );
 };
 
-const TaoAnhTrendApp = ({ apiKey }) => {
+const TaoAnhTrendApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   return (
     React.createElement('div', { className: "min-h-screen w-full p-4" },
       React.createElement('main', { className: "text-gray-300 space-y-6 h-full" },
-          React.createElement(TrendImageGeneratorTab, { apiKey })
+          React.createElement(TrendImageGeneratorTab, { geminiApiKey, openaiApiKey, selectedAIModel })
       )
     )
   );

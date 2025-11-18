@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -15,6 +16,7 @@ import AutoPromptApp from './AutoPromptApp';
 import AudioToPromptApp from './AudioToPromptApp';
 import AIPromptVEO31App from './AIPromptVEO31App';
 import AudioChoppingApp from './AudioChoppingApp';
+import AudioToPromptVideoApp from './AudioToPromptVideoApp';
 
 
 // --- ICONS ---
@@ -82,6 +84,14 @@ const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => (
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" })
     )
 );
+
+const IconAudioToPromptVideo = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.552 8.352a4.502 4.502 0 01-6.364 6.364m6.364-6.364a4.5 4.5 0 00-6.364 6.364m6.364-6.364l-6.364 6.364M12 8.25v2.25m0 7.5V15m0-2.25a.75.75 0 00-.75.75v.01c0 .414.336.75.75.75h.01a.75.75 0 00.75-.75v-.01a.75.75 0 00-.75-.75H12z" }),
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M7 4v16M17 4v16M3 12h4m10 0h4" })
+    )
+);
+
 
 const IconAudioChopping = (props: React.SVGProps<SVGSVGElement>) => (
     React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
@@ -331,6 +341,24 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
     );
 };
 
+const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }) => {
+    return React.createElement('div', { className: "relative w-full h-full" },
+        React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" }, children),
+        React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" },
+            React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-lg text-center p-8" },
+                React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" }, "Chức năng này đã được nâng cấp!"),
+                React.createElement('p', { className: "text-slate-300 mb-6" }, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
+                React.createElement('button', {
+                    onClick: () => onNavigate(targetAppId),
+                    className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center mx-auto"
+                },
+                    "Chuyển đến ứng dụng mới"
+                )
+            )
+        )
+    );
+};
+
 const App = () => {
     const [showApiKeyModal, setShowApiKeyModal] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -352,6 +380,7 @@ const App = () => {
         { id: 'audio_chopping', text: 'Audio Chopping AI', title: 'AI Cắt Audio Tự Động', icon: React.createElement(IconAudioChopping), description: 'Tự động cắt file audio thành các đoạn 8 giây chuẩn cho prompt tạo video.' },
         { id: 'audio_to_prompt', text: 'Audio to Script', title: 'Tạo kịch bản từ Audio', icon: React.createElement(IconAudioToPrompt), description: 'AI tự động tạo kịch bản video 8 giây từ file âm thanh của bạn.' },
         { id: 'ai_prompt_veo31', text: 'AI Prompt VEO 3.1', title: 'Prompt VEO 3.1 Lipsync Audio', icon: React.createElement(IconAIPromptVEO31), description: 'Tạo kịch bản, nhân vật và prompt nhất quán cho VEO 3.1 theo đúng File Audio 8s' },
+        { id: 'audio_to_prompt_video', text: 'Audio to Prompt Video', title: 'Tạo Kịch Bản Video từ Audio', icon: React.createElement(IconAudioToPromptVideo), description: 'Tự động tạo kịch bản và chuỗi prompt VEO 3.1 từ một file âm thanh.' },
         { id: 'create_thumbnail', text: 'Tạo Thumbnail', title: 'AI tạo Thumbnail đỉnh cao', icon: React.createElement(IconCreateThumbnail), description: 'Tạo thumbnail cho Youtube, Tiktok, Facebook sáng tạo, giúp video của bạn tăng lượt Click.' },
         { id: 'tao_anh_trend', text: 'Tạo ảnh Trend', title: 'Tạo ảnh theo phong cách riêng', icon: React.createElement(IconSeoYoutube), description: 'Công nghệ tạo ảnh theo phong cách riêng của bạn và theo xu hướng thịnh hành.' },
         { id: 'app_affiliate', text: 'App Affiliate', title: 'App Affiliate Video Shorts', icon: React.createElement(IconAppAffiliate), description: 'Sáng tạo vô hạn video Viral cho Tiktok, Facebook Reels, Shopee.' },
@@ -369,6 +398,7 @@ const App = () => {
         'audio_chopping', 
         'audio_to_prompt', 
         'ai_prompt_veo31', 
+        'audio_to_prompt_video',
         'create_thumbnail', 
         'tao_anh_trend', 
         'app_affiliate', 
@@ -395,6 +425,7 @@ const App = () => {
       "auto_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "audio_chopping": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "audio_to_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "audio_to_prompt_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "create_thumbnail": "https://www.youtube.com/watch?v=9d9c5Q1nID8",
       "tao_anh_trend": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "create_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
@@ -403,7 +434,7 @@ const App = () => {
       "app_affiliate": "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg"
     };
 
-    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'ai_prompt_veo31', 'auto_prompt', 'seo_youtube', 'youtube_external', 'prompt_json'];
+    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'audio_to_prompt_video', 'auto_prompt', 'seo_youtube', 'youtube_external', 'prompt_json', 'create_thumbnail', 'tao_anh_trend', 'app_affiliate'];
 
     useEffect(() => {
         // Load API keys
@@ -462,20 +493,23 @@ const App = () => {
 
     const renderCurrentView = () => {
         const appProps = { geminiApiKey, openaiApiKey, selectedAIModel };
+        const upgradeWrapperProps = { targetAppId: 'audio_to_prompt_video', onNavigate: handleToolClick };
+
         switch (currentView) {
             case 'whisk_flow': return React.createElement(WhiskFlowApp, appProps);
             case 'my_channel': return React.createElement(MyChannelApp, appProps);
             case 'prompt_json': return React.createElement(PromptJsonApp, appProps);
             case 'viet_kich_ban': return React.createElement(VietKichBanApp, appProps);
-            case 'ai_prompt_veo31': return React.createElement(AIPromptVEO31App, appProps);
+            case 'audio_to_prompt_video': return React.createElement(AudioToPromptVideoApp, appProps);
+            case 'ai_prompt_veo31': return React.createElement(UpgradeNoticeWrapper, upgradeWrapperProps, React.createElement(AIPromptVEO31App, appProps));
             case 'auto_prompt': return React.createElement(AutoPromptApp, appProps);
-            case 'audio_chopping': return React.createElement(AudioChoppingApp, null);
-            case 'audio_to_prompt': return React.createElement(AudioToPromptApp, { apiKey: geminiApiKey });
-            case 'create_thumbnail': return React.createElement(CreateThumbnailApp, { apiKey: geminiApiKey });
-            case 'tao_anh_trend': return React.createElement(TaoAnhTrendApp, { apiKey: geminiApiKey });
+            case 'audio_chopping': return React.createElement(UpgradeNoticeWrapper, upgradeWrapperProps, React.createElement(AudioChoppingApp, null));
+            case 'audio_to_prompt': return React.createElement(UpgradeNoticeWrapper, upgradeWrapperProps, React.createElement(AudioToPromptApp, { apiKey: geminiApiKey }));
+            case 'create_thumbnail': return React.createElement(CreateThumbnailApp, appProps);
+            case 'tao_anh_trend': return React.createElement(TaoAnhTrendApp, appProps);
             case 'seo_youtube': return React.createElement(SeoYoutubeApp, appProps);
             case 'youtube_external': return React.createElement(YoutubeExternalApp, appProps);
-            case 'app_affiliate': return React.createElement(AppAffiliate, { apiKey: geminiApiKey });
+            case 'app_affiliate': return React.createElement(AppAffiliate, appProps);
             case 'dashboard':
             default:
                 return React.createElement(Dashboard, { onToolClick: handleToolClick });

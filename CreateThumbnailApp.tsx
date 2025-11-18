@@ -154,7 +154,7 @@ const SingleImageUploader = ({ uploadedImage, setUploadedImage, isGenerating, pl
   return (
       React.createElement('div', null,
         React.createElement('div', { 
-          className: "w-full h-32 bg-slate-800 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-slate-700 transition relative group",
+          className: `w-full h-32 bg-slate-800 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center transition relative group ${isGenerating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-slate-700'}`,
           onClick: () => !isGenerating && fileInputRef.current?.click()
         },
           React.createElement('input', { 
@@ -299,7 +299,7 @@ const ResultsPanel = ({ results, onImageClick }: ResultsPanelProps) => {
 // =================================================================
 // TAB: THUMBNAIL GENERATOR
 // =================================================================
-const ThumbnailGeneratorTab = ({ apiKey }) => {
+const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [prompts, setPrompts] = useState('');
   const [creativeNotes, setCreativeNotes] = useState('');
   const [results, setResults] = useState([]);
@@ -310,94 +310,119 @@ const ThumbnailGeneratorTab = ({ apiKey }) => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [aspectRatio, setAspectRatio] = useState('16:9');
   
+  const isGpt = selectedAIModel === 'gpt';
+  
   const generateThumbnail = async (userTextPrompt, index) => {
      setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'generating' } : res));
 
      try {
-        if (!apiKey) {
-            throw new Error("API Key is missing. Please configure it in the main settings.");
-        }
-        const ai = new window.GoogleGenAI({ apiKey });
-        
-        if (characterImage) {
-          
-          const parts = [];
-          
-          const finalPrompt = `
-              **MISSION: VIRAL THUMBNAIL CREATION (VISUALS ONLY)**
-
-              **[ART DIRECTION & CREATIVE EXECUTION]**
-              1.  **CORE TASK:** Transform the uploaded image based on a visual theme. The person in the image is the main character, but you must reimagine everything else: pose, action, clothing, and background to create a dynamic, viral-quality scene. **DO NOT ADD ANY TEXT TO THE IMAGE.**
-              2.  **ASPECT RATIO:** The final image's aspect ratio MUST match the aspect ratio of the uploaded character image.
-              3.  **ACCESSORY INTEGRATION (If accessory image is provided):** The character MUST be wearing or using the accessory from the secondary image in a natural and visually appealing way. The accessory's design, shape, and color must be preserved with 100% fidelity.
-              4.  **THEME:** The visual theme is: "${userTextPrompt}". All visuals must powerfully represent this concept.
-              5.  **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly clickable thumbnail.'}
-              6.  **FACIAL IDENTITY (NON-NEGOTIABLE):** The character's face, features, and identity MUST be preserved with 100% accuracy from the uploaded photo. This is the most critical instruction. Do not alter the face.
-
-              **FINAL REVIEW:** Is the person recognizable? Is the thumbnail visually compelling based on the theme? Is there absolutely NO TEXT on the image? If all answers are YES, complete the mission.
-            `;
-          
-          parts.push({ text: finalPrompt });
-          parts.push({ inlineData: { mimeType: characterImage.mimeType, data: characterImage.base64 }});
-          if (accessoryImage) {
-            parts.push({ inlineData: { mimeType: accessoryImage.mimeType, data: accessoryImage.base64 }});
-          }
-
-          const apiContents = { parts };
-
-          const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash-image',
-              contents: apiContents,
-              config: { responseModalities: [window.GenAIModality.IMAGE] },
-          });
-          
-          let base64ImageBytes = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-          
-          if (!base64ImageBytes) throw new Error('Image composition succeeded, but no image data was returned.');
-
-          const imageUrl = `data:${response.candidates[0].content.parts[0].inlineData.mimeType};base64,${base64ImageBytes}`;
-
-          setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
-
-        } else {
-          
-          const creativeGuidanceForImagen = creativeNotes.trim()
-              ? `**User's Creative Guidance (High Priority):** ${creativeNotes}`
-              : '';
-          
-          const finalImagenPrompt = `
+        if (selectedAIModel === 'gemini') {
+            if (!geminiApiKey) {
+                throw new Error("API Key Gemini chưa được cấu hình.");
+            }
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+            
+            if (characterImage) {
+              const parts = [];
+              const finalPrompt = `
+                  **MISSION: VIRAL THUMBNAIL CREATION (VISUALS ONLY)**
+                  **[ART DIRECTION & CREATIVE EXECUTION]**
+                  1.  **CORE TASK:** Transform the uploaded image based on a visual theme. The person in the image is the main character, but you must reimagine everything else: pose, action, clothing, and background to create a dynamic, viral-quality scene. **DO NOT ADD ANY TEXT TO THE IMAGE.**
+                  2.  **ASPECT RATIO:** The final image's aspect ratio MUST match the aspect ratio of the uploaded character image.
+                  3.  **ACCESSORY INTEGRATION (If accessory image is provided):** The character MUST be wearing or using the accessory from the secondary image in a natural and visually appealing way. The accessory's design, shape, and color must be preserved with 100% fidelity.
+                  4.  **THEME:** The visual theme is: "${userTextPrompt}". All visuals must powerfully represent this concept.
+                  5.  **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly clickable thumbnail.'}
+                  6.  **FACIAL IDENTITY (NON-NEGOTIABLE):** The character's face, features, and identity MUST be preserved with 100% accuracy from the uploaded photo. This is the most critical instruction. Do not alter the face.
+                  **FINAL REVIEW:** Is the person recognizable? Is the thumbnail visually compelling based on the theme? Is there absolutely NO TEXT on the image? If all answers are YES, complete the mission.
+                `;
+              
+              parts.push({ text: finalPrompt });
+              parts.push({ inlineData: { mimeType: characterImage.mimeType, data: characterImage.base64 }});
+              if (accessoryImage) {
+                parts.push({ inlineData: { mimeType: accessoryImage.mimeType, data: accessoryImage.base64 }});
+              }
+              const apiContents = { parts };
+              const response = await ai.models.generateContent({
+                  model: 'gemini-2.5-flash-image',
+                  contents: apiContents,
+                  config: { responseModalities: [window.GenAIModality.IMAGE] },
+              });
+              let base64ImageBytes = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+              if (!base64ImageBytes) throw new Error('Image composition succeeded, but no image data was returned.');
+              const imageUrl = `data:${response.candidates[0].content.parts[0].inlineData.mimeType};base64,${base64ImageBytes}`;
+              setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
+            } else {
+              const creativeGuidanceForImagen = creativeNotes.trim()
+                  ? `**User's Creative Guidance (High Priority):** ${creativeNotes}`
+                  : '';
+              const finalImagenPrompt = `
+                    **MISSION: Create ONE viral-quality thumbnail (VISUALS ONLY).**
+                    **[DESIGN & STYLE REQUIREMENTS]**
+                    *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${userTextPrompt}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
+                    *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles for maximum clickability.
+                    *   **USER GUIDANCE:** ${creativeGuidanceForImagen}
+                    *   **COMPOSITION:** Create a dynamic and engaging composition. AVOID boring, centered layouts.
+                    ---
+                    **FINAL GOAL:** A visually stunning thumbnail that represents the theme perfectly, with absolutely NO TEXT.
+                  `;
+              const response = await ai.models.generateImages({
+                  model: 'imagen-4.0-generate-001',
+                  prompt: finalImagenPrompt,
+                  config: {
+                    numberOfImages: 1,
+                    outputMimeType: 'image/png',
+                    aspectRatio: aspectRatio, 
+                  },
+              });
+              if (!response.generatedImages?.[0]?.image?.imageBytes) {
+                  throw new Error('Image generation succeeded, but no image data was returned from the specialized model.');
+              }
+              const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+              const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+              setResults(prev => prev.map((res, idx) => 
+                  idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
+              ));
+            }
+        } else { // OpenAI DALL-E
+            if (!openaiApiKey) {
+                throw new Error("API Key OpenAI chưa được cấu hình.");
+            }
+            if (characterImage || accessoryImage) {
+                throw new Error("Tính năng giữ lại khuôn mặt và chỉnh sửa ảnh chỉ được hỗ trợ bởi Gemini. Vui lòng chọn model Gemini để sử dụng.");
+            }
+            const finalDallePrompt = `
                 **MISSION: Create ONE viral-quality thumbnail (VISUALS ONLY).**
-
                 **[DESIGN & STYLE REQUIREMENTS]**
                 *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${userTextPrompt}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
                 *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles for maximum clickability.
-                *   **USER GUIDANCE:** ${creativeGuidanceForImagen}
+                *   **USER GUIDANCE:** ${creativeNotes.trim() ? `**User's Creative Guidance (High Priority):** ${creativeNotes}` : ''}
                 *   **COMPOSITION:** Create a dynamic and engaging composition. AVOID boring, centered layouts.
                 ---
                 **FINAL GOAL:** A visually stunning thumbnail that represents the theme perfectly, with absolutely NO TEXT.
-              `;
-            
-
-          const response = await ai.models.generateImages({
-              model: 'imagen-4.0-generate-001',
-              prompt: finalImagenPrompt,
-              config: {
-                numberOfImages: 1,
-                outputMimeType: 'image/png',
-                aspectRatio: aspectRatio, 
-              },
-          });
-          
-          if (!response.generatedImages?.[0]?.image?.imageBytes) {
-              throw new Error('Image generation succeeded, but no image data was returned from the specialized model.');
-          }
-
-          const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-          const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-
-          setResults(prev => prev.map((res, idx) => 
-              idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
-          ));
+            `;
+            const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792', '1:1': '1024x1024' };
+            const response = await fetch('https://api.openai.com/v1/images/generations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+              body: JSON.stringify({
+                model: 'dall-e-3',
+                prompt: finalDallePrompt,
+                n: 1,
+                size: sizeMap[aspectRatio] || '1024x1024',
+                response_format: 'b64_json',
+                quality: 'hd',
+                style: 'vivid'
+              })
+            });
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(`OpenAI DALL-E Error: ${errorData.error.message}`);
+            }
+            const data = await response.json();
+            const imageUrl = `data:image/png;base64,${data.data[0].b64_json}`;
+            setResults(prev => prev.map((res, idx) => 
+                idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
+            ));
         }
      } catch(error) {
         const errorMessage = parseAndEnhanceErrorMessage(error);
@@ -408,9 +433,13 @@ const ThumbnailGeneratorTab = ({ apiKey }) => {
   };
 
   const handleGenerateClick = async () => {
-    if (!apiKey) {
-      alert('Vui lòng cài đặt API Key trước khi tạo.');
+    if (isGpt && !openaiApiKey) {
+      alert('Vui lòng cài đặt API Key OpenAI trước khi tạo.');
       return;
+    }
+    if (!isGpt && !geminiApiKey) {
+        alert('Vui lòng cài đặt API Key Gemini trước khi tạo.');
+        return;
     }
     const promptList = prompts.split('\n').filter(p => p.trim() !== '');
     if (promptList.length === 0 && !characterImage) {
@@ -475,18 +504,19 @@ const ThumbnailGeneratorTab = ({ apiKey }) => {
                     onSelect: setAspectRatio,
                     disabled: !!(characterImage || accessoryImage)
                 }),
+                isGpt && React.createElement('p', { className: "text-xs text-center text-yellow-400 p-2 bg-yellow-900/50 rounded-md -my-2" }, "Tính năng upload ảnh và giữ khuôn mặt chỉ hỗ trợ model Gemini."),
                 React.createElement('p', { className: "text-sm text-center text-slate-400 -mb-2" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
                 React.createElement('div', { className: "grid grid-cols-2 gap-4" },
                   React.createElement(SingleImageUploader, { 
                       uploadedImage: characterImage, 
                       setUploadedImage: setCharacterImage, 
-                      isGenerating, 
+                      isGenerating: isGenerating || isGpt, 
                       placeholderText: "Upload ảnh nhân vật"
                   }),
                   React.createElement(SingleImageUploader, { 
                       uploadedImage: accessoryImage, 
                       setUploadedImage: setAccessoryImage, 
-                      isGenerating, 
+                      isGenerating: isGenerating || isGpt, 
                       placeholderText: "Upload ảnh phụ kiện"
                   })
                 ),
@@ -525,11 +555,11 @@ const ThumbnailGeneratorTab = ({ apiKey }) => {
   );
 };
 
-const CreateThumbnailApp = ({ apiKey }) => {
+const CreateThumbnailApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   return (
     React.createElement('div', { className: "min-h-screen w-full p-4" },
       React.createElement('main', { className: "text-gray-300 space-y-6 h-full" },
-          React.createElement(ThumbnailGeneratorTab, { apiKey })
+          React.createElement(ThumbnailGeneratorTab, { geminiApiKey, openaiApiKey, selectedAIModel })
       )
     )
   );
