@@ -15,6 +15,7 @@ import AudioToPromptApp from './AudioToPromptApp';
 import AIPromptVEO31App from './AIPromptVEO31App';
 import AudioChoppingApp from './AudioChoppingApp';
 import AudioToPromptVideoApp from './AudioToPromptVideoApp';
+import ContentPodcastApp from './ContentPodcastApp';
 
 
 // --- ICONS ---
@@ -100,6 +101,12 @@ const IconAudioChopping = (props: React.SVGProps<SVGSVGElement>) => (
 const IconAudioToPrompt = (props: React.SVGProps<SVGSVGElement>) => (
     React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" })
+    )
+);
+
+const IconContentPodcast = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" })
     )
 );
 
@@ -285,21 +292,16 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                     className: "text-slate-400 hover:text-white transition-colors",
                     'aria-label': "Close modal"
                 },
-// FIX: Refactored to use a typed props variable inside an IIFE to resolve a TypeScript type inference issue with React.createElement.
-                    (() => {
-                        // FIX: Use React.ComponentProps<'svg'> to ensure compatibility with React.createElement('svg', ...)
-                        const svgProps: React.ComponentProps<'svg'> = {
-                            xmlns: "http://www.w3.org/2000/svg",
-                            fill: "none",
-                            viewBox: "0 0 24 24",
-                            strokeWidth: "2",
-                            stroke: "currentColor",
-                            className: "w-6 h-6"
-                        };
-                        return React.createElement('svg', svgProps,
-                            React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 18L18 6M6 6l12 12" })
-                        );
-                    })()
+                    React.createElement('svg', {
+                        xmlns: "http://www.w3.org/2000/svg",
+                        fill: "none",
+                        viewBox: "0 0 24 24",
+                        strokeWidth: "2",
+                        stroke: "currentColor",
+                        className: "w-6 h-6"
+                    },
+                        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 18L18 6M6 6l12 12" })
+                    )
                 )
             ),
             React.createElement('div', { className: "p-6 space-y-6" },
@@ -340,17 +342,30 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
     );
 };
 
-// FIX: Changed UpgradeNoticeWrapper to a standard functional component instead of React.FC to handle children prop flexibly in createElement.
-const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: { children: React.ReactNode; targetAppId: string; onNavigate: (id: string) => void; }) => {
+// FIX: Updated UpgradeNoticeWrapper to use React.PropsWithChildren to make children optional in props type, resolving compatibility with React.createElement calls where children are passed as arguments.
+const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.PropsWithChildren<{ targetAppId: string; onNavigate: (id: string) => void; }>) => {
     const [showNotice, setShowNotice] = useState(true);
 
     if (!showNotice) {
         return React.createElement(React.Fragment, null, children);
     }
 
-    return React.createElement('div', { className: "relative w-full h-full" },
-        React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" }, children),
-        React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" },
+    // FIX: Extracted props to typed variables to avoid TypeScript overload errors with React.createElement.
+    const containerProps: React.HTMLAttributes<HTMLDivElement> = {
+        className: "relative w-full h-full"
+    };
+    
+    const blurProps: React.HTMLAttributes<HTMLDivElement> = {
+        className: "w-full h-full filter blur-md brightness-50 pointer-events-none"
+    };
+
+    const overlayProps: React.HTMLAttributes<HTMLDivElement> = {
+        className: "absolute inset-0 z-10 flex items-center justify-center p-4"
+    };
+
+    return React.createElement('div', containerProps,
+        React.createElement('div', blurProps, children),
+        React.createElement('div', overlayProps,
             React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" },
                 React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" }, "Chức năng này đã được nâng cấp!"),
                 React.createElement('p', { className: "text-slate-300 mb-6" }, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
@@ -397,6 +412,7 @@ const App = () => {
         { id: 'app_affiliate', text: 'App Affiliate', title: 'App Affiliate Video Shorts', icon: React.createElement(IconAppAffiliate), description: 'Sáng tạo vô hạn video Viral cho Tiktok, Facebook Reels, Shopee.' },
         { id: 'seo_youtube', text: 'SEO Youtube', title: 'Công cụ SEO Youtube đỉnh cao', icon: React.createElement(IconSeoYoutube), description: 'Tối ưu Tiêu đề, Mô tả, và Tags cho video YouTube của bạn.' },
         { id: 'youtube_external', text: 'Youtube ngoại', title: 'Công cụ tối ưu Youtube view ngoại', icon: React.createElement(IconYoutubeExternal), description: 'Dịch nội dung sang nhiều ngôn ngữ chuẩn ngữ pháp để tiếp cận khán giả toàn cầu.' },
+        { id: 'content_podcast', text: 'Content Podcast', title: 'AI Sáng Tạo Nội Dung Đa Lĩnh Vực', icon: React.createElement(IconContentPodcast), description: 'Sáng tạo nội dung bài viết sâu sắc, đa lĩnh vực với AI.' },
     ];
     
     const orderedIds = [
@@ -414,7 +430,8 @@ const App = () => {
         'tao_anh_trend', 
         'app_affiliate', 
         'seo_youtube', 
-        'youtube_external'
+        'youtube_external',
+        'content_podcast'
     ];
 
     const sidebarTools = orderedIds.map(id => allTools.find(tool => tool.id === id)).filter(Boolean);
@@ -442,10 +459,11 @@ const App = () => {
       "create_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "seo_youtube": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
       "youtube_external": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "app_affiliate": "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg"
+      "app_affiliate": "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg",
+      "content_podcast": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1"
     };
 
-    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'audio_to_prompt_video', 'auto_prompt', 'seo_youtube', 'youtube_external', 'prompt_json', 'create_thumbnail', 'tao_anh_trend', 'app_affiliate'];
+    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'audio_to_prompt_video', 'auto_prompt', 'seo_youtube', 'youtube_external', 'prompt_json', 'create_thumbnail', 'tao_anh_trend', 'app_affiliate', 'content_podcast'];
 
     useEffect(() => {
         // Load API keys
@@ -493,7 +511,8 @@ const App = () => {
                         // Fix for line 323: Wrapped props in a variable to avoid TypeScript errors with React.cloneElement.
                         (() => {
                             const newProps = { className: "w-10 h-10 text-cyan-400 group-hover:text-cyan-300 transition-colors" };
-                            return React.cloneElement(tool.icon, newProps);
+                            // Fix: Cast tool.icon to React.ReactElement<any> to resolve "className does not exist in type Attributes" error.
+                            return React.cloneElement(tool.icon as React.ReactElement<any>, newProps);
                         })()
                     ),
                     React.createElement('h3', { className: 'text-lg font-bold text-slate-200 group-hover:text-white transition-colors' }, tool.text)
@@ -521,6 +540,7 @@ const App = () => {
             case 'seo_youtube': return React.createElement(SeoYoutubeApp, appProps);
             case 'youtube_external': return React.createElement(YoutubeExternalApp, appProps);
             case 'app_affiliate': return React.createElement(AppAffiliate, appProps);
+            case 'content_podcast': return React.createElement(ContentPodcastApp, appProps);
             case 'dashboard':
             default:
                 return React.createElement(Dashboard, { onToolClick: handleToolClick });
