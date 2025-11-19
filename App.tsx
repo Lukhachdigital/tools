@@ -353,22 +353,9 @@ const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.Props
         return React.createElement(React.Fragment, null, children);
     }
 
-    // Fix: Use React.ComponentProps<'div'> to ensure compatibility with React.createElement('div', ...) and resolve TS overload errors.
-    const containerProps: React.ComponentProps<'div'> = {
-        className: "relative w-full h-full"
-    };
-    
-    const blurProps: React.ComponentProps<'div'> = {
-        className: "w-full h-full filter blur-md brightness-50 pointer-events-none"
-    };
-
-    const overlayProps: React.ComponentProps<'div'> = {
-        className: "absolute inset-0 z-10 flex items-center justify-center p-4"
-    };
-
-    return React.createElement('div', containerProps,
-        React.createElement('div', blurProps, children),
-        React.createElement('div', overlayProps,
+    return React.createElement('div', { className: "relative w-full h-full" },
+        React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" }, children),
+        React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" },
             React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" },
                 React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" }, "Chức năng này đã được nâng cấp!"),
                 React.createElement('p', { className: "text-slate-300 mb-6" }, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
@@ -485,13 +472,21 @@ const App = () => {
     const Dashboard = ({ onToolClick }) => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
 
-        return React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' },
-            dashboardTools.map(tool => (
-                React.createElement('button', {
-                    key: tool.id,
+        // Fix: Explicitly type div props to avoid overload errors
+        const gridProps: React.HTMLAttributes<HTMLDivElement> = {
+            className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
+        };
+
+        return React.createElement('div', gridProps,
+            dashboardTools.map(tool => {
+                // Fix: Extract props to resolve TypeScript overload error for className in React.createElement
+                const buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
                     onClick: () => onToolClick(tool.id),
                     className: "group bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/20"
-                },
+                };
+                
+                // Fix: Use explicit any cast for props with spread and key to resolve overload issues
+                return React.createElement('button', { key: tool.id, ...buttonProps } as any,
                     React.createElement('div', { className: 'mb-4' },
                         // Fix for line 323: Wrapped props in a variable to avoid TypeScript errors with React.cloneElement.
                         (() => {
@@ -500,8 +495,8 @@ const App = () => {
                         })()
                     ),
                     React.createElement('h3', { className: 'text-lg font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors' }, tool.text)
-                )
-            ))
+                );
+            })
         );
     };
 
