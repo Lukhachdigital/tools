@@ -473,11 +473,12 @@ const App = () => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
 
         // Fix: Explicitly type div props to avoid overload errors
-        const gridProps: React.HTMLAttributes<HTMLDivElement> = {
+        // CHANGE: Removed explicit type and passed object literal directly to createElement or inferred variable to avoid strict checking issues with 'Attributes' type in some environments.
+        const gridProps = {
             className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
         };
 
-        return React.createElement('div', gridProps,
+        return React.createElement('div', { ...gridProps } as any,
             dashboardTools.map(tool => {
                 // Fix: Extract props to resolve TypeScript overload error for className in React.createElement
                 const buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
