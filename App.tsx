@@ -17,6 +17,9 @@ import AudioChoppingApp from './AudioChoppingApp';
 import AudioToPromptVideoApp from './AudioToPromptVideoApp';
 import ContentPodcastApp from './ContentPodcastApp';
 
+// Import Constants Links
+import { APP_LINKS, SOCIAL_LINKS, TUTORIAL_LINKS, FALLBACK_TUTORIAL } from './constants';
+
 
 // --- ICONS ---
 const iconProps = {
@@ -308,7 +311,7 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
                         React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key"),
-                        React.createElement('a', { href: "https://aistudio.google.com/app/apikey", target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
+                        React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
                     React.createElement('input', {
                         id: "gemini-key",
@@ -322,7 +325,7 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
                          React.createElement('label', { htmlFor: "openai-key", className: "block text-lg font-semibold text-slate-300" }, "OpenAI API Key"),
-                         React.createElement('a', { href: "https://platform.openai.com/api-keys", target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
+                         React.createElement('a', { href: APP_LINKS.OPENAI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
                     React.createElement('input', {
                         id: "openai-key",
@@ -350,16 +353,16 @@ const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.Props
         return React.createElement(React.Fragment, null, children);
     }
 
-    // FIX: Extracted props to typed variables to avoid TypeScript overload errors with React.createElement.
-    const containerProps: React.HTMLAttributes<HTMLDivElement> = {
+    // Fix: Use React.ComponentProps<'div'> to ensure compatibility with React.createElement('div', ...) and resolve TS overload errors.
+    const containerProps: React.ComponentProps<'div'> = {
         className: "relative w-full h-full"
     };
     
-    const blurProps: React.HTMLAttributes<HTMLDivElement> = {
+    const blurProps: React.ComponentProps<'div'> = {
         className: "w-full h-full filter blur-md brightness-50 pointer-events-none"
     };
 
-    const overlayProps: React.HTMLAttributes<HTMLDivElement> = {
+    const overlayProps: React.ComponentProps<'div'> = {
         className: "absolute inset-0 z-10 flex items-center justify-center p-4"
     };
 
@@ -437,31 +440,13 @@ const App = () => {
     const sidebarTools = orderedIds.map(id => allTools.find(tool => tool.id === id)).filter(Boolean);
 
     const socialLinks = [
-        { href: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1", icon: React.createElement(IconYoutube), name: "Youtube", color: "bg-red-600 hover:bg-red-700" },
-        { href: "https://www.facebook.com/huynhxuyenson", icon: React.createElement(IconFacebook), name: "Facebook", color: "bg-blue-600 hover:bg-blue-700" },
-        { href: "https://tiktok.com/@lamyoutubeai", icon: React.createElement(IconTiktok), name: "Tiktok", color: "bg-gray-900 hover:bg-gray-800" },
-        { href: "https://zalo.me/g/yesdti650", icon: React.createElement(IconZalo), name: "Zalo", color: "bg-blue-500 hover:bg-blue-600" },
+        { href: SOCIAL_LINKS.YOUTUBE, icon: React.createElement(IconYoutube), name: "Youtube", color: "bg-red-600 hover:bg-red-700" },
+        { href: SOCIAL_LINKS.FACEBOOK, icon: React.createElement(IconFacebook), name: "Facebook", color: "bg-blue-600 hover:bg-blue-700" },
+        { href: SOCIAL_LINKS.TIKTOK, icon: React.createElement(IconTiktok), name: "Tiktok", color: "bg-gray-900 hover:bg-gray-800" },
+        { href: SOCIAL_LINKS.ZALO, icon: React.createElement(IconZalo), name: "Zalo", color: "bg-blue-500 hover:bg-blue-600" },
     ];
     
-    const tutorialLinks = {
-      "dashboard": "https://www.youtube.com/playlist?list=PLlpNqaFh8WE4y1ULxKgfjDWyCBWx4-LhL",
-      "prompt_json": "https://www.youtube.com/watch?v=Uql-HZz8UnM",
-      "whisk_flow": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "my_channel": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "viet_kich_ban": "https://www.youtube.com/watch?v=uQi0RKvnzek",
-      "ai_prompt_veo31": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "auto_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "audio_chopping": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "audio_to_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "audio_to_prompt_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "create_thumbnail": "https://www.youtube.com/watch?v=9d9c5Q1nID8",
-      "tao_anh_trend": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "create_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "seo_youtube": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "youtube_external": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-      "app_affiliate": "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg",
-      "content_podcast": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1"
-    };
+    const tutorialLinks = TUTORIAL_LINKS;
 
     const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'audio_to_prompt_video', 'auto_prompt', 'seo_youtube', 'youtube_external', 'prompt_json', 'create_thumbnail', 'tao_anh_trend', 'app_affiliate', 'content_podcast'];
 
@@ -487,13 +472,13 @@ const App = () => {
     };
 
     const handleOpenTutorial = () => {
-        const fallbackUrl = "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1";
+        const fallbackUrl = FALLBACK_TUTORIAL;
         const url = tutorialLinks[currentView] || tutorialLinks.dashboard || fallbackUrl;
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     const handleOpenApiKeyTutorial = () => {
-        const apiKeyTutorialUrl = "https://www.youtube.com/watch?v=1Pi-xnnFq70";
+        const apiKeyTutorialUrl = APP_LINKS.API_KEY_TUTORIAL;
         window.open(apiKeyTutorialUrl, '_blank', 'noopener,noreferrer');
     };
 
@@ -510,12 +495,11 @@ const App = () => {
                     React.createElement('div', { className: 'mb-4' },
                         // Fix for line 323: Wrapped props in a variable to avoid TypeScript errors with React.cloneElement.
                         (() => {
-                            const newProps = { className: "w-10 h-10 text-cyan-400 group-hover:text-cyan-300 transition-colors" };
-                            // Fix: Cast tool.icon to React.ReactElement<any> to resolve "className does not exist in type Attributes" error.
-                            return React.cloneElement(tool.icon as React.ReactElement<any>, newProps);
+                             const iconEl = tool.icon as React.ReactElement<{ className?: string }>;
+                             return React.cloneElement(iconEl, { className: "w-10 h-10 text-cyan-400 group-hover:text-cyan-300 transition-colors" });
                         })()
                     ),
-                    React.createElement('h3', { className: 'text-lg font-bold text-slate-200 group-hover:text-white transition-colors' }, tool.text)
+                    React.createElement('h3', { className: 'text-lg font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors' }, tool.text)
                 )
             ))
         );
@@ -560,11 +544,11 @@ const App = () => {
     const currentTool = sidebarTools.find(tool => tool.id === currentView);
 
     const homeLinkProps = {
-        href: "https://lamyoutubeai.com",
+        href: APP_LINKS.HOME,
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     const freeLinkProps = {
-        href: "https://lamyoutubeai.com/free",
+        href: APP_LINKS.FREE_RESOURCES,
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     
@@ -577,8 +561,8 @@ const App = () => {
                 initialOpenAIKey: openaiApiKey
              }),
             React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col" },
-                React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-6 w-full mb-4 p-4 sm:p-6" },
-                     React.createElement('div', { className: "flex flex-col items-start gap-3 sm:gap-4" },
+                React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-4 w-full mb-1 p-2 sm:p-4" },
+                     React.createElement('div', { className: "flex flex-col items-start gap-2 sm:gap-3" },
                         React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
                             React.createElement('a', homeLinkProps,
                                 React.createElement(IconHome), 
@@ -591,7 +575,7 @@ const App = () => {
                         ),
                         React.createElement('button', { 
                             onClick: handleOpenTutorial,
-                            className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
+                            className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-yellow-500 text-yellow-400 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-yellow-500/10 hover:bg-yellow-500/20 hover:text-yellow-200 hover:shadow-yellow-500/30 transition-all duration-300 transform hover:-translate-y-1"
                         }, 
                             React.createElement(IconTutorial),
                             "Hướng dẫn dùng App"
@@ -599,10 +583,10 @@ const App = () => {
                     ),
                     React.createElement('div', { className: "text-center" },
                          React.createElement('h1', { className: "text-3xl sm:text-4xl lg:text-5xl font-extrabold" },
-                            React.createElement('span', { className: "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600" }, currentTool && currentView !== 'dashboard' ? currentTool.title : mainTitle)
+                            React.createElement('span', { className: "text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500" }, currentTool && currentView !== 'dashboard' ? currentTool.title : mainTitle)
                          ),
-                         React.createElement('p', { className: "text-slate-400 mt-2 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription),
-                         appsWithModelSelector.includes(currentView) && React.createElement('div', { className: "mt-4 flex justify-center items-center gap-4" },
+                         React.createElement('p', { className: "text-cyan-400 mt-1 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription),
+                         appsWithModelSelector.includes(currentView) && React.createElement('div', { className: "mt-2 flex justify-center items-center gap-4" },
                             React.createElement('button', {
                                 onClick: () => setSelectedAIModel('gemini'),
                                 className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gemini' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
@@ -649,7 +633,7 @@ const App = () => {
                         );
                      })()
                 ),
-                React.createElement('div', { className: "flex-grow flex w-full p-4 sm:p-6 gap-6" },
+                React.createElement('div', { className: "flex-grow flex w-full p-2 sm:p-4 gap-4" },
                     currentView !== 'dashboard' && React.createElement('aside', { className: 'w-80 flex-shrink-0 flex flex-col gap-4' },
                         React.createElement('div', { className: 'bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 flex-grow' },
                             React.createElement('nav', { className: 'space-y-2' },
@@ -665,7 +649,12 @@ const App = () => {
                                         onClick: () => handleToolClick(tool.id)
                                     },
                                         tool.icon,
-                                        React.createElement('span', null, tool.id === 'dashboard' ? tool.text : `${index}. ${tool.text}`)
+                                        tool.id === 'dashboard' 
+                                            ? React.createElement('span', null, tool.text)
+                                            : React.createElement('span', null, 
+                                                React.createElement('span', { className: "text-yellow-400 mr-1" }, `${index}.`),
+                                                tool.text
+                                              )
                                     );
                                 })
                             )
@@ -678,7 +667,7 @@ const App = () => {
                     )
                 ),
                  React.createElement('footer', { className: "text-center p-4" },
-                    React.createElement('p', { className: "text-base text-cyan-400 font-semibold tracking-wide" }, "Ứng dụng được phát triển bởi Mr. Huỳnh Xuyên Sơn")
+                    React.createElement('p', { className: "text-base text-yellow-400 font-semibold tracking-wide" }, "Ứng dụng được phát triển bởi Mr. Huỳnh Xuyên Sơn")
                 )
             )
         )
