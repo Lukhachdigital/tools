@@ -606,11 +606,11 @@ const App = () => {
                             React.createElement('button', {
                                 onClick: () => setSelectedAIModel('gemini'),
                                 className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gemini' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                            }, "Gemini 2.5 Flash"),
+                            }, "Gemini 3 Pro"),
                             React.createElement('button', {
                                 onClick: () => setSelectedAIModel('gpt'),
                                 className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gpt' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                            }, "Chat GPT 5")
+                            }, "Chat GPT 5.1")
                         )
                     ),
 // FIX: Wrapped social links container in an IIFE with explicitly typed props to resolve a TypeScript error.

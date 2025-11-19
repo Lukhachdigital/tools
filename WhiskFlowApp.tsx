@@ -174,7 +174,7 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
                     'Authorization': `Bearer ${openaiApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4o',
+                    model: 'gpt-5.1',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }

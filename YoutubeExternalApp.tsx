@@ -121,7 +121,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
                             'Authorization': `Bearer ${openaiApiKey}`
                         },
                         body: JSON.stringify({
-                            model: 'gpt-4o',
+                            model: 'gpt-5.1',
                             messages: [
                                 { role: 'system', content: `Dịch văn bản sau sang ${lang}. ${commonPrompt}` },
                                 { role: 'user', content: text }
