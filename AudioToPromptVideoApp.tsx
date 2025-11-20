@@ -171,8 +171,27 @@ const chopAudio = async (file: File): Promise<File[]> => {
     return chunks;
 };
 
-const generatePromptsFromAudioChunks = async (files: File[], apiKey: string): Promise<string[]> => {
+const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, style: string, language: string): Promise<string[]> => {
   const ai = new GoogleGenAI({ apiKey });
+  
+  const styleMap: Record<string, string> = {
+        'Hoạt hình': 'Cartoon, 3D Render, Vivid Colors',
+        'Thực tế': 'Realistic, Photorealistic, True to life',
+        'Anime': 'Anime Style, 2D, Japanese Animation',
+        'Điện ảnh': 'Cinematic, Photorealistic, 8k, High Quality, Dramatic Lighting',
+        'Hiện đại': 'Modern, Sharp, High Quality, Clean',
+        'Viễn tưởng': 'Sci-fi, Futuristic, Neon, Cyberpunk'
+  };
+
+  const langMap: Record<string, string> = {
+      'Vietnamese': 'Vietnamese',
+      'English': 'English',
+      'Không thoại': 'None',
+  };
+
+  const mappedStyle = styleMap[style] || styleMap['Điện ảnh'];
+  const mappedLang = langMap[language] || 'English';
+
   const promptForSingleAudio = `You are an expert video script director for VEO 3.1. Your task is to analyze the provided audio file and generate a video generation prompt that strictly follows the VEO 3.1 format.
 
     **FORMAT REQUIREMENTS (Strictly Enforced):**
@@ -183,19 +202,19 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string): Pr
     1.  **Scene Title**: Always "Scene Title: [None]".
     2.  **Character 1 Description**: Describe the main subject visible in the video based on the audio context. If unclear, create a generic but consistent character fitting the mood. Prefix with "Character 1:".
     3.  **Character 2 Description**: Describe a secondary character or write "Character 2: [None]".
-    4.  **Style Description**: "Style: Cinematic, Photorealistic, 8k, High Quality".
+    4.  **Style Description**: "Style: ${mappedStyle}".
     5.  **Character Voices**: Describe the voice heard in the audio (e.g., "Voice: Male, deep, calm" or "Voice: Female, energetic").
     6.  **Camera Shot**: Describe a camera movement suitable for an 8-second clip (e.g., "Camera: Slow zoom in", "Camera: Pan right").
     7.  **Setting Details**: Describe the environment/background that matches the audio's context. Prefix with "Setting:".
     8.  **Mood**: The emotional tone of the audio. Prefix with "Mood:".
     9.  **Audio Cues**: Describe background sounds or music heard in the audio file. Prefix with "Audio:".
-    10. **Dialog**: Transcribe the spoken words from the audio accurately. If no speech, write "Dialog: [None]".
+    10. **Dialog**: Transcribe the spoken words from the audio accurately. The language MUST be in ${mappedLang}. If no speech or "Dialog: [None]" is requested, write "Dialog: [None]".
     11. **Subtitles**: Always "Subtitles: [None]".
 
     **CRITICAL INSTRUCTIONS:**
     - Analyze the audio carefully to transcribe the Dialog and identify Audio Cues.
     - Output ONLY the formatted string. No markdown, no explanations.
-    - Language: All descriptions MUST be in ENGLISH. The 'Dialog' part should match the spoken language in the audio.
+    - Language: All descriptions MUST be in ENGLISH, EXCEPT the 'Dialog' part which must strictly follow the requested language (${mappedLang}).
   `;
   
   const generationPromises = files.map(async (file) => {
@@ -224,7 +243,13 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
     const [error, setError] = useState<string | null>(null);
     const [results, setResults] = useState<ScriptResponse | null>(null);
     const [dragOver, setDragOver] = useState<boolean>(false);
+    const [videoStyle, setVideoStyle] = useState('Điện ảnh');
+    const [dialogueLanguage, setDialogueLanguage] = useState('Vietnamese');
+    
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const videoStyles = ['Hoạt hình', 'Thực tế', 'Anime', 'Điện ảnh', 'Hiện đại', 'Viễn tưởng'];
+    const dialogueLanguages = ['Vietnamese', 'English', 'Không thoại'];
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
@@ -283,7 +308,7 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
             const chunks = await chopAudio(file);
             
             // Step 2: Generate prompts for chunks
-            const prompts = await generatePromptsFromAudioChunks(chunks, geminiApiKey);
+            const prompts = await generatePromptsFromAudioChunks(chunks, geminiApiKey, videoStyle, dialogueLanguage);
             
             setResults({ script: prompts });
         } catch (e) {
@@ -292,7 +317,9 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
         } finally {
             setIsLoading(false);
         }
-    }, [file, geminiApiKey]);
+    }, [file, geminiApiKey, videoStyle, dialogueLanguage]);
+    
+    const buttonClasses = (isSelected: boolean) => `py-2 px-2 text-xs font-semibold rounded-lg transition ${isSelected ? 'bg-cyan-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`;
 
     return (
         <div className="w-full h-full p-4">
@@ -331,6 +358,40 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
                                 <p className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
                             </div>
                         )}
+                        
+                        {/* Style Selector */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-300">Phong cách Video</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {videoStyles.map(style => (
+                                    <button
+                                        key={style}
+                                        onClick={() => setVideoStyle(style)}
+                                        className={buttonClasses(videoStyle === style)}
+                                        disabled={isLoading}
+                                    >
+                                        {style}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Language Selector */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-300">Ngôn ngữ thoại</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {dialogueLanguages.map(lang => (
+                                    <button
+                                        key={lang}
+                                        onClick={() => setDialogueLanguage(lang)}
+                                        className={buttonClasses(dialogueLanguage === lang)}
+                                        disabled={isLoading}
+                                    >
+                                        {lang}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
                         <button
                             onClick={handleGenerate}
