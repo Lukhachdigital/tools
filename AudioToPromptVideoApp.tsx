@@ -177,11 +177,21 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
   
   const styleMap: Record<string, string> = {
         'Hoạt hình': 'Cartoon, 3D Render, Vivid Colors',
-        'Thực tế': 'Realistic, Photorealistic, True to life',
+        'Thực tế': 'Realistic, Photorealistic, True to life, 8k, Raw footage',
         'Anime': 'Anime Style, 2D, Japanese Animation',
         'Điện ảnh': 'Cinematic, Photorealistic, 8k, High Quality, Dramatic Lighting',
         'Hiện đại': 'Modern, Sharp, High Quality, Clean',
         'Viễn tưởng': 'Sci-fi, Futuristic, Neon, Cyberpunk'
+  };
+
+  // Negative constraints to enforce style purity
+  const styleNegativeConstraints: Record<string, string> = {
+      'Thực tế': 'ABSOLUTELY NO sci-fi, NO futuristic technology, NO fantasy elements, NO cartoons, NO anime, NO drawings. The scene must look like a real-world location in the present day (2024).',
+      'Hoạt hình': 'NO photorealism, NO real-life footage.',
+      'Anime': 'NO photorealism, NO 3D render.',
+      'Điện ảnh': 'NO low quality, NO cartoonish elements unless specified.',
+      'Hiện đại': 'NO ancient, NO prehistoric, NO sci-fi, NO futuristic elements.',
+      'Viễn tưởng': 'NO boring present-day elements.',
   };
 
   const langMap: Record<string, string> = {
@@ -191,6 +201,7 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
   };
 
   const mappedStyle = styleMap[style] || styleMap['Điện ảnh'];
+  const negativeConstraint = styleNegativeConstraints[style] || '';
   const mappedLang = langMap[language] || 'None';
 
   // STRICTLY FORCE NONE FOR VOICE AND DIALOGUE IF 'None' IS SELECTED
@@ -213,9 +224,10 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     - **Dialogue Mode:** ${language}
 
     **MANDATORY VISUAL STYLE INSTRUCTIONS:**
-    The descriptions for "Character 1", "Character 2", and "Setting Details" MUST strictly reflect the "${style}" style.
+    - **NEGATIVE CONSTRAINTS:** ${negativeConstraint}
+    - The descriptions for "Character 1", "Character 2", and "Setting Details" MUST strictly reflect the "${style}" style.
     - If "${style}" is "Hoạt hình" (Cartoon), you MUST describe characters and settings as stylized, animated, 3D render, colorful.
-    - If "${style}" is "Thực tế" (Realistic), you MUST describe them as photorealistic, raw, 8k, detailed textures.
+    - If "${style}" is "Thực tế" (Realistic), you MUST describe them as photorealistic, raw, 8k, detailed textures of REAL LIFE. Do not include anything that does not exist in the real world today.
     - If "${style}" is "Anime", you MUST describe them as 2D animation, anime art style.
 
     **CONTENT GUIDELINES:**
@@ -227,12 +239,11 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     6.  **Camera Shot**: Describe a camera movement suitable for an 8-second clip (e.g., "Camera: Slow zoom in", "Camera: Pan right").
     7.  **Setting Details**: Describe the environment/background that matches the audio's context. Prefix with "Setting:". Ensure the setting visuals align with the "${style}" style.
     8.  **Mood**: The emotional tone of the audio. Prefix with "Mood:".
-    9.  **Audio Cues**: Describe background sounds or music heard in the audio file. Prefix with "Audio:".
+    9.  **Audio Cues**: Describe background sounds or music heard in the audio file. Prefix with "Audio:". DO NOT describe voices here if Dialogue Mode is None.
     10. **Dialog**: ${dialogueInstruction}
     11. **Subtitles**: Always "Subtitles: [None]".
 
     **CRITICAL INSTRUCTIONS:**
-    - Analyze the audio carefully to identify Audio Cues.
     - If "Không thoại" (None) is selected, you MUST strictly output "Voice: [None]" and "Dialog: [None]". Do not describe voices or transcribe speech in these fields under any circumstances.
     - Output ONLY the formatted string. No markdown, no explanations.
   `;
@@ -253,8 +264,8 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
         // Index 4 is Character Voices, Index 9 is Dialog in 11-part VEO format.
         // We verify length to ensure it's likely a valid VEO prompt string.
         if (parts.length >= 10) {
-            if (parts[4]) parts[4] = " Voice: [None] ";
-            if (parts[9]) parts[9] = " Dialog: [None] ";
+            parts[4] = " Voice: [None] ";
+            parts[9] = " Dialog: [None] ";
             promptText = parts.join('|');
         }
     }
