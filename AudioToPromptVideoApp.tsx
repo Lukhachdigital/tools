@@ -199,7 +199,7 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     : `Transcribe the spoken words from the audio accurately. The language MUST be in ${mappedLang}. Prefix with "Dialog:".`;
 
   const voiceInstruction = mappedLang === 'None'
-    ? 'OUTPUT EXACTLY: "Voice: [None]".'
+    ? 'OUTPUT EXACTLY: "Voice: [None]". IT IS FORBIDDEN TO DESCRIBE ANY VOICE.'
     : 'Describe the voice heard in the audio (e.g., "Voice: Male, deep, calm" or "Voice: Female, energetic"). Prefix with "Voice:".';
 
   const promptForSingleAudio = `You are an expert video script director for VEO 3.1. Your task is to analyze the provided audio file and generate a video generation prompt that strictly follows the VEO 3.1 format.
@@ -212,9 +212,15 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     - **Visual Style:** ${style} (Keywords: ${mappedStyle})
     - **Dialogue Mode:** ${language}
 
+    **MANDATORY VISUAL STYLE INSTRUCTIONS:**
+    The descriptions for "Character 1", "Character 2", and "Setting Details" MUST strictly reflect the "${style}" style.
+    - If "${style}" is "Hoạt hình" (Cartoon), you MUST describe characters and settings as stylized, animated, 3D render, colorful.
+    - If "${style}" is "Thực tế" (Realistic), you MUST describe them as photorealistic, raw, 8k, detailed textures.
+    - If "${style}" is "Anime", you MUST describe them as 2D animation, anime art style.
+
     **CONTENT GUIDELINES:**
     1.  **Scene Title**: Always "Scene Title: [None]".
-    2.  **Character 1 Description**: Describe the main subject visible in the video based on the audio context. If unclear, create a generic but consistent character fitting the mood. Prefix with "Character 1:". Ensure the visual description matches the "${style}" style.
+    2.  **Character 1 Description**: Describe the main subject visible in the video based on the audio context. Prefix with "Character 1:". Ensure the visual description matches the "${style}" style.
     3.  **Character 2 Description**: Describe a secondary character or write "Character 2: [None]".
     4.  **Style Description**: "Style: ${mappedStyle}".
     5.  **Character Voices**: ${voiceInstruction}
@@ -229,7 +235,6 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     - Analyze the audio carefully to identify Audio Cues.
     - If "Không thoại" (None) is selected, you MUST strictly output "Voice: [None]" and "Dialog: [None]". Do not describe voices or transcribe speech in these fields under any circumstances.
     - Output ONLY the formatted string. No markdown, no explanations.
-    - Language: All descriptions MUST be in ENGLISH, EXCEPT the 'Dialog' part which must strictly follow the requested language logic.
   `;
   
   const generationPromises = files.map(async (file) => {
@@ -240,7 +245,21 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     });
     const audioPart = { inlineData: { data: base64EncodedData, mimeType: file.type } };
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: { parts: [{ text: promptForSingleAudio }, audioPart] } });
-    return response.text.trim();
+    let promptText = response.text.trim();
+
+    // FORCE POST-PROCESSING TO REMOVE VOICE/DIALOGUE IF "NONE" SELECTED
+    if (mappedLang === 'None') {
+        const parts = promptText.split('|');
+        // Index 4 is Character Voices, Index 9 is Dialog in 11-part VEO format.
+        // We verify length to ensure it's likely a valid VEO prompt string.
+        if (parts.length >= 10) {
+            if (parts[4]) parts[4] = " Voice: [None] ";
+            if (parts[9]) parts[9] = " Dialog: [None] ";
+            promptText = parts.join('|');
+        }
+    }
+
+    return promptText;
   });
   return Promise.all(generationPromises);
 };
@@ -259,7 +278,7 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
     const [results, setResults] = useState<ScriptResponse | null>(null);
     const [dragOver, setDragOver] = useState<boolean>(false);
     const [videoStyle, setVideoStyle] = useState('Điện ảnh');
-    const [dialogueLanguage, setDialogueLanguage] = useState('Không thoại'); // Default is now 'Không thoại'
+    const [dialogueLanguage, setDialogueLanguage] = useState('Không thoại'); // Default is 'Không thoại'
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
