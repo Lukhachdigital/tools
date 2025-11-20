@@ -399,7 +399,7 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                     onClick: onClose,
                     className: "text-slate-400 hover:text-white transition-colors",
                     'aria-label': "Close modal"
-                },
+                } as any,
                     React.createElement('svg', {
                         xmlns: "http://www.w3.org/2000/svg",
                         fill: "none",
@@ -425,7 +425,7 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                         onChange: (e) => setGeminiKey(e.target.value),
                         className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
                         placeholder: "Nhập Gemini API Key của bạn..."
-                    })
+                    } as any)
                 ),
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
@@ -439,12 +439,12 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                         onChange: (e) => setOpenAIKey(e.target.value),
                         className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
                         placeholder: "Nhập OpenAI API Key của bạn..."
-                    })
+                    } as any)
                 ),
                 React.createElement('button', {
                     onClick: handleSave,
                     className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
-                }, "Lưu Cài Đặt")
+                } as any, "Lưu Cài Đặt")
             )
         )
     );
