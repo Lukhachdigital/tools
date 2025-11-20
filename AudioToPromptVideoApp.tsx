@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 
@@ -192,10 +193,14 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
   const mappedStyle = styleMap[style] || styleMap['Điện ảnh'];
   const mappedLang = langMap[language] || 'None';
 
-  // Determine specific dialogue instructions based on selection
+  // STRICTLY FORCE NONE FOR VOICE AND DIALOGUE IF 'None' IS SELECTED
   const dialogueInstruction = mappedLang === 'None' 
-    ? 'Write "Dialog: [None]". DO NOT transcribe any speech, even if heard.' 
+    ? 'OUTPUT EXACTLY: "Dialog: [None]". IT IS FORBIDDEN TO WRITE ANY DIALOGUE.' 
     : `Transcribe the spoken words from the audio accurately. The language MUST be in ${mappedLang}. Prefix with "Dialog:".`;
+
+  const voiceInstruction = mappedLang === 'None'
+    ? 'OUTPUT EXACTLY: "Voice: [None]".'
+    : 'Describe the voice heard in the audio (e.g., "Voice: Male, deep, calm" or "Voice: Female, energetic"). Prefix with "Voice:".';
 
   const promptForSingleAudio = `You are an expert video script director for VEO 3.1. Your task is to analyze the provided audio file and generate a video generation prompt that strictly follows the VEO 3.1 format.
 
@@ -212,7 +217,7 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     2.  **Character 1 Description**: Describe the main subject visible in the video based on the audio context. If unclear, create a generic but consistent character fitting the mood. Prefix with "Character 1:". Ensure the visual description matches the "${style}" style.
     3.  **Character 2 Description**: Describe a secondary character or write "Character 2: [None]".
     4.  **Style Description**: "Style: ${mappedStyle}".
-    5.  **Character Voices**: Describe the voice heard in the audio (e.g., "Voice: Male, deep, calm" or "Voice: Female, energetic").
+    5.  **Character Voices**: ${voiceInstruction}
     6.  **Camera Shot**: Describe a camera movement suitable for an 8-second clip (e.g., "Camera: Slow zoom in", "Camera: Pan right").
     7.  **Setting Details**: Describe the environment/background that matches the audio's context. Prefix with "Setting:". Ensure the setting visuals align with the "${style}" style.
     8.  **Mood**: The emotional tone of the audio. Prefix with "Mood:".
@@ -222,7 +227,7 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
 
     **CRITICAL INSTRUCTIONS:**
     - Analyze the audio carefully to identify Audio Cues.
-    - If "Không thoại" (None) is selected, the Dialog field MUST be "Dialog: [None]" regardless of the audio content.
+    - If "Không thoại" (None) is selected, you MUST strictly output "Voice: [None]" and "Dialog: [None]". Do not describe voices or transcribe speech in these fields under any circumstances.
     - Output ONLY the formatted string. No markdown, no explanations.
     - Language: All descriptions MUST be in ENGLISH, EXCEPT the 'Dialog' part which must strictly follow the requested language logic.
   `;
