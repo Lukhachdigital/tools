@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -287,7 +288,7 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
 };
 
 // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
-// FIX: Explicitly typed svgProps to resolve a TypeScript overload resolution issue with React.createElement.
+// FIX: Explicitly type svgProps to resolve a TypeScript overload resolution issue with React.createElement.
 // FIX: Refactored IconFacebook to use an object literal for its child path element's props. This resolves a TypeScript overload issue with React.createElement that occurred when using a typed variable for the path's properties.
 const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
@@ -664,11 +665,11 @@ const App = () => {
                 React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-4 w-full mb-1 p-2 sm:p-4" },
                      React.createElement('div', { className: "flex flex-col items-start gap-2 sm:gap-3" },
                         React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
-                            React.createElement('a', homeLinkProps,
+                            React.createElement('a', { ...homeLinkProps } as any,
                                 React.createElement(IconHome), 
                                 "Trang chủ"
                             ),
-                            React.createElement('a', freeLinkProps,
+                            React.createElement('a', { ...freeLinkProps } as any,
                                 React.createElement(IconGift),
                                 "Tài nguyên FREE"
                             )
@@ -676,7 +677,7 @@ const App = () => {
                         React.createElement('button', { 
                             onClick: handleOpenTutorial,
                             className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-yellow-500 text-yellow-400 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-yellow-500/10 hover:bg-yellow-500/20 hover:text-yellow-200 hover:shadow-yellow-500/30 transition-all duration-300 transform hover:-translate-y-1"
-                        }, 
+                        } as any, 
                             React.createElement(IconTutorial),
                             "Hướng dẫn dùng App"
                         )
@@ -713,19 +714,21 @@ const App = () => {
                                     className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
                                 };
                                 // FIX: Removed 'key' from linkProps object and passed it directly to createElement to resolve TypeScript error "Object literal may only specify known properties".
-                                return React.createElement('a', { key: link.name, ...linkProps }, link.icon);
+                                return React.createElement('a', { key: link.name, ...linkProps } as any, link.icon);
                             }
                             ),
                             React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
                                 React.createElement('button', { 
                                     onClick: () => setShowApiKeyModal(true),
-                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
+                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" 
+                                } as any, 
                                     React.createElement(IconSettings),
                                     "Cài đặt API Key"
                                 ),
                                  React.createElement('button', { 
                                     onClick: handleOpenApiKeyTutorial,
-                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
+                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" 
+                                } as any, 
                                     React.createElement(IconTutorial),
                                     "Hướng dẫn API Key"
                                 )
