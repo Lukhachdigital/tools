@@ -173,15 +173,29 @@ const chopAudio = async (file: File): Promise<File[]> => {
 
 const generatePromptsFromAudioChunks = async (files: File[], apiKey: string): Promise<string[]> => {
   const ai = new GoogleGenAI({ apiKey });
-  const promptForSingleAudio = `You are an expert video script director. Your task is to analyze the provided audio file and generate a single, concise, visually descriptive prompt for a video generation model like VEO. The prompt should capture the essence, mood, and key information of the entire audio file.
-  
-  **CRITICAL INSTRUCTIONS:**
-  1.  **Analyze Audio:** Listen carefully to the entire audio content.
-  2.  **Summarize Visually:** Create ONE single prompt that summarizes the audio content visually. It should be suitable for generating an 8-second video clip that represents the audio.
-  3.  **Output Format (Strict):**
-      *   Return ONLY the generated prompt text.
-      *   Do not include any other text, explanations, headers, or introductory/concluding remarks. Just the prompt itself.
-      *   The prompt can be in English or Vietnamese, but English is preferred for better compatibility with video models.
+  const promptForSingleAudio = `You are an expert video script director for VEO 3.1. Your task is to analyze the provided audio file and generate a video generation prompt that strictly follows the VEO 3.1 format.
+
+    **FORMAT REQUIREMENTS (Strictly Enforced):**
+    The output must be a SINGLE string with exactly 11 parts separated by " | ".
+    Format: Scene Title | Character 1 Description | Character 2 Description | Style Description | Character Voices | Camera Shot | Setting Details | Mood | Audio Cues | Dialog | Subtitles
+
+    **CONTENT GUIDELINES:**
+    1.  **Scene Title**: Always "Scene Title: [None]".
+    2.  **Character 1 Description**: Describe the main subject visible in the video based on the audio context. If unclear, create a generic but consistent character fitting the mood. Prefix with "Character 1:".
+    3.  **Character 2 Description**: Describe a secondary character or write "Character 2: [None]".
+    4.  **Style Description**: "Style: Cinematic, Photorealistic, 8k, High Quality".
+    5.  **Character Voices**: Describe the voice heard in the audio (e.g., "Voice: Male, deep, calm" or "Voice: Female, energetic").
+    6.  **Camera Shot**: Describe a camera movement suitable for an 8-second clip (e.g., "Camera: Slow zoom in", "Camera: Pan right").
+    7.  **Setting Details**: Describe the environment/background that matches the audio's context. Prefix with "Setting:".
+    8.  **Mood**: The emotional tone of the audio. Prefix with "Mood:".
+    9.  **Audio Cues**: Describe background sounds or music heard in the audio file. Prefix with "Audio:".
+    10. **Dialog**: Transcribe the spoken words from the audio accurately. If no speech, write "Dialog: [None]".
+    11. **Subtitles**: Always "Subtitles: [None]".
+
+    **CRITICAL INSTRUCTIONS:**
+    - Analyze the audio carefully to transcribe the Dialog and identify Audio Cues.
+    - Output ONLY the formatted string. No markdown, no explanations.
+    - Language: All descriptions MUST be in ENGLISH. The 'Dialog' part should match the spoken language in the audio.
   `;
   
   const generationPromises = files.map(async (file) => {
