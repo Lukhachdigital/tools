@@ -190,7 +190,12 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
   };
 
   const mappedStyle = styleMap[style] || styleMap['Điện ảnh'];
-  const mappedLang = langMap[language] || 'English';
+  const mappedLang = langMap[language] || 'None';
+
+  // Determine specific dialogue instructions based on selection
+  const dialogueInstruction = mappedLang === 'None' 
+    ? 'Write "Dialog: [None]". DO NOT transcribe any speech, even if heard.' 
+    : `Transcribe the spoken words from the audio accurately. The language MUST be in ${mappedLang}. Prefix with "Dialog:".`;
 
   const promptForSingleAudio = `You are an expert video script director for VEO 3.1. Your task is to analyze the provided audio file and generate a video generation prompt that strictly follows the VEO 3.1 format.
 
@@ -198,23 +203,28 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     The output must be a SINGLE string with exactly 11 parts separated by " | ".
     Format: Scene Title | Character 1 Description | Character 2 Description | Style Description | Character Voices | Camera Shot | Setting Details | Mood | Audio Cues | Dialog | Subtitles
 
+    **USER SETTINGS:**
+    - **Visual Style:** ${style} (Keywords: ${mappedStyle})
+    - **Dialogue Mode:** ${language}
+
     **CONTENT GUIDELINES:**
     1.  **Scene Title**: Always "Scene Title: [None]".
-    2.  **Character 1 Description**: Describe the main subject visible in the video based on the audio context. If unclear, create a generic but consistent character fitting the mood. Prefix with "Character 1:".
+    2.  **Character 1 Description**: Describe the main subject visible in the video based on the audio context. If unclear, create a generic but consistent character fitting the mood. Prefix with "Character 1:". Ensure the visual description matches the "${style}" style.
     3.  **Character 2 Description**: Describe a secondary character or write "Character 2: [None]".
     4.  **Style Description**: "Style: ${mappedStyle}".
     5.  **Character Voices**: Describe the voice heard in the audio (e.g., "Voice: Male, deep, calm" or "Voice: Female, energetic").
     6.  **Camera Shot**: Describe a camera movement suitable for an 8-second clip (e.g., "Camera: Slow zoom in", "Camera: Pan right").
-    7.  **Setting Details**: Describe the environment/background that matches the audio's context. Prefix with "Setting:".
+    7.  **Setting Details**: Describe the environment/background that matches the audio's context. Prefix with "Setting:". Ensure the setting visuals align with the "${style}" style.
     8.  **Mood**: The emotional tone of the audio. Prefix with "Mood:".
     9.  **Audio Cues**: Describe background sounds or music heard in the audio file. Prefix with "Audio:".
-    10. **Dialog**: Transcribe the spoken words from the audio accurately. The language MUST be in ${mappedLang}. If no speech or "Dialog: [None]" is requested, write "Dialog: [None]".
+    10. **Dialog**: ${dialogueInstruction}
     11. **Subtitles**: Always "Subtitles: [None]".
 
     **CRITICAL INSTRUCTIONS:**
-    - Analyze the audio carefully to transcribe the Dialog and identify Audio Cues.
+    - Analyze the audio carefully to identify Audio Cues.
+    - If "Không thoại" (None) is selected, the Dialog field MUST be "Dialog: [None]" regardless of the audio content.
     - Output ONLY the formatted string. No markdown, no explanations.
-    - Language: All descriptions MUST be in ENGLISH, EXCEPT the 'Dialog' part which must strictly follow the requested language (${mappedLang}).
+    - Language: All descriptions MUST be in ENGLISH, EXCEPT the 'Dialog' part which must strictly follow the requested language logic.
   `;
   
   const generationPromises = files.map(async (file) => {
@@ -244,7 +254,7 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
     const [results, setResults] = useState<ScriptResponse | null>(null);
     const [dragOver, setDragOver] = useState<boolean>(false);
     const [videoStyle, setVideoStyle] = useState('Điện ảnh');
-    const [dialogueLanguage, setDialogueLanguage] = useState('Vietnamese');
+    const [dialogueLanguage, setDialogueLanguage] = useState('Không thoại'); // Default is now 'Không thoại'
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -313,7 +323,18 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
             setResults({ script: prompts });
         } catch (e) {
             console.error(e);
-            setError(e instanceof Error ? e.message : "Đã xảy ra lỗi không xác định.");
+            // Translate specific API errors if needed
+            let errorMessage = "Đã xảy ra lỗi không xác định.";
+            if (e instanceof Error) {
+                if (e.message.includes('429') || e.message.toLowerCase().includes('quota')) {
+                    errorMessage = "Hệ thống đang quá tải (Lỗi 429/Quota). Vui lòng thử lại sau ít phút.";
+                } else if (e.message.toLowerCase().includes('api key')) {
+                    errorMessage = "API Key không hợp lệ. Vui lòng kiểm tra lại.";
+                } else {
+                    errorMessage = e.message;
+                }
+            }
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
