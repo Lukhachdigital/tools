@@ -30,88 +30,192 @@ const iconProps = {
 // Fix: Typed props for all icon components to correctly handle SVG attributes
 // like 'className', resolving TypeScript errors with React.createElement and React.cloneElement.
 // Updated Icons to accept props for flexible styling
-const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.25 12l8.954-8.955a.75.75 0 011.06 0l8.955 8.955M3 10.5v8.25a1.5 1.5 0 001.5 1.5h15a1.5 1.5 0 001.5-1.5V10.5M9 21V15a1.5 1.5 0 011.5-1.5h3A1.5 1.5 0 0115 15v6" })
-    )
-);
+    );
+};
 
-const IconPromptJson = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconPromptJson = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" })
-    )
-);
+    );
+};
 
-const IconWhiskFlow = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconWhiskFlow = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" })
-    )
-);
+    );
+};
 
-const IconVietKichBan = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconVietKichBan = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" })
-    )
-);
+    );
+};
 
-const IconAIPromptVEO31 = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAIPromptVEO31 = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" }),
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15 13l-3 3m0 0l-3-3m3 3V8" })
-    )
-);
+    );
+};
 
 
-const IconCreateThumbnail = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconCreateThumbnail = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M3 8V6a2 2 0 012-2h2M3 16v2a2 2 0 002 2h2M16 3h2a2 2 0 012 2v2M16 21h2a2 2 0 002-2v-2" }),
         React.createElement('rect', { x: "7", y: "7", width: "10", height: "10", rx: "1", strokeWidth: "1.5" })
-    )
-);
+    );
+};
 
-const IconSeoYoutube = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconSeoYoutube = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" })
-    )
-);
+    );
+};
 
-const IconYoutubeExternal = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconYoutubeExternal = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" })
-    )
-);
+    );
+};
 
-const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" })
-    )
-);
+    );
+};
 
-const IconAudioToPromptVideo = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAudioToPromptVideo = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.552 8.352a4.502 4.502 0 01-6.364 6.364m6.364-6.364a4.5 4.5 0 00-6.364 6.364m6.364-6.364l-6.364 6.364M12 8.25v2.25m0 7.5V15m0-2.25a.75.75 0 00-.75.75v.01c0 .414.336.75.75.75h.01a.75.75 0 00.75-.75v-.01a.75.75 0 00-.75-.75H12z" }),
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M7 4v16M17 4v16M3 12h4m10 0h4" })
-    )
-);
+    );
+};
 
 
-const IconAudioChopping = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAudioChopping = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM3 3l18 18" })
-    )
-);
+    );
+};
 
-const IconAudioToPrompt = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAudioToPrompt = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" })
-    )
-);
+    );
+};
 
-const IconContentPodcast = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconContentPodcast = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" })
-    )
-);
+    );
+};
 
 // Fix for line 137: Refactored component to extract props into a variable to avoid TypeScript errors with React.createElement.
 const IconConsistentFlow = (props: React.SVGProps<SVGSVGElement>) => {
