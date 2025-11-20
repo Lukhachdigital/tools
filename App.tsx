@@ -458,21 +458,21 @@ const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.Props
         return React.createElement(React.Fragment, null, children);
     }
 
-    return React.createElement('div', { className: "relative w-full h-full" },
-        React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" }, children),
-        React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" },
-            React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" },
-                React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" }, "Chức năng này đã được nâng cấp!"),
-                React.createElement('p', { className: "text-slate-300 mb-6" }, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
-                React.createElement('div', { className: "flex justify-center items-center gap-4" },
+    return React.createElement('div', { className: "relative w-full h-full" } as any,
+        React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" } as any, children),
+        React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" } as any,
+            React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" } as any,
+                React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" } as any, "Chức năng này đã được nâng cấp!"),
+                React.createElement('p', { className: "text-slate-300 mb-6" } as any, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
+                React.createElement('div', { className: "flex justify-center items-center gap-4" } as any,
                     React.createElement('button', {
                         onClick: () => setShowNotice(false),
                         className: "bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300"
-                    }, "Sử dụng ứng dụng này"),
+                    } as any, "Sử dụng ứng dụng này"),
                     React.createElement('button', {
                         onClick: () => onNavigate(targetAppId),
                         className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300"
-                    }, "Chuyển đến ứng dụng mới")
+                    } as any, "Chuyển đến ứng dụng mới")
                 )
             )
         )
