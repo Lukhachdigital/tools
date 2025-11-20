@@ -382,24 +382,54 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
         onSave({ gemini: geminiKey, openai: openAIKey });
         onClose();
     };
-    
-    return React.createElement('div', {
+
+    // FIX: Extracted props to React.HTMLAttributes to resolve overload issues and ensure type safety.
+    const overlayProps: React.HTMLAttributes<HTMLDivElement> = {
         className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
-        'aria-modal': "true",
+        'aria-modal': true,
         role: "dialog",
         onClick: onClose
-    },
-        React.createElement('div', {
-            className: "bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg m-4 border border-cyan-500/50",
-            onClick: (e) => e.stopPropagation()
-        },
+    };
+
+    const modalContainerProps: React.HTMLAttributes<HTMLDivElement> = {
+        className: "bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg m-4 border border-cyan-500/50",
+        onClick: (e) => e.stopPropagation()
+    };
+
+    const closeBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        onClick: onClose,
+        className: "text-slate-400 hover:text-white transition-colors",
+        'aria-label': "Close modal"
+    };
+    
+    const inputGeminiProps: React.InputHTMLAttributes<HTMLInputElement> = {
+        id: "gemini-key",
+        type: "password",
+        value: geminiKey,
+        onChange: (e) => setGeminiKey(e.target.value),
+        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
+        placeholder: "Nhập Gemini API Key của bạn..."
+    };
+
+    const inputOpenAIProps: React.InputHTMLAttributes<HTMLInputElement> = {
+        id: "openai-key",
+        type: "password",
+        value: openAIKey,
+        onChange: (e) => setOpenAIKey(e.target.value),
+        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
+        placeholder: "Nhập OpenAI API Key của bạn..."
+    };
+
+    const saveBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        onClick: handleSave,
+        className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
+    };
+    
+    return React.createElement('div', overlayProps,
+        React.createElement('div', modalContainerProps,
             React.createElement('div', { className: "flex justify-between items-center p-4 border-b border-slate-700" },
                 React.createElement('h3', { className: "text-xl font-bold text-cyan-300" }, "Cài đặt API Keys"),
-                React.createElement('button', {
-                    onClick: onClose,
-                    className: "text-slate-400 hover:text-white transition-colors",
-                    'aria-label': "Close modal"
-                } as any,
+                React.createElement('button', closeBtnProps,
                     React.createElement('svg', {
                         xmlns: "http://www.w3.org/2000/svg",
                         fill: "none",
@@ -418,39 +448,23 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                         React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key"),
                         React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
-                    React.createElement('input', {
-                        id: "gemini-key",
-                        type: "password",
-                        value: geminiKey,
-                        onChange: (e) => setGeminiKey(e.target.value),
-                        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
-                        placeholder: "Nhập Gemini API Key của bạn..."
-                    } as any)
+                    React.createElement('input', inputGeminiProps)
                 ),
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
                          React.createElement('label', { htmlFor: "openai-key", className: "block text-lg font-semibold text-slate-300" }, "OpenAI API Key"),
                          React.createElement('a', { href: APP_LINKS.OPENAI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
-                    React.createElement('input', {
-                        id: "openai-key",
-                        type: "password",
-                        value: openAIKey,
-                        onChange: (e) => setOpenAIKey(e.target.value),
-                        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
-                        placeholder: "Nhập OpenAI API Key của bạn..."
-                    } as any)
+                    React.createElement('input', inputOpenAIProps)
                 ),
-                React.createElement('button', {
-                    onClick: handleSave,
-                    className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
-                } as any, "Lưu Cài Đặt")
+                React.createElement('button', saveBtnProps, "Lưu Cài Đặt")
             )
         )
     );
 };
 
 // FIX: Updated UpgradeNoticeWrapper to use React.PropsWithChildren to make children optional in props type, resolving compatibility with React.createElement calls where children are passed as arguments.
+// FIX: Extracted props to typed variables to resolve TypeScript error "No overload matches this call" and "Object literal may only specify known properties".
 const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.PropsWithChildren<{ targetAppId: string; onNavigate: (id: string) => void; }>) => {
     const [showNotice, setShowNotice] = useState(true);
 
@@ -458,21 +472,31 @@ const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.Props
         return React.createElement(React.Fragment, null, children);
     }
 
-    return React.createElement('div', { className: "relative w-full h-full" } as any,
-        React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" } as any, children),
-        React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" } as any,
-            React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" } as any,
-                React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" } as any, "Chức năng này đã được nâng cấp!"),
-                React.createElement('p', { className: "text-slate-300 mb-6" } as any, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
-                React.createElement('div', { className: "flex justify-center items-center gap-4" } as any,
-                    React.createElement('button', {
-                        onClick: () => setShowNotice(false),
-                        className: "bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300"
-                    } as any, "Sử dụng ứng dụng này"),
-                    React.createElement('button', {
-                        onClick: () => onNavigate(targetAppId),
-                        className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300"
-                    } as any, "Chuyển đến ứng dụng mới")
+    const wrapperProps: React.HTMLAttributes<HTMLDivElement> = { className: "relative w-full h-full" };
+    const blurProps: React.HTMLAttributes<HTMLDivElement> = { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" };
+    const contentWrapperProps: React.HTMLAttributes<HTMLDivElement> = { className: "absolute inset-0 z-10 flex items-center justify-center p-4" };
+    const modalProps: React.HTMLAttributes<HTMLDivElement> = { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" };
+    const titleProps: React.HTMLAttributes<HTMLHeadingElement> = { className: "text-2xl font-bold text-cyan-300 mb-4" };
+    const descProps: React.HTMLAttributes<HTMLParagraphElement> = { className: "text-slate-300 mb-6" };
+    const btnGroupProps: React.HTMLAttributes<HTMLDivElement> = { className: "flex justify-center items-center gap-4" };
+    const useBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        onClick: () => setShowNotice(false),
+        className: "bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300"
+    };
+    const navBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        onClick: () => onNavigate(targetAppId),
+        className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300"
+    };
+
+    return React.createElement('div', wrapperProps,
+        React.createElement('div', blurProps, children),
+        React.createElement('div', contentWrapperProps,
+            React.createElement('div', modalProps,
+                React.createElement('h2', titleProps, "Chức năng này đã được nâng cấp!"),
+                React.createElement('p', descProps, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
+                React.createElement('div', btnGroupProps,
+                    React.createElement('button', useBtnProps, "Sử dụng ứng dụng này"),
+                    React.createElement('button', navBtnProps, "Chuyển đến ứng dụng mới")
                 )
             )
         )
