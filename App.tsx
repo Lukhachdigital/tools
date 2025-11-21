@@ -353,9 +353,22 @@ const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.Props
         return React.createElement(React.Fragment, null, children);
     }
 
-    return React.createElement('div', { className: "relative w-full h-full" },
-        React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" }, children),
-        React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" },
+    // Fix: Use React.ComponentProps<'div'> to ensure compatibility with React.createElement('div', ...) and resolve TS overload errors.
+    const containerProps: React.ComponentProps<'div'> = {
+        className: "relative w-full h-full"
+    };
+    
+    const blurProps: React.ComponentProps<'div'> = {
+        className: "w-full h-full filter blur-md brightness-50 pointer-events-none"
+    };
+
+    const overlayProps: React.ComponentProps<'div'> = {
+        className: "absolute inset-0 z-10 flex items-center justify-center p-4"
+    };
+
+    return React.createElement('div', containerProps,
+        React.createElement('div', blurProps, children),
+        React.createElement('div', overlayProps,
             React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" },
                 React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" }, "Chức năng này đã được nâng cấp!"),
                 React.createElement('p', { className: "text-slate-300 mb-6" }, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
@@ -387,7 +400,7 @@ const App = () => {
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
 
     const allTools = [
-        { id: 'dashboard', text: 'Bảng điều khiển', title: 'AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng', icon: React.createElement(IconDashboard), description: 'Tổng quan các công cụ sáng tạo' },
+        { id: 'dashboard', text: 'Bảng điều khiển', title: 'MIMI Academy - Bộ Công Cụ Sáng Tạo Tối Thượng', icon: React.createElement(IconDashboard), description: 'Tổng quan các công cụ sáng tạo' },
         { id: 'prompt_json', text: 'Prompt JSON', title: 'Viết kịch bản và xuất Prompt chuẩn JSON', icon: React.createElement(IconPromptJson), description: 'Tự động tạo kịch bản video và chuỗi Prompt JSON tương ứng thích hợp tạo video.' },
         { id: 'whisk_flow', text: 'Whisk & Flow I', title: 'Prompt chuẩn hóa Whisk & Flow', icon: React.createElement(IconWhiskFlow), description: 'Tạo kịch bản và prompt, đảm bảo nhân vật giữ nguyên khuôn mặt và trang phục trong suốt video.' },
         { id: 'my_channel', text: 'Whisk & Flow II', title: 'Kịch bản & Xuất Prompt Whisk & Flow', icon: React.createElement(IconConsistentFlow), description: 'Tạo kịch bản và prompt, giữ nguyên khuôn mặt nhưng linh hoạt thay đổi trang phục nhân vật theo từng cảnh.' },
@@ -472,22 +485,13 @@ const App = () => {
     const Dashboard = ({ onToolClick }) => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
 
-        // Fix: Explicitly type div props to avoid overload errors
-        // CHANGE: Removed explicit type and passed object literal directly to createElement or inferred variable to avoid strict checking issues with 'Attributes' type in some environments.
-        const gridProps = {
-            className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
-        };
-
-        return React.createElement('div', { ...gridProps } as any,
-            dashboardTools.map(tool => {
-                // Fix: Extract props to resolve TypeScript overload error for className in React.createElement
-                const buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        return React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' },
+            dashboardTools.map(tool => (
+                React.createElement('button', {
+                    key: tool.id,
                     onClick: () => onToolClick(tool.id),
                     className: "group bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/20"
-                };
-                
-                // Fix: Use explicit any cast for props with spread and key to resolve overload issues
-                return React.createElement('button', { key: tool.id, ...buttonProps } as any,
+                },
                     React.createElement('div', { className: 'mb-4' },
                         // Fix for line 323: Wrapped props in a variable to avoid TypeScript errors with React.cloneElement.
                         (() => {
@@ -496,8 +500,8 @@ const App = () => {
                         })()
                     ),
                     React.createElement('h3', { className: 'text-lg font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors' }, tool.text)
-                );
-            })
+                )
+            ))
         );
     };
 
@@ -535,7 +539,7 @@ const App = () => {
         );
     }
     
-    const mainTitle = "AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng";
+    const mainTitle = "MIMI Academy - Bộ Công Cụ Sáng Tạo Tối Thượng";
     const mainDescription = "Giải phóng tiềm năng, tự động hóa công việc và nâng tầm nội dung của bạn.";
     const currentTool = sidebarTools.find(tool => tool.id === currentView);
 
@@ -663,7 +667,7 @@ const App = () => {
                     )
                 ),
                  React.createElement('footer', { className: "text-center p-4" },
-                    React.createElement('p', { className: "text-base text-yellow-400 font-semibold tracking-wide" }, "Ứng dụng được phát triển bởi Mr. Huỳnh Xuyên Sơn")
+                    React.createElement('p', { className: "text-base text-yellow-400 font-semibold tracking-wide" }, "Ứng dụng được phát triển bởi MINI AI - Academy")
                 )
             )
         )
