@@ -178,7 +178,7 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
               ref={fileInputRef} 
               className="hidden" 
               onChange={handleFileChange} 
-              accept="image/png, image/jpeg, image/webp"
+              accept="image/png, image/jpeg, image/webp",
               disabled={disabled}
             />
             {uploadedImage ? (
@@ -274,7 +274,7 @@ const generateContentWithGemini = async (topic: string, category: string, length
   
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
+      model: "gemini-2.5-flash",
       contents: userContent,
       config: {
         systemInstruction: systemInstruction,

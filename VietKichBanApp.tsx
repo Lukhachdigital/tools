@@ -412,7 +412,7 @@ ${contextTaskInstruction}
             };
 
             const response = await ai.models.generateContent({
-              model: "gemini-2.5-pro",
+              model: "gemini-2.5-flash",
               contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}\n\nGenerate a JSON object that strictly adheres to the provided schema.`,
               config: {
                 responseMimeType: "application/json",

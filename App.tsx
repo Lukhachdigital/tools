@@ -510,7 +510,7 @@ const App = () => {
     const [currentView, setCurrentView] = useState('dashboard');
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
-    const [selectedAIModel, setSelectedAIModel] = useState('gemini');
+    const [selectedAIModel, setSelectedAIModel] = useState('gpt'); // Default to GPT (OpenAI)
 
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
@@ -585,6 +585,23 @@ const App = () => {
 
     const handleToolClick = (toolId: string) => {
         setCurrentView(toolId);
+        
+        // Logic to prioritize OpenAI for text apps, but keep Gemini for Images/Audio-Gemini-Only apps
+        // These are the apps that either are purely image generation or have hardcoded Gemini logic that shouldn't be forced to GPT
+        const geminiPreferredApps = [
+            'create_thumbnail', 
+            'tao_anh_trend', 
+            'app_affiliate', 
+            'audio_to_prompt', 
+            'audio_to_prompt_video'
+        ];
+        
+        if (geminiPreferredApps.includes(toolId)) {
+            setSelectedAIModel('gemini');
+        } else {
+            // For all other apps (text based), prioritize OpenAI as requested
+            setSelectedAIModel('gpt');
+        }
     };
 
     const handleOpenTutorial = () => {
