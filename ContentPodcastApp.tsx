@@ -146,7 +146,7 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
               ref={fileInputRef} 
               className="hidden" 
               onChange={handleFileChange} 
-              accept="image/png, image/jpeg, image/webp",
+              accept="image/png, image/jpeg, image/webp"
               disabled={disabled}
             />
             {uploadedImage ? (
@@ -333,13 +333,14 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
       setImagePrompt('');
 
       const promptRequest = `Based on the following article content and title, create a detailed, cinematic, photorealistic image generation prompt (in English). 
-      The prompt should capture the core emotion, setting, and main character's action described in the text.
+      **CRITICAL REQUIREMENT:** The prompt MUST strictly capture the character's EMOTIONS and FACIAL EXPRESSIONS described or implied in the text. The mood of the image must match the content perfectly.
       
       Title: "${content.title}"
       Content Excerpt: "${content.article.substring(0, 2000)}..."
       
       Requirements:
-      - Focus on visual details: lighting, mood, environment, character appearance (age, gender, expression).
+      - Focus on the character's FACE and EMOTION (e.g., teary-eyed, joyful, pensive, determined).
+      - Describe the setting/environment concisely.
       - Style: Cinematic, 8k, highly detailed, dramatic lighting.
       - Output ONLY the prompt text. Do not include explanations.`;
 
@@ -426,7 +427,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
               try {
                   const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                   const faceSwapPrompt = `Generate a photorealistic image based on this description: ${imagePrompt}.
-                   CRITICAL INSTRUCTION: Use the face from the provided image for the main character in this scene. Blend it naturally with the lighting and emotion described. The expression must match the mood of the description.`;
+                   CRITICAL INSTRUCTION: Use the face from the provided image for the main character in this scene. Blend it naturally with the lighting and emotion described. The expression must match the mood of the description. Do NOT alter the face structure, only the expression.`;
                    
                    const imageResponse = await ai.models.generateContent({
                       model: 'gemini-2.5-flash-image',
@@ -617,17 +618,17 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                   {isLoading ? 'Đang viết bài...' : 'Viết Bài Ngay'}
                 </button>
 
-                {/* Prompt Generation Box (Visible when content exists) */}
+                {/* Prompt Generation Box */}
                 {(generatedContent || imagePrompt) && (
-                    <div className="animate-fade-in mt-4">
+                    <div className="animate-fade-in mt-4 bg-slate-900/50 p-4 rounded-lg border border-slate-600/50">
                         <label className="block text-sm font-semibold text-pink-400 mb-2 flex justify-between">
                             <span>Prompt Tạo Ảnh (AI đề xuất theo nội dung)</span>
-                            {isGeneratingPrompt && <span className="text-xs animate-pulse">Đang tạo prompt...</span>}
+                            {isGeneratingPrompt && <span className="text-xs animate-pulse text-gray-400">Đang tạo prompt...</span>}
                         </label>
                         <textarea
                             value={imagePrompt}
                             onChange={(e) => setImagePrompt(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm text-yellow-300 font-mono h-24 resize-none focus:ring-2 focus:ring-pink-500"
+                            className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-yellow-300 font-mono h-24 resize-none focus:ring-2 focus:ring-pink-500"
                             placeholder="Prompt sẽ xuất hiện ở đây sau khi viết bài..."
                         />
                         <button
@@ -646,14 +647,14 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                 )}
 
                 {/* Split Layout for Image Upload & Result */}
-                <div className="flex flex-row gap-4 mt-4 h-48">
+                <div className="flex flex-row gap-4 mt-4 h-64">
                     {/* 1/4 Width for Upload */}
                     <div className="w-1/4 h-full">
                         <ImageUploader 
                             uploadedImage={referenceImage} 
                             setUploadedImage={setReferenceImage} 
                             disabled={isGeneratingImage} 
-                            label="Ảnh mẫu"
+                            label="Ảnh mẫu (Khuôn mặt)"
                         />
                     </div>
                     
@@ -664,7 +665,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                                 <img 
                                     src={generatedImageUrl} 
                                     alt="Generated Result" 
-                                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-500"
+                                    className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-500"
                                     onClick={() => setLightboxImage(generatedImageUrl)}
                                 />
                                 <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -681,7 +682,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                             </>
                         ) : (
                             <div className="text-slate-500 text-center p-4">
-                                <p className="text-sm">Kết quả ảnh sẽ hiện ở đây</p>
+                                {isGeneratingImage ? <LoadingSpinner /> : <p className="text-sm">Kết quả ảnh sẽ hiện ở đây</p>}
                             </div>
                         )}
                     </div>
@@ -712,7 +713,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                             <h3 className="text-xl font-semibold text-indigo-400">Nội dung bài viết</h3>
                             <CopyButton textToCopy={generatedContent.article} />
                         </div>
-                        <div className="prose prose-invert max-w-none text-gray-300 whitespace-pre-wrap leading-relaxed">
+                        <div className="prose prose-invert max-w-none text-gray-300 whitespace-pre-wrap leading-relaxed text-justify">
                             {generatedContent.article}
                         </div>
                     </div>
