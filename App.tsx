@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -30,88 +31,192 @@ const iconProps = {
 // Fix: Typed props for all icon components to correctly handle SVG attributes
 // like 'className', resolving TypeScript errors with React.createElement and React.cloneElement.
 // Updated Icons to accept props for flexible styling
-const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.25 12l8.954-8.955a.75.75 0 011.06 0l8.955 8.955M3 10.5v8.25a1.5 1.5 0 001.5 1.5h15a1.5 1.5 0 001.5-1.5V10.5M9 21V15a1.5 1.5 0 011.5-1.5h3A1.5 1.5 0 0115 15v6" })
-    )
-);
+    );
+};
 
-const IconPromptJson = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconPromptJson = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" })
-    )
-);
+    );
+};
 
-const IconWhiskFlow = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconWhiskFlow = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" })
-    )
-);
+    );
+};
 
-const IconVietKichBan = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconVietKichBan = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" })
-    )
-);
+    );
+};
 
-const IconAIPromptVEO31 = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAIPromptVEO31 = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" }),
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15 13l-3 3m0 0l-3-3m3 3V8" })
-    )
-);
+    );
+};
 
 
-const IconCreateThumbnail = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconCreateThumbnail = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M3 8V6a2 2 0 012-2h2M3 16v2a2 2 0 002 2h2M16 3h2a2 2 0 012 2v2M16 21h2a2 2 0 002-2v-2" }),
         React.createElement('rect', { x: "7", y: "7", width: "10", height: "10", rx: "1", strokeWidth: "1.5" })
-    )
-);
+    );
+};
 
-const IconSeoYoutube = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconSeoYoutube = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" })
-    )
-);
+    );
+};
 
-const IconYoutubeExternal = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconYoutubeExternal = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" })
-    )
-);
+    );
+};
 
-const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" })
-    )
-);
+    );
+};
 
-const IconAudioToPromptVideo = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAudioToPromptVideo = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.552 8.352a4.502 4.502 0 01-6.364 6.364m6.364-6.364a4.5 4.5 0 00-6.364 6.364m6.364-6.364l-6.364 6.364M12 8.25v2.25m0 7.5V15m0-2.25a.75.75 0 00-.75.75v.01c0 .414.336.75.75.75h.01a.75.75 0 00.75-.75v-.01a.75.75 0 00-.75-.75H12z" }),
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M7 4v16M17 4v16M3 12h4m10 0h4" })
-    )
-);
+    );
+};
 
 
-const IconAudioChopping = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAudioChopping = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM3 3l18 18" })
-    )
-);
+    );
+};
 
-const IconAudioToPrompt = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconAudioToPrompt = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" })
-    )
-);
+    );
+};
 
-const IconContentPodcast = (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
+const IconContentPodcast = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" })
-    )
-);
+    );
+};
 
 // Fix for line 137: Refactored component to extract props into a variable to avoid TypeScript errors with React.createElement.
 const IconConsistentFlow = (props: React.SVGProps<SVGSVGElement>) => {
@@ -183,7 +288,7 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
 };
 
 // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
-// FIX: Explicitly typed svgProps to resolve a TypeScript overload resolution issue with React.createElement.
+// FIX: Explicitly type svgProps to resolve a TypeScript overload resolution issue with React.createElement.
 // FIX: Refactored IconFacebook to use an object literal for its child path element's props. This resolves a TypeScript overload issue with React.createElement that occurred when using a typed variable for the path's properties.
 const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
@@ -277,24 +382,54 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
         onSave({ gemini: geminiKey, openai: openAIKey });
         onClose();
     };
-    
-    return React.createElement('div', {
+
+    // FIX: Extracted props to React.HTMLAttributes to resolve overload issues and ensure type safety.
+    const overlayProps: React.HTMLAttributes<HTMLDivElement> = {
         className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
-        'aria-modal': "true",
+        'aria-modal': true,
         role: "dialog",
         onClick: onClose
-    },
-        React.createElement('div', {
-            className: "bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg m-4 border border-cyan-500/50",
-            onClick: (e) => e.stopPropagation()
-        },
+    };
+
+    const modalContainerProps: React.HTMLAttributes<HTMLDivElement> = {
+        className: "bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg m-4 border border-cyan-500/50",
+        onClick: (e) => e.stopPropagation()
+    };
+
+    const closeBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        onClick: onClose,
+        className: "text-slate-400 hover:text-white transition-colors",
+        'aria-label': "Close modal"
+    };
+    
+    const inputGeminiProps: React.InputHTMLAttributes<HTMLInputElement> = {
+        id: "gemini-key",
+        type: "password",
+        value: geminiKey,
+        onChange: (e) => setGeminiKey(e.target.value),
+        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
+        placeholder: "Nhập Gemini API Key của bạn..."
+    };
+
+    const inputOpenAIProps: React.InputHTMLAttributes<HTMLInputElement> = {
+        id: "openai-key",
+        type: "password",
+        value: openAIKey,
+        onChange: (e) => setOpenAIKey(e.target.value),
+        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
+        placeholder: "Nhập OpenAI API Key của bạn..."
+    };
+
+    const saveBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        onClick: handleSave,
+        className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
+    };
+    
+    return React.createElement('div', overlayProps,
+        React.createElement('div', modalContainerProps,
             React.createElement('div', { className: "flex justify-between items-center p-4 border-b border-slate-700" },
                 React.createElement('h3', { className: "text-xl font-bold text-cyan-300" }, "Cài đặt API Keys"),
-                React.createElement('button', {
-                    onClick: onClose,
-                    className: "text-slate-400 hover:text-white transition-colors",
-                    'aria-label': "Close modal"
-                },
+                React.createElement('button', closeBtnProps,
                     React.createElement('svg', {
                         xmlns: "http://www.w3.org/2000/svg",
                         fill: "none",
@@ -313,39 +448,23 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                         React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key"),
                         React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
-                    React.createElement('input', {
-                        id: "gemini-key",
-                        type: "password",
-                        value: geminiKey,
-                        onChange: (e) => setGeminiKey(e.target.value),
-                        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
-                        placeholder: "Nhập Gemini API Key của bạn..."
-                    })
+                    React.createElement('input', inputGeminiProps)
                 ),
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
                          React.createElement('label', { htmlFor: "openai-key", className: "block text-lg font-semibold text-slate-300" }, "OpenAI API Key"),
                          React.createElement('a', { href: APP_LINKS.OPENAI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
-                    React.createElement('input', {
-                        id: "openai-key",
-                        type: "password",
-                        value: openAIKey,
-                        onChange: (e) => setOpenAIKey(e.target.value),
-                        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
-                        placeholder: "Nhập OpenAI API Key của bạn..."
-                    })
+                    React.createElement('input', inputOpenAIProps)
                 ),
-                React.createElement('button', {
-                    onClick: handleSave,
-                    className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
-                }, "Lưu Cài Đặt")
+                React.createElement('button', saveBtnProps, "Lưu Cài Đặt")
             )
         )
     );
 };
 
 // FIX: Updated UpgradeNoticeWrapper to use React.PropsWithChildren to make children optional in props type, resolving compatibility with React.createElement calls where children are passed as arguments.
+// FIX: Extracted props to typed variables to resolve TypeScript error "No overload matches this call" and "Object literal may only specify known properties".
 const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.PropsWithChildren<{ targetAppId: string; onNavigate: (id: string) => void; }>) => {
     const [showNotice, setShowNotice] = useState(true);
 
@@ -353,34 +472,31 @@ const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.Props
         return React.createElement(React.Fragment, null, children);
     }
 
-    // Fix: Use React.ComponentProps<'div'> to ensure compatibility with React.createElement('div', ...) and resolve TS overload errors.
-    const containerProps: React.ComponentProps<'div'> = {
-        className: "relative w-full h-full"
+    const wrapperProps: React.HTMLAttributes<HTMLDivElement> = { className: "relative w-full h-full" };
+    const blurProps: React.HTMLAttributes<HTMLDivElement> = { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" };
+    const contentWrapperProps: React.HTMLAttributes<HTMLDivElement> = { className: "absolute inset-0 z-10 flex items-center justify-center p-4" };
+    const modalProps: React.HTMLAttributes<HTMLDivElement> = { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" };
+    const titleProps: React.HTMLAttributes<HTMLHeadingElement> = { className: "text-2xl font-bold text-cyan-300 mb-4" };
+    const descProps: React.HTMLAttributes<HTMLParagraphElement> = { className: "text-slate-300 mb-6" };
+    const btnGroupProps: React.HTMLAttributes<HTMLDivElement> = { className: "flex justify-center items-center gap-4" };
+    const useBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        onClick: () => setShowNotice(false),
+        className: "bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300"
     };
-    
-    const blurProps: React.ComponentProps<'div'> = {
-        className: "w-full h-full filter blur-md brightness-50 pointer-events-none"
+    const navBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        onClick: () => onNavigate(targetAppId),
+        className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300"
     };
 
-    const overlayProps: React.ComponentProps<'div'> = {
-        className: "absolute inset-0 z-10 flex items-center justify-center p-4"
-    };
-
-    return React.createElement('div', containerProps,
+    return React.createElement('div', wrapperProps,
         React.createElement('div', blurProps, children),
-        React.createElement('div', overlayProps,
-            React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" },
-                React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" }, "Chức năng này đã được nâng cấp!"),
-                React.createElement('p', { className: "text-slate-300 mb-6" }, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
-                React.createElement('div', { className: "flex justify-center items-center gap-4" },
-                    React.createElement('button', {
-                        onClick: () => setShowNotice(false),
-                        className: "bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300"
-                    }, "Sử dụng ứng dụng này"),
-                    React.createElement('button', {
-                        onClick: () => onNavigate(targetAppId),
-                        className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300"
-                    }, "Chuyển đến ứng dụng mới")
+        React.createElement('div', contentWrapperProps,
+            React.createElement('div', modalProps,
+                React.createElement('h2', titleProps, "Chức năng này đã được nâng cấp!"),
+                React.createElement('p', descProps, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
+                React.createElement('div', btnGroupProps,
+                    React.createElement('button', useBtnProps, "Sử dụng ứng dụng này"),
+                    React.createElement('button', navBtnProps, "Chuyển đến ứng dụng mới")
                 )
             )
         )
@@ -394,13 +510,13 @@ const App = () => {
     const [currentView, setCurrentView] = useState('dashboard');
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
-    const [selectedAIModel, setSelectedAIModel] = useState('gemini');
+    const [selectedAIModel, setSelectedAIModel] = useState('gpt'); // Default to GPT (OpenAI)
 
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
 
     const allTools = [
-        { id: 'dashboard', text: 'Bảng điều khiển', title: 'MIMI Academy - Bộ Công Cụ Sáng Tạo Tối Thượng', icon: React.createElement(IconDashboard), description: 'Tổng quan các công cụ sáng tạo' },
+        { id: 'dashboard', text: 'Bảng điều khiển', title: 'AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng', icon: React.createElement(IconDashboard), description: 'Tổng quan các công cụ sáng tạo' },
         { id: 'prompt_json', text: 'Prompt JSON', title: 'Viết kịch bản và xuất Prompt chuẩn JSON', icon: React.createElement(IconPromptJson), description: 'Tự động tạo kịch bản video và chuỗi Prompt JSON tương ứng thích hợp tạo video.' },
         { id: 'whisk_flow', text: 'Whisk & Flow I', title: 'Prompt chuẩn hóa Whisk & Flow', icon: React.createElement(IconWhiskFlow), description: 'Tạo kịch bản và prompt, đảm bảo nhân vật giữ nguyên khuôn mặt và trang phục trong suốt video.' },
         { id: 'my_channel', text: 'Whisk & Flow II', title: 'Kịch bản & Xuất Prompt Whisk & Flow', icon: React.createElement(IconConsistentFlow), description: 'Tạo kịch bản và prompt, giữ nguyên khuôn mặt nhưng linh hoạt thay đổi trang phục nhân vật theo từng cảnh.' },
@@ -469,6 +585,27 @@ const App = () => {
 
     const handleToolClick = (toolId: string) => {
         setCurrentView(toolId);
+        
+        // Logic to prioritize OpenAI for text apps if key is present, else fallback to Gemini
+        const geminiPreferredApps = [
+            'create_thumbnail', 
+            'tao_anh_trend', 
+            'app_affiliate', 
+            'audio_to_prompt', 
+            'audio_to_prompt_video'
+        ];
+        
+        if (geminiPreferredApps.includes(toolId)) {
+            setSelectedAIModel('gemini');
+        } else {
+            // For text apps, prefer OpenAI only if key is available
+            if (openaiApiKey) {
+                setSelectedAIModel('gpt');
+            } else {
+                // Fallback to Gemini if no OpenAI key
+                setSelectedAIModel('gemini');
+            }
+        }
     };
 
     const handleOpenTutorial = () => {
@@ -485,13 +622,22 @@ const App = () => {
     const Dashboard = ({ onToolClick }) => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
 
-        return React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' },
-            dashboardTools.map(tool => (
-                React.createElement('button', {
-                    key: tool.id,
+        // Fix: Explicitly type div props to avoid overload errors
+        // CHANGE: Removed explicit type and passed object literal directly to createElement or inferred variable to avoid strict checking issues with 'Attributes' type in some environments.
+        const gridProps = {
+            className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
+        };
+
+        return React.createElement('div', { ...gridProps } as any,
+            dashboardTools.map(tool => {
+                // Fix: Extract props to resolve TypeScript overload error for className in React.createElement
+                const buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
                     onClick: () => onToolClick(tool.id),
                     className: "group bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/20"
-                },
+                };
+                
+                // Fix: Use explicit any cast for props with spread and key to resolve overload issues
+                return React.createElement('button', { key: tool.id, ...buttonProps } as any,
                     React.createElement('div', { className: 'mb-4' },
                         // Fix for line 323: Wrapped props in a variable to avoid TypeScript errors with React.cloneElement.
                         (() => {
@@ -500,8 +646,8 @@ const App = () => {
                         })()
                     ),
                     React.createElement('h3', { className: 'text-lg font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors' }, tool.text)
-                )
-            ))
+                );
+            })
         );
     };
 
@@ -564,11 +710,11 @@ const App = () => {
                 React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-4 w-full mb-1 p-2 sm:p-4" },
                      React.createElement('div', { className: "flex flex-col items-start gap-2 sm:gap-3" },
                         React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
-                            React.createElement('a', homeLinkProps,
+                            React.createElement('a', { ...homeLinkProps } as any,
                                 React.createElement(IconHome), 
                                 "Trang chủ"
                             ),
-                            React.createElement('a', freeLinkProps,
+                            React.createElement('a', { ...freeLinkProps } as any,
                                 React.createElement(IconGift),
                                 "Tài nguyên FREE"
                             )
@@ -576,7 +722,7 @@ const App = () => {
                         React.createElement('button', { 
                             onClick: handleOpenTutorial,
                             className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-yellow-500 text-yellow-400 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-yellow-500/10 hover:bg-yellow-500/20 hover:text-yellow-200 hover:shadow-yellow-500/30 transition-all duration-300 transform hover:-translate-y-1"
-                        }, 
+                        } as any, 
                             React.createElement(IconTutorial),
                             "Hướng dẫn dùng App"
                         )
@@ -594,7 +740,7 @@ const App = () => {
                             React.createElement('button', {
                                 onClick: () => setSelectedAIModel('gpt'),
                                 className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gpt' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                            }, "Chat GPT 5.1")
+                            }, "Chat GPT 4o")
                         )
                     ),
 // FIX: Wrapped social links container in an IIFE with explicitly typed props to resolve a TypeScript error.
@@ -613,19 +759,21 @@ const App = () => {
                                     className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
                                 };
                                 // FIX: Removed 'key' from linkProps object and passed it directly to createElement to resolve TypeScript error "Object literal may only specify known properties".
-                                return React.createElement('a', { key: link.name, ...linkProps }, link.icon);
+                                return React.createElement('a', { key: link.name, ...linkProps } as any, link.icon);
                             }
                             ),
                             React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
                                 React.createElement('button', { 
                                     onClick: () => setShowApiKeyModal(true),
-                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
+                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" 
+                                } as any, 
                                     React.createElement(IconSettings),
                                     "Cài đặt API Key"
                                 ),
                                  React.createElement('button', { 
                                     onClick: handleOpenApiKeyTutorial,
-                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
+                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" 
+                                } as any, 
                                     React.createElement(IconTutorial),
                                     "Hướng dẫn API Key"
                                 )
