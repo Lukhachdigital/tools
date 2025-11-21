@@ -41,8 +41,8 @@ export const generatePromptsFromAudio = async (files: File[], apiKey: string): P
       };
       
       try {
-          // Add delay to respect rate limits
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Add delay to respect rate limits (4s for Gemini Free Tier)
+          await new Promise(resolve => setTimeout(resolve, 4000));
 
           const response = await ai.models.generateContent({
               model: 'gemini-2.5-flash',
