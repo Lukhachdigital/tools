@@ -510,7 +510,7 @@ const App = () => {
     const [currentView, setCurrentView] = useState('dashboard');
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
-    const [selectedAIModel, setSelectedAIModel] = useState('gpt'); // Default to GPT (OpenAI)
+    const [selectedAIModel, setSelectedAIModel] = useState('gemini');
 
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
@@ -585,27 +585,6 @@ const App = () => {
 
     const handleToolClick = (toolId: string) => {
         setCurrentView(toolId);
-        
-        // Logic to prioritize OpenAI for text apps if key is present, else fallback to Gemini
-        const geminiPreferredApps = [
-            'create_thumbnail', 
-            'tao_anh_trend', 
-            'app_affiliate', 
-            'audio_to_prompt', 
-            'audio_to_prompt_video'
-        ];
-        
-        if (geminiPreferredApps.includes(toolId)) {
-            setSelectedAIModel('gemini');
-        } else {
-            // For text apps, prefer OpenAI only if key is available
-            if (openaiApiKey) {
-                setSelectedAIModel('gpt');
-            } else {
-                // Fallback to Gemini if no OpenAI key
-                setSelectedAIModel('gemini');
-            }
-        }
     };
 
     const handleOpenTutorial = () => {
@@ -740,7 +719,7 @@ const App = () => {
                             React.createElement('button', {
                                 onClick: () => setSelectedAIModel('gpt'),
                                 className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gpt' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                            }, "Chat GPT 4o")
+                            }, "Chat GPT 5.1")
                         )
                     ),
 // FIX: Wrapped social links container in an IIFE with explicitly typed props to resolve a TypeScript error.
