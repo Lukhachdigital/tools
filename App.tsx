@@ -539,7 +539,7 @@ const App = () => {
         );
     }
     
-    const mainTitle = "MIMI Academy - Bộ Công Cụ Sáng Tạo Tối Thượng";
+    const mainTitle = "AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng";
     const mainDescription = "Giải phóng tiềm năng, tự động hóa công việc và nâng tầm nội dung của bạn.";
     const currentTool = sidebarTools.find(tool => tool.id === currentView);
 
