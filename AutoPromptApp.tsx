@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -224,7 +225,7 @@ After generating all the main story parts, you MUST append ONE FINAL part to the
                     'Authorization': `Bearer ${openaiApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-5.1',
+                    model: 'gpt-4o',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }

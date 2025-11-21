@@ -1,13 +1,7 @@
 
 import React, { useState } from 'react';
 
-interface Language {
-    name: string;
-    country: string;
-    flag: string;
-}
-
-const LanguageButton = ({ language, selected, onClick }: { language: Language, selected: string[], onClick: (name: string) => void }) => {
+const LanguageButton = ({ language, selected, onClick }) => {
     const isSelected = selected.includes(language.name);
     const buttonClasses = `
         flex items-center justify-center px-4 py-2 rounded-lg border-2 transition-all duration-200
@@ -21,7 +15,7 @@ const LanguageButton = ({ language, selected, onClick }: { language: Language, s
     );
 };
 
-const ResultCard = ({ language, text }: { language: string, text: string }) => {
+const ResultCard = ({ language, text }) => {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
@@ -61,7 +55,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
         { name: 'Vietnamese', country: 'Việt Nam', flag: '🇻🇳' },
     ];
 
-    const toggleLanguage = (langName: string) => {
+    const toggleLanguage = (langName) => {
         setSelectedLanguages(prev =>
             prev.includes(langName)
                 ? prev.filter(l => l !== langName)
@@ -108,7 +102,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
 
 
         try {
-            let translationPromises: Promise<{ language: string, translation: string }>[];
+            let translationPromises;
             if (selectedAIModel === 'gemini') {
                 const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                 translationPromises = selectedLanguages.map(async (lang) => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 
 // =================================================================
@@ -190,7 +191,7 @@ const generateFullSEOContentWithGemini = async (description: string, title: stri
 // OPENAI API SERVICE
 // =================================================================
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const openAiModel = 'gpt-5.1';
+const openAiModel = 'gpt-4o';
 
 const callOpenAI = async (apiKey: string, messages: object[], temperature: number = 0.7) => {
     const response = await fetch(OPENAI_API_URL, {

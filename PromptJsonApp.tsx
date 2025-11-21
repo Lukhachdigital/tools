@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 
 // =================================================================
@@ -309,7 +310,7 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
                 'Authorization': `Bearer ${openaiApiKey}`
             },
             body: JSON.stringify({
-                model: 'gpt-5.1',
+                model: 'gpt-4o',
                 messages: [
                     { role: 'system', content: openAISystemInstruction },
                     { role: 'user', content: userPrompt }

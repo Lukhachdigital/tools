@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -442,7 +443,7 @@ ${contextTaskInstruction}
                     'Authorization': `Bearer ${openaiApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-5.1',
+                    model: 'gpt-4o',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }
