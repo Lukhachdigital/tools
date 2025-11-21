@@ -44,7 +44,7 @@ const LoadingSpinner: React.FC = () => (
   </svg>
 );
 
-const CopyButton: React.FC<{ textToCopy: string }> = ({ textToCopy }) => {
+const CopyButton: React.FC<{ textToCopy: string; label?: string; className?: string }> = ({ textToCopy, label, className }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -61,9 +61,9 @@ const CopyButton: React.FC<{ textToCopy: string }> = ({ textToCopy }) => {
         copied
           ? 'bg-green-600 text-white'
           : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-      }`}
+      } ${className || ''}`}
     >
-      {copied ? 'Đã chép!' : 'Chép'}
+      {label ? (copied ? 'Đã chép!' : label) : (copied ? 'Đã chép!' : 'Chép')}
     </button>
   );
 };
@@ -199,9 +199,10 @@ const responseSchema = {
 };
 
 const getSystemInstruction = (length: ArticleLength) => {
+    // Increased word count requirements by ~20%
     const lengthInstruction = length === 'short'
-    ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của phần `article` và phần `engagementCall` cộng lại PHẢI nằm trong khoảng 2200 đến 2800 ký tự. Yêu cầu này là BẮT BUỘC và phải được tuân thủ nghiêm ngặt.'
-    : 'TUYỆT ĐỐI QUAN TRỌNG: Bài viết (chỉ tính phần `article`) PHẢI có độ dài tổng cộng từ 8800 đến 11000 ký tự, được chia thành 4 phần riêng biệt và rõ ràng, mỗi phần từ 2200 đến 2750 ký tự.';
+    ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của phần `article` và phần `engagementCall` cộng lại PHẢI nằm trong khoảng 3840 đến 4800 ký tự. Yêu cầu này là BẮT BUỘC và phải được tuân thủ nghiêm ngặt.'
+    : 'TUYỆT ĐỐI QUAN TRỌNG: Bài viết (chỉ tính phần `article`) PHẢI có độ dài tổng cộng từ 15120 đến 18960 ký tự, được chia thành 4 phần riêng biệt và rõ ràng.';
 
     return `Bạn là một chuyên gia viết lách đa tài, có khả năng hóa thân vào nhiều vai trò khác nhau (nhà tâm lý, chuyên gia kinh tế, nhà giáo dục, thiền sư, v.v.) tùy thuộc vào lĩnh vực được yêu cầu.
 
@@ -234,14 +235,15 @@ const getUserContent = (topic: string, category: string) => `
 Hãy viết bài dựa trên lĩnh vực và chủ đề trên.
 `;
 
-const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, openRouterKey: string): Promise<GeneratedContent> => {
+const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, openRouterKey: string, selectedModel: string): Promise<GeneratedContent> => {
     const systemInstruction = getSystemInstruction(length);
     const userContent = getUserContent(topic, category);
     let finalError;
 
     // 1. Try OpenRouter
-    if (openRouterKey) {
+    if (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey)) {
         try {
+            if (!openRouterKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
             const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${openRouterKey}` },
@@ -257,13 +259,15 @@ const generateContentWithFallback = async (topic: string, category: string, leng
             return JSON.parse(data.choices[0].message.content);
         } catch (e) {
             console.warn("OpenRouter failed", e);
+            if (selectedModel === 'openrouter') throw e;
             finalError = e;
         }
     }
 
     // 2. Try Gemini
-    if (geminiKey) {
+    if (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey)) {
         try {
+            if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
                 model: "gemini-3-pro-preview",
@@ -278,13 +282,15 @@ const generateContentWithFallback = async (topic: string, category: string, leng
             return JSON.parse(response.text.trim());
         } catch (e) {
             console.warn("Gemini failed", e);
+            if (selectedModel === 'gemini') throw e;
             finalError = e;
         }
     }
 
     // 3. Try OpenAI
-    if (openaiKey) {
+    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
         try {
+            if (!openaiKey && selectedModel === 'openai') throw new Error("OpenAI Key chưa được cài đặt.");
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
@@ -300,18 +306,19 @@ const generateContentWithFallback = async (topic: string, category: string, leng
             return JSON.parse(data.choices[0].message.content);
         } catch (e) {
             console.warn("OpenAI failed", e);
+            if (selectedModel === 'openai') throw e;
             finalError = e;
         }
     }
 
-    throw finalError || new Error("All providers failed");
+    throw finalError || new Error("All providers failed or no API Key configured for selected model.");
 };
 
 // ==========================================
 // 4. MAIN APP COMPONENT
 // ==========================================
 
-const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string }) => {
+const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }) => {
   const [topic, setTopic] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Tình yêu');
   const [articleLength, setArticleLength] = useState<ArticleLength>('short');
@@ -389,13 +396,13 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
     setImagePrompt('');
 
     try {
-      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, openRouterApiKey);
+      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel);
       setGeneratedContent(result);
       
-      // Auto-generate prompt after content is ready
-      if (geminiApiKey) {
+      // Auto-generate prompt based on best available or selected
+      if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
           generatePromptFromContent(result, geminiApiKey, 'gemini');
-      } else if (openRouterApiKey) {
+      } else if ((selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
           generatePromptFromContent(result, openRouterApiKey, 'openrouter');
       }
 
@@ -423,7 +430,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
       // CASE 1: Reference Image Exists -> MUST Use Gemini
       // ======================================================
       if (referenceImage) {
-          if (geminiApiKey) {
+          if (geminiApiKey && (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
               try {
                   const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                   const faceSwapPrompt = `Generate a photorealistic image based on this description: ${imagePrompt}.
@@ -450,18 +457,18 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                   finalError = e;
               }
           } else {
-              setError("Cần có Gemini API Key để sử dụng tính năng ảnh mẫu khuôn mặt.");
+              setError("Cần có Gemini API Key (và chọn model Gemini hoặc Auto) để sử dụng tính năng ảnh mẫu khuôn mặt.");
               setIsGeneratingImage(false);
               return;
           }
       } 
       
       // ======================================================
-      // CASE 2: No Reference Image -> Try Providers
+      // CASE 2: No Reference Image -> Try Providers based on selection
       // ======================================================
       else {
           // 1. Try OpenRouter
-          if (openRouterApiKey) {
+          if ((selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
               try {
                   const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
                       method: 'POST',
@@ -481,11 +488,12 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                   }
               } catch (e) {
                   console.warn("OpenRouter Image Gen failed", e);
+                  if (selectedAIModel === 'openrouter') finalError = e;
               }
           }
 
           // 2. Try Gemini (Imagen)
-          if (geminiApiKey) {
+          if (!finalError && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
               try {
                   const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                   const imageResponse = await ai.models.generateImages({
@@ -504,16 +512,12 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                   }
               } catch (e) {
                   console.warn("Gemini Imagen failed", e);
-                  finalError = e;
+                  if (selectedAIModel === 'gemini') finalError = e;
               }
-          } else {
-               if (openRouterApiKey && !openaiApiKey) {
-                   alert("OpenRouter tạo ảnh thất bại. Vui lòng nhập Gemini API Key để tiếp tục.");
-               }
           }
 
           // 3. Try OpenAI
-          if (openaiApiKey) {
+          if (!finalError && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
               try {
                   const response = await fetch('https://api.openai.com/v1/images/generations', {
                       method: 'POST',
@@ -601,7 +605,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                       onSelect={(val) => setArticleLength(val as ArticleLength)} 
                    />
                    <p className="text-xs text-gray-500 mt-1">
-                     {articleLength === 'short' ? 'Khoảng 500-700 từ (phù hợp Facebook/Blog)' : 'Khoảng 2000+ từ (phù hợp Podcast/Youtube)'}
+                     {articleLength === 'short' ? 'Khoảng 600-800 từ (phù hợp Facebook/Blog)' : 'Khoảng 2400+ từ (phù hợp Podcast/Youtube)'}
                    </p>
                 </div>
 
@@ -620,10 +624,24 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
 
                 {/* Prompt Generation Box */}
                 {(generatedContent || imagePrompt) && (
-                    <div className="animate-fade-in mt-4 bg-slate-900/50 p-4 rounded-lg border border-slate-600/50">
-                        <label className="block text-sm font-semibold text-pink-400 mb-2 flex justify-between">
+                    <div className="animate-fade-in mt-4 bg-slate-900/50 p-4 rounded-lg border border-slate-600/50 relative">
+                        <label className="block text-sm font-semibold text-pink-400 mb-2 flex justify-between items-center">
                             <span>Prompt Tạo Ảnh (AI đề xuất theo nội dung)</span>
-                            {isGeneratingPrompt && <span className="text-xs animate-pulse text-gray-400">Đang tạo prompt...</span>}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(imagePrompt);
+                                    }}
+                                    className="flex items-center gap-1 px-3 py-1 text-xs bg-pink-600 hover:bg-pink-700 text-white rounded-md transition-colors font-bold"
+                                    title="Sao chép Prompt"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    Sao chép
+                                </button>
+                                {isGeneratingPrompt && <span className="text-xs animate-pulse text-gray-400">Đang tạo prompt...</span>}
+                            </div>
                         </label>
                         <textarea
                             value={imagePrompt}
@@ -647,44 +665,55 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                 )}
 
                 {/* Split Layout for Image Upload & Result */}
-                <div className="flex flex-row gap-4 mt-4 h-64">
+                <div className="flex flex-row gap-4 mt-4 items-start">
                     {/* 1/4 Width for Upload */}
-                    <div className="w-1/4 h-full">
-                        <ImageUploader 
-                            uploadedImage={referenceImage} 
-                            setUploadedImage={setReferenceImage} 
-                            disabled={isGeneratingImage} 
-                            label="Ảnh mẫu (Khuôn mặt)"
-                        />
+                    <div className="w-1/4 flex-shrink-0">
+                        <div className="aspect-square">
+                            <ImageUploader 
+                                uploadedImage={referenceImage} 
+                                setUploadedImage={setReferenceImage} 
+                                disabled={isGeneratingImage} 
+                                label="Ảnh mẫu (Khuôn mặt)"
+                            />
+                        </div>
                     </div>
                     
                     {/* 3/4 Width for Result */}
-                    <div className="w-3/4 h-full bg-black/30 border border-slate-700 rounded-lg relative overflow-hidden flex items-center justify-center group">
-                        {generatedImageUrl ? (
-                            <>
-                                <img 
-                                    src={generatedImageUrl} 
-                                    alt="Generated Result" 
-                                    className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-500"
-                                    onClick={() => setLightboxImage(generatedImageUrl)}
-                                />
-                                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
+                    <div className="w-3/4">
+                        <div className={`w-full bg-black/30 border border-slate-700 rounded-lg relative overflow-hidden flex items-center justify-center group ${!generatedImageUrl ? 'min-h-[16rem]' : ''}`}>
+                            {generatedImageUrl ? (
+                                <>
+                                    <img 
+                                        src={generatedImageUrl} 
+                                        alt="Generated Result" 
+                                        className="w-full h-auto object-contain cursor-pointer hover:scale-[1.02] transition-transform duration-500"
                                         onClick={() => setLightboxImage(generatedImageUrl)}
-                                        className="bg-black/60 p-2 rounded-full text-white hover:bg-black/80"
-                                        title="Phóng to"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                        </svg>
-                                    </button>
+                                    />
+                                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={() => setLightboxImage(generatedImageUrl)}
+                                            className="bg-black/60 p-2 rounded-full text-white hover:bg-black/80"
+                                            title="Phóng to"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-slate-500 text-center p-4 flex flex-col items-center justify-center h-full">
+                                    {isGeneratingImage ? <LoadingSpinner /> : (
+                                        <>
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <p className="text-sm">Kết quả ảnh sẽ hiện ở đây</p>
+                                        </>
+                                    )}
                                 </div>
-                            </>
-                        ) : (
-                            <div className="text-slate-500 text-center p-4">
-                                {isGeneratingImage ? <LoadingSpinner /> : <p className="text-sm">Kết quả ảnh sẽ hiện ở đây</p>}
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
              </div>
@@ -709,23 +738,30 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { g
                     </div>
 
                     <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-semibold text-indigo-400">Nội dung bài viết</h3>
-                            <CopyButton textToCopy={generatedContent.article} />
+                        <div className="flex justify-between items-center mb-4 border-b border-slate-600 pb-4">
+                            <h3 className="text-xl font-semibold text-indigo-400">Nội dung bài viết & Lời kêu gọi</h3>
+                            <button
+                                onClick={() => {
+                                    const combinedText = generatedContent.article + "\n\n" + generatedContent.engagementCall;
+                                    navigator.clipboard.writeText(combinedText);
+                                    // Optional: Show a quick copied toast or change button text temporarily
+                                }}
+                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md transition-colors shadow flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy Toàn Bộ
+                            </button>
                         </div>
                         <div className="prose prose-invert max-w-none text-gray-300 whitespace-pre-wrap leading-relaxed text-justify">
                             {generatedContent.article}
+                            <div className="mt-4">
+                                <p className="text-gray-300 italic">
+                                    {generatedContent.engagementCall}
+                                </p>
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-semibold text-pink-400">Lời kêu gọi tương tác</h3>
-                            <CopyButton textToCopy={generatedContent.engagementCall} />
-                        </div>
-                        <p className="text-gray-300 italic border-l-4 border-pink-500 pl-4 py-2 bg-gray-900/30 rounded-r-lg">
-                            {generatedContent.engagementCall}
-                        </p>
                     </div>
                 </div>
             ) : (
