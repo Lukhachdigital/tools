@@ -309,7 +309,7 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
                 'Authorization': `Bearer ${openaiApiKey}`
             },
             body: JSON.stringify({
-                model: 'gpt-4o',
+                model: 'gpt-5.1',
                 messages: [
                     { role: 'system', content: openAISystemInstruction },
                     { role: 'user', content: userPrompt }
