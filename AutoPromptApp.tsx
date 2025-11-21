@@ -97,7 +97,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const AutoPromptApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
+const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [duration, setDuration] = useState('');
   const [selectedCinematicStyle, setSelectedCinematicStyle] = useState('Hiện đại');
@@ -167,29 +167,56 @@ After generating all the main story parts, you MUST append ONE FINAL part to the
 - Cinematic Style: "${cinematicStyle}"
 - Total Duration: Approximately ${durationInMinutes} minutes.
 `;
+    const systemPrompt = `${commonPrompt}\n\nGenerate the final output as a single valid JSON object with a 'parts' array.`;
 
-    try {
-        if (selectedAIModel === 'gemini') {
-            if (!geminiApiKey) {
-              throw new Error("API Key Gemini chưa được cấu hình.");
-            }
+    let finalError: unknown;
+
+    // 1. Try OpenRouter
+    if (openRouterApiKey) {
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openRouterApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter API failed');
+            const data = await response.json();
+            const jsonText = data.choices[0].message.content;
+            const parsed = JSON.parse(jsonText);
+            if (parsed.parts) return parsed;
+        } catch (e) {
+            console.warn("OpenRouter failed, trying Gemini...", e);
+            finalError = e;
+        }
+    }
+
+    // 2. Try Gemini
+    if (geminiApiKey) {
+        try {
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-            
             const schema = {
                 type: window.GenAIType.OBJECT,
                 properties: {
                     parts: {
                         type: window.GenAIType.ARRAY,
-                        description: "An array of video parts, each containing a voiceover script and corresponding video prompts.",
                         items: {
                             type: window.GenAIType.OBJECT,
                             properties: {
-                                partNumber: { type: window.GenAIType.INTEGER, description: "The sequential number of the part." },
-                                voiceContent: { type: window.GenAIType.STRING, description: "The voiceover script for this part in Vietnamese." },
+                                partNumber: { type: window.GenAIType.INTEGER },
+                                voiceContent: { type: window.GenAIType.STRING },
                                 prompts: {
                                     type: window.GenAIType.ARRAY,
                                     items: { type: window.GenAIType.STRING },
-                                    description: `An array of English video generation prompts for this part.`
                                 }
                             },
                             required: ["partNumber", "voiceContent", "prompts"]
@@ -207,16 +234,17 @@ After generating all the main story parts, you MUST append ONE FINAL part to the
                 responseSchema: schema,
               },
             });
-      
             const jsonStr = response.text.trim();
             return JSON.parse(jsonStr) as GeneratedContent;
-        } else { // OpenAI
-            if (!openaiApiKey) {
-                throw new Error("API Key OpenAI chưa được cấu hình.");
-            }
+        } catch (e) {
+            console.warn("Gemini failed, trying OpenAI...", e);
+            finalError = e;
+        }
+    }
 
-            const systemPrompt = `${commonPrompt}\n\nGenerate the final output as a single valid JSON object with a 'parts' array.`;
-            
+    // 3. Try OpenAI
+    if (openaiApiKey) {
+        try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -224,7 +252,7 @@ After generating all the main story parts, you MUST append ONE FINAL part to the
                     'Authorization': `Bearer ${openaiApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-5.1',
+                    model: 'gpt-4o',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }
@@ -232,22 +260,19 @@ After generating all the main story parts, you MUST append ONE FINAL part to the
                     response_format: { type: 'json_object' }
                 })
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error('OpenAI failed');
             const data = await response.json();
             const jsonText = data.choices[0].message.content;
             return JSON.parse(jsonText) as GeneratedContent;
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            finalError = e;
         }
-
-    } catch (error) {
-      console.error("Error generating script:", error);
-      throw new Error("Không thể tạo kịch bản. Vui lòng thử lại.");
     }
-  }, [geminiApiKey, openaiApiKey, selectedAIModel]);
+
+    throw finalError || new Error("Không thể tạo kịch bản. Vui lòng thử lại.");
+
+  }, [geminiApiKey, openaiApiKey, openRouterApiKey]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

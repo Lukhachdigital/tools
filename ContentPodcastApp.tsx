@@ -44,38 +44,6 @@ const LoadingSpinner: React.FC = () => (
   </svg>
 );
 
-const PodcastSkeleton: React.FC = () => (
-  <div className="space-y-6 animate-pulse w-full">
-    {/* Title Skeleton */}
-    <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="h-6 bg-slate-700 rounded w-1/4"></div>
-        <div className="h-8 w-16 bg-slate-700 rounded"></div>
-      </div>
-      <div className="h-8 bg-slate-700 rounded w-3/4"></div>
-      <div className="h-4 bg-slate-700 rounded w-20"></div>
-    </div>
-
-    {/* Content Skeleton */}
-    <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col space-y-4 min-h-[400px]">
-      <div className="flex justify-between items-center mb-2">
-         <div className="h-6 bg-slate-700 rounded w-1/3"></div>
-         <div className="h-8 w-16 bg-slate-700 rounded"></div>
-      </div>
-      <div className="space-y-4">
-        <div className="h-4 bg-slate-700 rounded w-full"></div>
-        <div className="h-4 bg-slate-700 rounded w-full"></div>
-        <div className="h-4 bg-slate-700 rounded w-11/12"></div>
-        <div className="h-4 bg-slate-700 rounded w-full"></div>
-        <div className="h-4 bg-slate-700 rounded w-5/6"></div>
-        <div className="h-4 bg-slate-700 rounded w-full"></div>
-        <div className="h-4 bg-slate-700 rounded w-4/5"></div>
-        <div className="h-20 bg-slate-700/50 rounded w-full mt-4"></div>
-      </div>
-    </div>
-  </div>
-);
-
 const CopyButton: React.FC<{ textToCopy: string }> = ({ textToCopy }) => {
   const [copied, setCopied] = useState(false);
 
@@ -178,7 +146,7 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
               ref={fileInputRef} 
               className="hidden" 
               onChange={handleFileChange} 
-              accept="image/png, image/jpeg, image/webp"
+              accept="image/png, image/jpeg, image/webp",
               disabled={disabled}
             />
             {uploadedImage ? (
@@ -199,7 +167,7 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mx-auto mb-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                  </svg>
-                <p className="text-[10px] leading-tight">Ảnh mặt</p>
+                <p className="text-[10px] leading-tight">Ảnh mẫu</p>
               </div>
             )}
           </div>
@@ -266,81 +234,84 @@ const getUserContent = (topic: string, category: string) => `
 Hãy viết bài dựa trên lĩnh vực và chủ đề trên.
 `;
 
-// --- Gemini Service ---
-const generateContentWithGemini = async (topic: string, category: string, length: ArticleLength, apiKey: string): Promise<GeneratedContent> => {
-  const ai = new GoogleGenAI({ apiKey });
-  const systemInstruction = getSystemInstruction(length);
-  const userContent = getUserContent(topic, category);
-  
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: userContent,
-      config: {
-        systemInstruction: systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-        temperature: 0.8,
-      },
-    });
+const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, openRouterKey: string): Promise<GeneratedContent> => {
+    const systemInstruction = getSystemInstruction(length);
+    const userContent = getUserContent(topic, category);
+    let finalError;
 
-    const jsonString = response.text.trim();
-    const parsedResult: GeneratedContent = JSON.parse(jsonString);
-
-    return parsedResult;
-  } catch (error) {
-    console.error("Lỗi từ Gemini API:", error);
-    throw new Error("Không thể tạo nội dung từ Gemini API. Vui lòng kiểm tra API Key.");
-  }
-};
-
-// --- OpenAI Service ---
-const generateContentWithOpenAI = async (topic: string, category: string, length: ArticleLength, apiKey: string): Promise<GeneratedContent> => {
-  const systemInstruction = getSystemInstruction(length);
-  const userContent = getUserContent(topic, category);
-
-  const body = {
-    model: "gpt-4o",
-    messages: [
-      { role: "system", content: systemInstruction },
-      { role: "user", content: userContent },
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.8,
-  };
-
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Lỗi API từ OpenAI: ${errorData.error?.message || response.statusText}`);
+    // 1. Try OpenRouter
+    if (openRouterKey) {
+        try {
+            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openRouterKey}` },
+                body: JSON.stringify({
+                    model: "google/gemini-2.0-flash-001",
+                    messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
+                    response_format: { type: "json_object" },
+                    temperature: 0.8,
+                }),
+            });
+            if (!response.ok) throw new Error('OpenRouter failed');
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.warn("OpenRouter failed", e);
+            finalError = e;
+        }
     }
 
-    const data = await response.json();
-    const contentString = data.choices[0].message.content;
-    const parsedResult: GeneratedContent = JSON.parse(contentString);
-    
-    return parsedResult;
+    // 2. Try Gemini
+    if (geminiKey) {
+        try {
+            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
+            const response = await ai.models.generateContent({
+                model: "gemini-3-pro-preview",
+                contents: userContent,
+                config: {
+                    systemInstruction: systemInstruction,
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema,
+                    temperature: 0.8,
+                },
+            });
+            return JSON.parse(response.text.trim());
+        } catch (e) {
+            console.warn("Gemini failed", e);
+            finalError = e;
+        }
+    }
 
-  } catch (error) {
-    console.error("Lỗi khi gọi OpenAI API:", error);
-    throw new Error("Không thể tạo nội dung từ OpenAI API.");
-  }
+    // 3. Try OpenAI
+    if (openaiKey) {
+        try {
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: "gpt-4o",
+                    messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
+                    response_format: { type: "json_object" },
+                    temperature: 0.8,
+                }),
+            });
+            if (!response.ok) throw new Error('OpenAI failed');
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            finalError = e;
+        }
+    }
+
+    throw finalError || new Error("All providers failed");
 };
 
 // ==========================================
 // 4. MAIN APP COMPONENT
 // ==========================================
 
-const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }) => {
+const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string }) => {
   const [topic, setTopic] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Tình yêu');
   const [articleLength, setArticleLength] = useState<ArticleLength>('short');
@@ -351,54 +322,49 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
   // Image Generation State
   const [referenceImage, setReferenceImage] = useState<UploadedImage | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  const [whiskPrompt, setWhiskPrompt] = useState<string>('');
-  const [visualDescription, setVisualDescription] = useState<string>('');
+  const [imagePrompt, setImagePrompt] = useState<string>('');
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState<boolean>(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
 
-  const generateVisualsAndPrompt = async (content: GeneratedContent, apiKey: string) => {
-      if (!apiKey) return;
+  const generatePromptFromContent = async (content: GeneratedContent, apiKey: string, provider: 'gemini' | 'openrouter') => {
       setIsGeneratingPrompt(true);
-      setWhiskPrompt('');
-      setVisualDescription('');
+      setImagePrompt('');
 
-      const ai = new GoogleGenAI({ apiKey });
+      const promptRequest = `Based on the following article content and title, create a detailed, cinematic, photorealistic image generation prompt (in English). 
+      The prompt should capture the core emotion, setting, and main character's action described in the text.
+      
+      Title: "${content.title}"
+      Content Excerpt: "${content.article.substring(0, 2000)}..."
+      
+      Requirements:
+      - Focus on visual details: lighting, mood, environment, character appearance (age, gender, expression).
+      - Style: Cinematic, 8k, highly detailed, dramatic lighting.
+      - Output ONLY the prompt text. Do not include explanations.`;
+
       try {
-          // 1. Analyze for visual description
-          const analysisPrompt = `Analyze the following article content and title to create a detailed visual description for an illustration image.
-          Title: "${content.title}"
-          Content: "${content.article.substring(0, 1500)}..."
-          
-          Tasks:
-          1. Identify the core emotion/mood (e.g., romantic, sorrowful, inspiring, business-like).
-          2. Determine the scene characters: How many? Gender? Age? (Based strictly on the story/article content).
-          3. Describe the setting and lighting that matches the mood.
-          4. Describe the action or pose of the character(s) that reflects the content.
-          
-          Output a single, detailed descriptive paragraph in English suitable for image generation. Focus on visual details.`;
-
-          const analysisResponse = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: analysisPrompt
-          });
-          const desc = analysisResponse.text.trim();
-          setVisualDescription(desc);
-
-          // 2. Generate Whisk Prompt
-          const whiskGenPrompt = `Based on this visual description: "${desc}", create a concise, high-quality prompt for Whisk AI (Stable Diffusion). 
-          Style: Cinematic, photorealistic, emotional, dramatic lighting, 8k.
-          Output ONLY the prompt text.`;
-          
-          const whiskResponse = await ai.models.generateContent({
-               model: 'gemini-2.5-flash',
-               contents: whiskGenPrompt
-          });
-          setWhiskPrompt(whiskResponse.text.trim());
-
+          if (provider === 'gemini') {
+              const ai = new window.GoogleGenAI({ apiKey });
+              const response = await ai.models.generateContent({
+                  model: 'gemini-2.5-flash',
+                  contents: promptRequest
+              });
+              setImagePrompt(response.text.trim());
+          } else {
+              const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+                body: JSON.stringify({
+                    model: "google/gemini-2.0-flash-001",
+                    messages: [{ role: "user", content: promptRequest }],
+                }),
+            });
+            const data = await response.json();
+            setImagePrompt(data.choices[0].message.content.trim());
+          }
       } catch (err) {
-          console.error("Error generating visual prompts:", err);
+          console.error("Error generating visual prompt:", err);
       } finally {
           setIsGeneratingPrompt(false);
       }
@@ -410,13 +376,8 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       return;
     }
     
-    if (selectedAIModel === 'gpt' && !openaiApiKey) {
-        setError('Vui lòng nhập OpenAI API Key trong phần cài đặt.');
-        return;
-    }
-    
-    if (selectedAIModel === 'gemini' && !geminiApiKey) {
-        setError('Vui lòng nhập Gemini API Key trong phần cài đặt.');
+    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+        setError('Vui lòng nhập ít nhất một API Key trong phần cài đặt.');
         return;
     }
 
@@ -424,44 +385,30 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
     setError(null);
     setGeneratedContent(null);
     setGeneratedImageUrl(null);
-    setWhiskPrompt('');
-    setVisualDescription('');
+    setImagePrompt('');
 
     try {
-      let result;
-      if (selectedAIModel === 'gemini') {
-        result = await generateContentWithGemini(topic, selectedCategory, articleLength, geminiApiKey);
-      } else {
-        result = await generateContentWithOpenAI(topic, selectedCategory, articleLength, openaiApiKey);
-      }
+      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, openRouterApiKey);
       setGeneratedContent(result);
       
-      // Automatically generate prompt using Gemini (even if content was generated by OpenAI, we use Gemini for image prompts usually, or prompt requires Gemini Key)
-      // If user has Gemini Key, use it for prompts.
+      // Auto-generate prompt after content is ready
       if (geminiApiKey) {
-          generateVisualsAndPrompt(result, geminiApiKey);
-      } else {
-          // If using OpenAI only, we can't use the Gemini-specific prompt gen logic easily without refactoring. 
-          // Assuming user has Gemini Key if they want image features as per previous requests.
-          // Or we can skip if no Gemini Key.
+          generatePromptFromContent(result, geminiApiKey, 'gemini');
+      } else if (openRouterApiKey) {
+          generatePromptFromContent(result, openRouterApiKey, 'openrouter');
       }
 
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định';
-      const modelName = selectedAIModel === 'gemini' ? 'Gemini' : 'Chat GPT';
-      setError(`Đã xảy ra lỗi khi tạo nội dung bằng ${modelName}: ${errorMsg}`);
+      setError(`Đã xảy ra lỗi khi tạo nội dung: ${errorMsg}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGenerateImage = async () => {
-      if (!geminiApiKey) {
-          setError('Cần có Gemini API Key để sử dụng tính năng tạo ảnh.');
-          return;
-      }
-      if (!visualDescription) {
-          setError('Đang tạo mô tả hình ảnh, vui lòng đợi giây lát...');
+      if (!imagePrompt) {
+          setError('Chưa có prompt tạo ảnh. Vui lòng đợi tạo bài viết xong hoặc tự nhập prompt.');
           return;
       }
 
@@ -469,53 +416,132 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       setError(null);
       setGeneratedImageUrl(null);
 
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+      let finalError = null;
 
-      try {
-          // 3. Generate Image using stored visualDescription
-          if (referenceImage) {
-               // If reference image is provided, use multimodal generation to swap/blend face
-               const imageGenPrompt = `Generate a photorealistic image based on this description: ${visualDescription}.
-               CRITICAL INSTRUCTION: Use the face from the provided image for the main character in this scene. Blend it naturally with the lighting and emotion described. The expression must match the mood of the description.`;
-               
-               const imageResponse = await ai.models.generateContent({
-                  model: 'gemini-2.5-flash-image',
-                  contents: {
-                      parts: [
-                          { text: imageGenPrompt },
-                          { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }
-                      ]
-                  },
-                  config: { responseModalities: [Modality.IMAGE] }
-               });
-               const imagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-               if (imagePart && imagePart.inlineData) {
-                  setGeneratedImageUrl(`data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`);
-               }
+      // ======================================================
+      // CASE 1: Reference Image Exists -> MUST Use Gemini
+      // ======================================================
+      if (referenceImage) {
+          if (geminiApiKey) {
+              try {
+                  const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+                  const faceSwapPrompt = `Generate a photorealistic image based on this description: ${imagePrompt}.
+                   CRITICAL INSTRUCTION: Use the face from the provided image for the main character in this scene. Blend it naturally with the lighting and emotion described. The expression must match the mood of the description.`;
+                   
+                   const imageResponse = await ai.models.generateContent({
+                      model: 'gemini-2.5-flash-image',
+                      contents: {
+                          parts: [
+                              { text: faceSwapPrompt },
+                              { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }
+                          ]
+                      },
+                      config: { responseModalities: [window.GenAIModality.IMAGE] }
+                   });
+                   const imagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                   if (imagePart && imagePart.inlineData) {
+                      setGeneratedImageUrl(`data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`);
+                      setIsGeneratingImage(false);
+                      return;
+                   }
+              } catch (e) {
+                  console.warn("Gemini Face Swap failed", e);
+                  finalError = e;
+              }
           } else {
-              // If no reference image, use Imagen for high quality text-to-image
-              const imageResponse = await ai.models.generateImages({
-                  model: 'imagen-4.0-generate-001',
-                  prompt: `${visualDescription}. Cinematic, photorealistic, high quality, emotional lighting.`,
-                  config: {
-                      numberOfImages: 1,
-                      outputMimeType: 'image/png',
-                      aspectRatio: '16:9'
+              setError("Cần có Gemini API Key để sử dụng tính năng ảnh mẫu khuôn mặt.");
+              setIsGeneratingImage(false);
+              return;
+          }
+      } 
+      
+      // ======================================================
+      // CASE 2: No Reference Image -> Try Providers
+      // ======================================================
+      else {
+          // 1. Try OpenRouter
+          if (openRouterApiKey) {
+              try {
+                  const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
+                      body: JSON.stringify({
+                          model: 'black-forest-labs/flux-1-schnell',
+                          prompt: imagePrompt,
+                          n: 1,
+                          size: '1024x576', 
+                      })
+                  });
+                  if (response.ok) {
+                      const data = await response.json();
+                      setGeneratedImageUrl(data.data[0].url);
+                      setIsGeneratingImage(false);
+                      return;
                   }
-              });
-              if (imageResponse.generatedImages?.[0]?.image?.imageBytes) {
-                  setGeneratedImageUrl(`data:image/png;base64,${imageResponse.generatedImages[0].image.imageBytes}`);
-              } else {
-                  throw new Error("Không nhận được dữ liệu ảnh từ Imagen.");
+              } catch (e) {
+                  console.warn("OpenRouter Image Gen failed", e);
               }
           }
 
-      } catch (err) {
-          console.error(err);
-          setError(`Lỗi khi tạo ảnh: ${err instanceof Error ? err.message : 'Lỗi không xác định'}`);
-      } finally {
-          setIsGeneratingImage(false);
+          // 2. Try Gemini (Imagen)
+          if (geminiApiKey) {
+              try {
+                  const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+                  const imageResponse = await ai.models.generateImages({
+                      model: 'imagen-4.0-generate-001',
+                      prompt: imagePrompt,
+                      config: {
+                          numberOfImages: 1,
+                          outputMimeType: 'image/png',
+                          aspectRatio: '16:9'
+                      }
+                  });
+                  if (imageResponse.generatedImages?.[0]?.image?.imageBytes) {
+                      setGeneratedImageUrl(`data:image/png;base64,${imageResponse.generatedImages[0].image.imageBytes}`);
+                      setIsGeneratingImage(false);
+                      return;
+                  }
+              } catch (e) {
+                  console.warn("Gemini Imagen failed", e);
+                  finalError = e;
+              }
+          } else {
+               if (openRouterApiKey && !openaiApiKey) {
+                   alert("OpenRouter tạo ảnh thất bại. Vui lòng nhập Gemini API Key để tiếp tục.");
+               }
+          }
+
+          // 3. Try OpenAI
+          if (openaiApiKey) {
+              try {
+                  const response = await fetch('https://api.openai.com/v1/images/generations', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+                      body: JSON.stringify({
+                          model: 'dall-e-3',
+                          prompt: imagePrompt,
+                          n: 1,
+                          size: '1024x1024',
+                          response_format: 'b64_json',
+                          quality: 'hd',
+                          style: 'vivid'
+                      })
+                  });
+                  if (response.ok) {
+                      const data = await response.json();
+                      setGeneratedImageUrl(`data:image/png;base64,${data.data[0].b64_json}`);
+                      setIsGeneratingImage(false);
+                      return;
+                  }
+              } catch (e) {
+                  console.warn("OpenAI Image Gen failed", e);
+                  finalError = e;
+              }
+          }
       }
+
+      setIsGeneratingImage(false);
+      setError(`Lỗi khi tạo ảnh: ${finalError instanceof Error ? finalError.message : 'Tất cả các API đều thất bại hoặc chưa được cấu hình.'}`);
   };
 
   const ToggleButton: React.FC<{ options: string[], selected: string, onSelect: (value: any) => void }> = ({ options, selected, onSelect }) => (
@@ -548,167 +574,177 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                       <button
                         key={cat}
                         onClick={(e) => { e.stopPropagation(); setSelectedCategory(cat); }}
-                        className={`px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 border whitespace-nowrap ${
-                          selectedCategory === cat
-                            ? 'bg-purple-600 border-purple-600 text-white shadow-md transform scale-105'
-                            : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500'
-                        }`}
+                        className={`px-2 py-2 text-sm font-medium rounded-lg transition-colors ${selectedCategory === cat ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
                       >
                         {cat}
                       </button>
                     ))}
                   </div>
                 </div>
-                
+
                 <div>
-                    <label htmlFor="topic-input" className="block text-sm font-medium text-gray-300 mb-2">Nhập tiêu đề bài viết</label>
-                    <textarea
-                    id="topic-input"
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Tiêu đề / Chủ đề bài viết</label>
+                  <textarea
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    placeholder={`Ví dụ: Cách cân bằng giữa công việc và ${selectedCategory.toLowerCase()}...`}
-                    className="w-full h-24 p-3 bg-gray-700 border-2 border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors placeholder-gray-500"
-                    disabled={isLoading}
-                    />
+                    placeholder="Ví dụ: Bí quyết giữ lửa hôn nhân, Cách vượt qua nỗi buồn..."
+                    className="w-full bg-gray-900 border border-slate-600 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition h-24 resize-none"
+                  />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Độ dài bài viết</label>
-                    <ToggleButton options={['short', 'long']} selected={articleLength} onSelect={(val) => setArticleLength(val as ArticleLength)} />
-                </div>
-
-                 <button
-                    onClick={(e) => { e.stopPropagation(); handleGenerateContent(); }}
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-900 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
-                    >
-                    {isLoading ? <><LoadingSpinner /><span className="ml-2">Đang sáng tạo nội dung...</span></> : '1. Tạo Nội Dung'}
-                </button>
-             </div>
-          </div>
-
-          {/* NEW LOCATION: Image Generation Section */}
-          <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col space-y-4 relative overflow-hidden">
-                {/* Visual Disabled Overlay if no content */}
-                {!generatedContent && (
-                    <div className="absolute inset-0 bg-slate-900/70 z-10 flex items-center justify-center backdrop-blur-[1px]">
-                        <p className="text-gray-400 font-medium bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
-                            Hãy tạo nội dung trước khi tạo ảnh
-                        </p>
-                    </div>
-                )}
-
-                <h3 className="text-xl font-bold text-pink-400 mb-2 border-b border-gray-700 pb-2">2. Tạo ảnh minh họa (AI Podcast)</h3>
-                <p className="text-xs text-gray-400 italic">AI sẽ tự động phân tích bài viết để tạo ra hình ảnh phù hợp nhất với cảm xúc và nội dung câu chuyện.</p>
-                
-                {/* Layout Change: Row with Uploader and Prompt */}
-                <div className="flex flex-row gap-4 h-48">
-                     {/* Upload Area - 1/3 Width */}
-                     <div className="w-1/3 min-w-[120px]">
-                        <ImageUploader 
-                            label="Tải ảnh mặt"
-                            uploadedImage={referenceImage}
-                            setUploadedImage={setReferenceImage}
-                            disabled={isGeneratingImage || !generatedContent}
-                        />
-                    </div>
-                    
-                    {/* Whisk Prompt Display - Remaining Width */}
-                    <div className="flex-1 bg-slate-900 p-3 rounded-lg border border-slate-700 flex flex-col relative">
-                        <div className="flex justify-between items-center mb-2">
-                            <h4 className="font-semibold text-pink-300 text-xs uppercase">Prompt cho Whisk</h4>
-                            {whiskPrompt && <CopyButton textToCopy={whiskPrompt} />}
-                        </div>
-                         <div className="flex-grow overflow-y-auto custom-scrollbar text-xs text-gray-300 whitespace-pre-wrap break-words font-mono bg-black/20 p-2 rounded">
-                            {isGeneratingPrompt ? (
-                                <div className="flex items-center text-gray-400">
-                                    <LoadingSpinner /> <span className="ml-2">Đang tạo...</span>
-                                </div>
-                            ) : whiskPrompt ? (
-                                whiskPrompt
-                            ) : (
-                                <span className="text-gray-500 italic">Prompt sẽ xuất hiện ở đây...</span>
-                            )}
-                        </div>
-                    </div>
+                   <label className="block text-sm font-medium text-gray-300 mb-2">Độ dài bài viết</label>
+                   <ToggleButton 
+                      options={['short', 'long']} 
+                      selected={articleLength} 
+                      onSelect={(val) => setArticleLength(val as ArticleLength)} 
+                   />
+                   <p className="text-xs text-gray-500 mt-1">
+                     {articleLength === 'short' ? 'Khoảng 500-700 từ (phù hợp Facebook/Blog)' : 'Khoảng 2000+ từ (phù hợp Podcast/Youtube)'}
+                   </p>
                 </div>
 
                 <button
-                    onClick={handleGenerateImage}
-                    disabled={isGeneratingImage || !generatedContent || !visualDescription}
-                    className="w-full flex items-center justify-center bg-pink-600 hover:bg-pink-700 disabled:bg-slate-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg mt-2"
+                  onClick={handleGenerateContent}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                   {isGeneratingImage ? 'Đang tạo ảnh...' : 'Tạo ảnh'}
+                  {isLoading ? <LoadingSpinner /> : (
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                     </svg>
+                  )}
+                  {isLoading ? 'Đang viết bài...' : 'Viết Bài Ngay'}
                 </button>
 
-                {/* Result Image Area - Full Width Below Button */}
-                <div className="w-full aspect-video bg-slate-900 border-2 border-slate-700 rounded-lg flex items-center justify-center overflow-hidden relative group mt-4">
-                     {isGeneratingImage ? (
-                         <div className="flex flex-col items-center text-pink-400">
-                             <LoadingSpinner />
-                             <span className="text-xs mt-2">Đang vẽ...</span>
-                         </div>
-                     ) : generatedImageUrl ? (
-                         <>
-                            <img 
-                                src={generatedImageUrl} 
-                                alt="Generated Result" 
-                                className="w-full h-full object-contain cursor-zoom-in"
-                                onClick={() => setLightboxImage(generatedImageUrl)}
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
-                                <span className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded">Bấm để xem</span>
+                {/* Prompt Generation Box (Visible when content exists) */}
+                {(generatedContent || imagePrompt) && (
+                    <div className="animate-fade-in mt-4">
+                        <label className="block text-sm font-semibold text-pink-400 mb-2 flex justify-between">
+                            <span>Prompt Tạo Ảnh (AI đề xuất theo nội dung)</span>
+                            {isGeneratingPrompt && <span className="text-xs animate-pulse">Đang tạo prompt...</span>}
+                        </label>
+                        <textarea
+                            value={imagePrompt}
+                            onChange={(e) => setImagePrompt(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm text-yellow-300 font-mono h-24 resize-none focus:ring-2 focus:ring-pink-500"
+                            placeholder="Prompt sẽ xuất hiện ở đây sau khi viết bài..."
+                        />
+                        <button
+                            onClick={handleGenerateImage}
+                            disabled={isGeneratingImage || !imagePrompt}
+                            className="w-full mt-3 bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {isGeneratingImage ? <LoadingSpinner /> : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                </svg>
+                            )}
+                            {isGeneratingImage ? 'Đang vẽ ảnh...' : 'Tạo Ảnh Minh Họa'}
+                        </button>
+                    </div>
+                )}
+
+                {/* Split Layout for Image Upload & Result */}
+                <div className="flex flex-row gap-4 mt-4 h-48">
+                    {/* 1/4 Width for Upload */}
+                    <div className="w-1/4 h-full">
+                        <ImageUploader 
+                            uploadedImage={referenceImage} 
+                            setUploadedImage={setReferenceImage} 
+                            disabled={isGeneratingImage} 
+                            label="Ảnh mẫu"
+                        />
+                    </div>
+                    
+                    {/* 3/4 Width for Result */}
+                    <div className="w-3/4 h-full bg-black/30 border border-slate-700 rounded-lg relative overflow-hidden flex items-center justify-center group">
+                        {generatedImageUrl ? (
+                            <>
+                                <img 
+                                    src={generatedImageUrl} 
+                                    alt="Generated Result" 
+                                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-500"
+                                    onClick={() => setLightboxImage(generatedImageUrl)}
+                                />
+                                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button 
+                                        onClick={() => setLightboxImage(generatedImageUrl)}
+                                        className="bg-black/60 p-2 rounded-full text-white hover:bg-black/80"
+                                        title="Phóng to"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-slate-500 text-center p-4">
+                                <p className="text-sm">Kết quả ảnh sẽ hiện ở đây</p>
                             </div>
-                         </>
-                     ) : (
-                         <div className="text-center text-gray-500 text-xs">
-                             <p>Ảnh kết quả sẽ hiện ở đây</p>
-                         </div>
-                     )}
+                        )}
+                    </div>
                 </div>
-            </div>
+             </div>
+          </div>
         </div>
         
-        {/* Right Panel: Results */}
-        <div className="flex flex-col space-y-6">
-            {error && <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg" role="alert">{error}</div>}
-            
-            {isLoading ? (
-               <PodcastSkeleton />
-            ) : generatedContent ? (
-              <div className="space-y-6 animate-fade-in">
-                <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-indigo-400">Tiêu đề</h3>
-                        <CopyButton textToCopy={generatedContent.title} />
-                    </div>
-                    <div className="text-gray-300 whitespace-pre-wrap leading-relaxed overflow-y-auto flex-grow prose prose-invert">
-                        <h2 className="text-2xl font-bold text-white">{generatedContent.title}</h2>
-                        <span className="inline-block mt-2 px-2 py-1 text-xs font-semibold text-purple-200 bg-purple-900 rounded-full">
-                            {selectedCategory}
-                        </span>
-                    </div>
+        {/* Right Panel: Text Result */}
+        <div className="mt-8 lg:mt-0 lg:h-[calc(100vh-100px)] lg:overflow-y-auto custom-scrollbar pr-2">
+            {error && (
+                <div className="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg mb-6">
+                    <strong>Lỗi:</strong> {error}
                 </div>
+            )}
 
-                <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6 flex flex-col max-h-[800px]">
-                    <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                        <h3 className="text-xl font-bold text-indigo-400">Nội dung & Lời kêu gọi</h3>
-                        <CopyButton textToCopy={`${generatedContent.article}\n\n${generatedContent.engagementCall}`} />
-                    </div>
-                    <div className="text-gray-300 whitespace-pre-wrap leading-relaxed overflow-y-auto custom-scrollbar pr-2 break-words">
-                        <div className="mb-6">{generatedContent.article}</div>
-                        <hr className="border-gray-600 my-6" />
-                        <div className="italic text-indigo-300 bg-indigo-900/20 p-4 rounded-lg border border-indigo-500/30">
-                            {generatedContent.engagementCall}
+            {generatedContent ? (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <h2 className="text-2xl font-bold text-white">{generatedContent.title}</h2>
+                            <CopyButton textToCopy={generatedContent.title} />
                         </div>
                     </div>
-                </div>
-              </div>
-            ) : !error && (
-                 <div className="bg-gray-800/50 border-2 border-dashed border-slate-700 rounded-xl flex items-center justify-center p-12 text-gray-500 h-full min-h-[400px]">
-                    <div className="text-center">
-                        <p>Nội dung được tạo sẽ hiển thị ở đây</p>
+
+                    <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-semibold text-indigo-400">Nội dung bài viết</h3>
+                            <CopyButton textToCopy={generatedContent.article} />
+                        </div>
+                        <div className="prose prose-invert max-w-none text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            {generatedContent.article}
+                        </div>
                     </div>
+
+                    <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-semibold text-pink-400">Lời kêu gọi tương tác</h3>
+                            <CopyButton textToCopy={generatedContent.engagementCall} />
+                        </div>
+                        <p className="text-gray-300 italic border-l-4 border-pink-500 pl-4 py-2 bg-gray-900/30 rounded-r-lg">
+                            {generatedContent.engagementCall}
+                        </p>
+                    </div>
+                </div>
+            ) : (
+                !isLoading && (
+                    <div className="flex items-center justify-center h-full text-slate-500 border-2 border-dashed border-slate-700 rounded-xl bg-gray-900/20 p-10">
+                        <div className="text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            <p className="text-lg">Nội dung bài viết sẽ hiển thị ở đây</p>
+                        </div>
+                    </div>
+                )
+            )}
+            
+            {isLoading && (
+                 <div className="w-full animate-pulse flex flex-col gap-4 p-4">
+                    <div className="h-8 bg-slate-700 rounded w-3/4"></div>
+                    <div className="h-40 bg-slate-700 rounded w-full"></div>
+                    <div className="h-20 bg-slate-700 rounded w-full"></div>
                 </div>
             )}
         </div>

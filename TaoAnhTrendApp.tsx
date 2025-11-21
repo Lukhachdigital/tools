@@ -236,7 +236,7 @@ const ResultsPanel = ({ results }: ResultsPanelProps) => {
 // =================================================================
 // MAIN COMPONENT LOGIC
 // =================================================================
-const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
+const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
   const [theme, setTheme] = useState('');
   const [creativeNotes, setCreativeNotes] = useState('');
   const [results, setResults] = useState([]);
@@ -246,17 +246,51 @@ const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel })
   const [characterImage2, setCharacterImage2] = useState<UploadedImage | null>(null);
   const [aspectRatio, setAspectRatio] = useState('16:9');
 
-  const isGpt = selectedAIModel === 'gpt';
-
   const generateImage = async (taskTheme, index) => {
      setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'generating' } : res));
 
-     try {
-        if (selectedAIModel === 'gemini') {
-            if (!geminiApiKey) {
-                throw new Error("API Key Gemini chưa được cấu hình.");
+     const uploadedImages = [characterImage1, characterImage2].filter(Boolean);
+     const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792', '1:1': '1024x1024' };
+     
+     const finalImagenPrompt = `
+        **MISSION: Create ONE viral-quality image (VISUALS ONLY).**
+        **[DESIGN & STYLE REQUIREMENTS]**
+        *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${taskTheme}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
+        *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles.
+        *   **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly creative image.'}
+        ---
+        **FINAL GOAL:** A visually stunning image that represents the theme perfectly, with absolutely NO TEXT.
+    `;
+
+     let finalError = null;
+
+     // 1. Try OpenRouter (Only if NO character images are uploaded, as face mixing is specific)
+     if (openRouterApiKey && uploadedImages.length === 0) {
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
+              body: JSON.stringify({
+                model: 'black-forest-labs/flux-1-schnell',
+                prompt: finalImagenPrompt,
+                n: 1,
+                size: sizeMap[aspectRatio] || '1024x1024',
+              })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const imageUrl = data.data[0].url;
+                setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
+                return;
             }
-            const uploadedImages = [characterImage1, characterImage2].filter(Boolean);
+        } catch (e) {
+            console.warn("OpenRouter Image Gen failed", e);
+        }
+     }
+
+     // 2. Try Gemini (Fallback or Primary for Face Mixing)
+     if (geminiApiKey) {
+        try {
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
 
             if (uploadedImages.length > 0) {
@@ -297,16 +331,8 @@ const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel })
                 const base64ImageBytes = imagePart.inlineData.data;
                 const imageUrl = `data:${imagePart.inlineData.mimeType};base64,${base64ImageBytes}`;
                 setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
+                return;
             } else {
-                const finalImagenPrompt = `
-                  **MISSION: Create ONE viral-quality image (VISUALS ONLY).**
-                  **[DESIGN & STYLE REQUIREMENTS]**
-                  *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${taskTheme}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
-                  *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles.
-                  *   **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly creative image.'}
-                  ---
-                  **FINAL GOAL:** A visually stunning image that represents the theme perfectly, with absolutely NO TEXT.
-                `;
                 const response = await ai.models.generateImages({
                     model: 'imagen-4.0-generate-001',
                     prompt: finalImagenPrompt,
@@ -324,31 +350,32 @@ const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel })
                 setResults(prev => prev.map((res, idx) => 
                     idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
                 ));
+                return;
             }
-        } else { // OpenAI
-            if (!openaiApiKey) {
-                throw new Error("API Key OpenAI chưa được cấu hình.");
-            }
-            const uploadedImages = [characterImage1, characterImage2].filter(Boolean);
+        } catch (e) {
+            console.warn("Gemini Image Gen failed", e);
+            finalError = e;
+        }
+     } else {
+         if (openRouterApiKey && !openaiApiKey) {
+             // Fallback chain: OpenRouter -> Gemini (Missing) -> OpenAI
+             // If we reached here, OpenRouter failed/skipped and Gemini is missing.
+             alert("OpenRouter tạo ảnh thất bại. Vui lòng nhập Gemini API Key để tiếp tục.");
+         }
+     }
+
+     // 3. Try OpenAI
+     if (openaiApiKey) {
+        try {
             if (uploadedImages.length > 0) {
                 throw new Error("Tính năng kết hợp ảnh nhân vật chỉ được hỗ trợ bởi Gemini. Vui lòng chọn model Gemini để sử dụng.");
             }
-            const finalDallePrompt = `
-                **MISSION: Create ONE viral-quality image (VISUALS ONLY).**
-                **[DESIGN & STYLE REQUIREMENTS]**
-                *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${taskTheme}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
-                *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles.
-                *   **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly creative image.'}
-                ---
-                **FINAL GOAL:** A visually stunning image that represents the theme perfectly, with absolutely NO TEXT.
-            `;
-            const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792', '1:1': '1024x1024' };
             const response = await fetch('https://api.openai.com/v1/images/generations', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
               body: JSON.stringify({
                 model: 'dall-e-3',
-                prompt: finalDallePrompt,
+                prompt: finalImagenPrompt, // Reuse same prompt
                 n: 1,
                 size: sizeMap[aspectRatio] || '1024x1024',
                 response_format: 'b64_json',
@@ -365,22 +392,22 @@ const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel })
             setResults(prev => prev.map((res, idx) => 
                 idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
             ));
+            return;
+        } catch (e) {
+            console.warn("OpenAI Image Gen failed", e);
+            finalError = e;
         }
-     } catch(error) {
-        const errorMessage = parseAndEnhanceErrorMessage(error);
-        setResults(prev => prev.map((res, idx) => 
-            idx === index ? { ...res, status: 'error', error: errorMessage } : res
-        ));
      }
+
+     const errorMessage = parseAndEnhanceErrorMessage(finalError || new Error("Tất cả các API đều thất bại hoặc chưa được cấu hình."));
+     setResults(prev => prev.map((res, idx) => 
+        idx === index ? { ...res, status: 'error', error: errorMessage } : res
+     ));
   };
 
   const handleGenerateClick = async () => {
-    if (isGpt && !openaiApiKey) {
-        alert('Vui lòng cài đặt API Key OpenAI trước khi tạo.');
-        return;
-    }
-    if (!isGpt && !geminiApiKey) {
-        alert('Vui lòng cài đặt API Key Gemini trước khi tạo.');
+    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+        alert('Vui lòng cài đặt ít nhất một API Key.');
         return;
     }
     if (!characterImage1 && !theme.trim()) {
@@ -435,7 +462,7 @@ const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel })
           React.createElement('div', { className: "bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4" },
               React.createElement('div', null,
                   React.createElement('label', { className: "block text-sm font-semibold mb-2" }, "Upload ảnh nhân vật"),
-                  isGpt && React.createElement('p', { className: "text-xs text-center text-yellow-400 p-2 bg-yellow-900/50 rounded-md mb-2" }, "Tính năng upload và kết hợp ảnh chỉ hỗ trợ model Gemini."),
+                  (!geminiApiKey) && React.createElement('p', { className: "text-xs text-center text-yellow-400 p-2 bg-yellow-900/50 rounded-md mb-2" }, "Tính năng upload và kết hợp ảnh chỉ hỗ trợ model Gemini."),
                   React.createElement(AspectRatioSelector, {
                       selectedRatio: aspectRatio,
                       onSelect: setAspectRatio,
@@ -447,14 +474,14 @@ const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel })
                           label: "Nhân vật 1",
                           uploadedImage: characterImage1, 
                           setUploadedImage: setCharacterImage1, 
-                          isGenerating: isGenerating || isGpt, 
+                          isGenerating: isGenerating, 
                           placeholderText: "Upload ảnh 1"
                       }),
                       React.createElement(SingleImageUploader, { 
                           label: "Nhân vật 2",
                           uploadedImage: characterImage2, 
                           setUploadedImage: setCharacterImage2, 
-                          isGenerating: isGenerating || isGpt, 
+                          isGenerating: isGenerating, 
                           placeholderText: "Upload ảnh 2"
                       })
                   )
@@ -497,11 +524,11 @@ const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel })
   );
 };
 
-const TaoAnhTrendApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
+const TaoAnhTrendApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
   return (
     React.createElement('div', { className: "min-h-screen w-full p-4" },
       React.createElement('main', { className: "text-gray-300 space-y-6 h-full" },
-          React.createElement(TrendImageGeneratorTab, { geminiApiKey, openaiApiKey, selectedAIModel })
+          React.createElement(TrendImageGeneratorTab, { geminiApiKey, openaiApiKey, openRouterApiKey })
       )
     )
   );

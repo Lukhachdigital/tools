@@ -64,14 +64,10 @@ const CopyButton = ({ textToCopy }: { textToCopy: string }) => {
 
 
 // =================================================================
-// GEMINI API SERVICE
+// GENERATION SERVICES
 // =================================================================
-const geminiModel = 'gemini-2.5-flash';
 
-const generateTitlesWithGemini = async (description: string, apiKey: string, lengthConstraint: string | null): Promise<string[]> => {
-  try {
-    const ai = new window.GoogleGenAI({ apiKey });
-    
+const generateTitles = async (description: string, geminiKey: string, openaiKey: string, openRouterKey: string, lengthConstraint: string | null): Promise<string[]> => {
     let lengthInstruction = "Các tiêu đề phải có độ dài tối đa 100 ký tự";
     if (lengthConstraint) {
         if (lengthConstraint === "Trên 100") {
@@ -81,8 +77,8 @@ const generateTitlesWithGemini = async (description: string, apiKey: string, len
             lengthInstruction = `Các tiêu đề phải có độ dài từ ${min} đến ${max} ký tự`;
         }
     }
-    
-    const prompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung (Clickbait Expert) với khả năng tạo ra các tiêu đề lan truyền (Viral Titles).
+
+    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung (Clickbait Expert) với khả năng tạo ra các tiêu đề lan truyền (Viral Titles).
     Phân tích ngôn ngữ của mô tả video sau. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề ĐỈNH CAO, cực kỳ thu hút.
     
     **YÊU CẦU QUAN TRỌNG:**
@@ -92,184 +88,89 @@ const generateTitlesWithGemini = async (description: string, apiKey: string, len
     4.  **Kỹ thuật Hook:** Sử dụng câu hỏi tu từ, phủ định (Đừng làm X trước khi biết Y), con số cụ thể, hoặc sự so sánh đối lập để tăng CTR.
     5.  **Độ dài:** ${lengthInstruction}.
 
-    Mô tả video: "${description}"
+    Mô tả video: "${description}"`;
 
-    Trả về kết quả dưới dạng một mảng JSON chỉ chứa 5 chuỗi tiêu đề.`;
+    let finalError;
 
-    const response = await ai.models.generateContent({
-        model: geminiModel,
-        contents: prompt,
-        config: {
-            temperature: 1.2, // Increase creativity and variance
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: window.GenAIType.OBJECT,
-                properties: {
-                    titles: {
-                        type: window.GenAIType.ARRAY,
-                        items: { type: window.GenAIType.STRING }
+    // 1. Try OpenRouter
+    if (openRouterKey) {
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.' }],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter failed');
+            const data = await response.json();
+            const parsed = JSON.parse(data.choices[0].message.content);
+            return parsed.titles || [];
+        } catch (e) {
+            console.warn('OpenRouter failed', e);
+            finalError = e;
+        }
+    }
+
+    // 2. Try Gemini
+    if (geminiKey) {
+        try {
+            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: systemPrompt,
+                config: {
+                    temperature: 1.2,
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: window.GenAIType.OBJECT,
+                        properties: { titles: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } } }
                     }
                 }
-            }
-        }
-    });
-
-    const jsonText = response.text;
-    const result = JSON.parse(jsonText);
-    return result.titles || [];
-
-  } catch (error) {
-    console.error("Error generating titles with Gemini:", error);
-    throw new Error("Không thể tạo tiêu đề bằng Gemini. Vui lòng kiểm tra API Key và thử lại.");
-  }
-};
-
-const generateFullSEOContentWithGemini = async (description: string, title: string, apiKey: string, descStyle: string | null): Promise<SEOContent> => {
-    try {
-        const ai = new window.GoogleGenAI({ apiKey });
-        
-        const styleMap = {
-            'Ngắn gọn': 'khoảng 80-120 từ',
-            'Vừa phải': 'khoảng 120-160 từ',
-            'Tiêu chuẩn': 'khoảng 160-220 từ',
-            'Dài': 'khoảng 220-300 từ'
-        };
-        const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
-        
-        const prompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Phân tích ngôn ngữ của mô tả video và tiêu đề. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra nội dung SEO tối ưu.
-
-        Mô tả video gốc: "${description}"
-        Tiêu đề đã chọn: "${title}"
-
-        **YÊU CẦU QUAN TRỌNG:**
-        1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ mô tả và từ khóa hoàn toàn mới và khác biệt. Hãy tư duy sáng tạo để diễn đạt ý tưởng theo nhiều cách khác nhau.
-        2.  **Tính bền vững (Evergreen):** Nội dung phải có giá trị lâu dài. TRÁNH đề cập đến năm cụ thể (như 2024, 2025) để video không bị lỗi thời, trừ khi chủ đề bắt buộc.
-
-        **CẤU TRÚC NỘI DUNG:**
-        1.  **Mô tả (Description):** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
-            -   **QUAN TRỌNG:** Trong 1-2 câu đầu tiên, hãy viết một đoạn mở đầu (hook) thật hấp dẫn để giữ chân người xem.
-            -   Sử dụng lối kể chuyện (storytelling) nếu phù hợp để làm cho nội dung trở nên lôi cuốn.
-            -   Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Sau mỗi câu hoặc đoạn văn, hãy xuống dòng hai lần để tạo khoảng cách, giúp người đọc dễ theo dõi.
-            -   Nội dung phải tập trung vào chủ đề video và từ khóa, **KHÔNG** có lời kêu gọi hành động (CTA) và tránh dùng đại từ 'chúng tôi'. Văn phong phải tự nhiên, không nhồi nhét từ khóa máy móc.
-            -   Chỉ sử dụng 1-2 emoji phù hợp trong toàn bộ đoạn văn để tạo điểm nhấn, không bắt đầu mỗi câu bằng emoji.
-        2.  **Hashtag:** Viết 3 hashtag **liên quan mật thiết và trực tiếp nhất** đến nội dung video. Sau đó, **BẮT BUỘC** thêm 3 hashtag sau vào cuối: #lamyoutubeai, #huynhxuyenson, #huongdanai. Tổng cộng là 6 hashtag. Hashtag phải không dấu, viết bằng chữ thường, và viết liền. **QUAN TRỌNG:** Mỗi hashtag trong mảng kết quả BẮT BUỘC phải bắt đầu bằng ký tự '#'.
-        3.  **Từ khóa chính (Primary Keywords):** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
-        4.  **Từ khóa phụ (Secondary Keywords):** Liệt kê 15 từ khóa phụ mở rộng, **tập trung vào các khía cạnh cụ thể** của video.
-
-        Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }`;
-
-        const response = await ai.models.generateContent({
-            model: geminiModel,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: window.GenAIType.OBJECT,
-                    properties: {
-                        description: { type: window.GenAIType.STRING },
-                        hashtags: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
-                        primaryKeywords: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
-                        secondaryKeywords: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
-                    },
-                    required: ["description", "hashtags", "primaryKeywords", "secondaryKeywords"]
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        const result = JSON.parse(jsonText);
-        return result;
-
-    } catch (error) {
-        console.error("Error generating full SEO content with Gemini:", error);
-        throw new Error("Không thể tạo nội dung SEO bằng Gemini. Vui lòng kiểm tra API Key và thử lại.");
-    }
-};
-
-// =================================================================
-// OPENAI API SERVICE
-// =================================================================
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const openAiModel = 'gpt-5.1';
-
-const callOpenAI = async (apiKey: string, messages: object[], temperature: number = 0.7) => {
-    const response = await fetch(OPENAI_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: openAiModel,
-            messages: messages,
-            response_format: { type: "json_object" },
-            temperature: temperature,
-        })
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        console.error("OpenAI API Error:", errorData);
-        throw new Error(`Lỗi từ OpenAI API: ${errorData.error?.message || response.statusText}`);
-    }
-
-    const data = await response.json();
-    const jsonText = data.choices[0]?.message?.content;
-    if (!jsonText) {
-        throw new Error("Phản hồi từ OpenAI không chứa nội dung.");
-    }
-    return JSON.parse(jsonText);
-};
-
-const generateTitlesWithOpenAI = async (description: string, apiKey: string, lengthConstraint: string | null): Promise<string[]> => {
-    let lengthInstruction = "Các tiêu đề phải có độ dài tối đa 100 ký tự";
-    if (lengthConstraint) {
-        if (lengthConstraint === "Trên 100") {
-            lengthInstruction = `Các tiêu đề phải có độ dài TRÊN 100 ký tự`;
-        } else {
-            const [min, max] = lengthConstraint.split('-');
-            lengthInstruction = `Các tiêu đề phải có độ dài từ ${min} đến ${max} ký tự`;
+            });
+            return JSON.parse(response.text).titles || [];
+        } catch (e) {
+            console.warn('Gemini failed', e);
+            finalError = e;
         }
     }
-    
-    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung (Clickbait Expert) với khả năng tạo ra các tiêu đề lan truyền (Viral Titles).
-    Nhiệm vụ của bạn là phân tích ngôn ngữ của mô tả video do người dùng cung cấp. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề ĐỈNH CAO, cực kỳ thu hút.
-    **YÊU CẦU QUAN TRỌNG:**
-    1.  **Tối đa hóa sự tò mò (High Curiosity):** Tiêu đề phải tạo ra "khoảng trống tò mò" (curiosity gap) khiến người xem không thể không bấm vào. Sử dụng các từ ngữ mạnh (Power Words), gây sốc nhẹ, cảm xúc mạnh hoặc hứa hẹn một bí mật/giải pháp bất ngờ.
-    2.  **Đa dạng & Sáng tạo (High Variance):** 5 tiêu đề phải có 5 góc nhìn/cấu trúc hoàn toàn khác nhau. TRÁNH lặp lại công thức. KHÔNG được giống với các lần tạo trước.
-    3.  **Không sử dụng năm (No Year):** TUYỆT ĐỐI KHÔNG đưa năm cụ thể (ví dụ: 2024, 2025...) vào tiêu đề trừ khi mô tả video yêu cầu rõ ràng về báo cáo năm. Hãy tập trung vào giá trị cốt lõi để video luôn hợp thời (evergreen).
-    4.  **Kỹ thuật Hook:** Sử dụng câu hỏi tu từ, phủ định (Đừng làm X trước khi biết Y), con số cụ thể, hoặc sự so sánh đối lập để tăng CTR.
-    5.  **Độ dài:** ${lengthInstruction}.
-    Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.`;
-    
-    const userPrompt = `Mô tả video: "${description}"`;
 
-    const messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-    ];
-
-    try {
-        // Use high temperature for titles to ensure uniqueness and creativity
-        const result = await callOpenAI(apiKey, messages, 1.0);
-        return result.titles || [];
-    } catch (error) {
-        console.error("Error generating titles with OpenAI:", error);
-        throw new Error("Không thể tạo tiêu đề bằng OpenAI. Vui lòng kiểm tra API Key và thử lại.");
+    // 3. Try OpenAI
+    if (openaiKey) {
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.' }],
+                    response_format: { type: 'json_object' },
+                    temperature: 1.0
+                })
+            });
+            if (!response.ok) throw new Error('OpenAI failed');
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content).titles || [];
+        } catch (e) {
+            console.warn('OpenAI failed', e);
+            finalError = e;
+        }
     }
+
+    throw finalError || new Error("All providers failed");
 };
 
-const generateFullSEOContentWithOpenAI = async (description: string, title: string, apiKey: string, descStyle: string | null): Promise<SEOContent> => {
-    const styleMap = {
-        'Ngắn gọn': 'khoảng 80-120 từ',
-        'Vừa phải': 'khoảng 120-160 từ',
-        'Tiêu chuẩn': 'khoảng 160-220 từ',
-        'Dài': 'khoảng 220-300 từ'
-    };
+const generateFullSEOContent = async (description: string, title: string, geminiKey: string, openaiKey: string, openRouterKey: string, descStyle: string | null): Promise<SEOContent> => {
+    const styleMap = { 'Ngắn gọn': 'khoảng 80-120 từ', 'Vừa phải': 'khoảng 120-160 từ', 'Tiêu chuẩn': 'khoảng 160-220 từ', 'Dài': 'khoảng 220-300 từ' };
     const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
     
     const systemPrompt = `Bạn là một chuyên gia SEO YouTube và chuyên gia sáng tạo nội dung. Dựa vào mô tả video và tiêu đề đã chọn, hãy tạo ra nội dung SEO tối ưu. Phân tích ngôn ngữ của đầu vào và trả lời bằng chính ngôn ngữ đó với ngữ pháp hoàn hảo.
     
+    Mô tả video gốc: "${description}"
+    Tiêu đề đã chọn: "${title}"
+
     **YÊU CẦU QUAN TRỌNG:**
     1.  **Sáng tạo & Độc đáo:** Đối với mỗi yêu cầu mới, ngay cả với cùng một đầu vào, bạn BẮT BUỘC phải tạo ra một bộ mô tả và từ khóa hoàn toàn mới và khác biệt. Hãy tư duy sáng tạo để diễn đạt ý tưởng theo nhiều cách khác nhau.
     2.  **Tính bền vững (Evergreen):** Nội dung phải có giá trị lâu dài. TRÁNH đề cập đến năm cụ thể (như 2024, 2025) để video không bị lỗi thời, trừ khi chủ đề bắt buộc.
@@ -283,31 +184,88 @@ const generateFullSEOContentWithOpenAI = async (description: string, title: stri
         -   Chỉ sử dụng 1-2 emoji phù hợp trong toàn bộ đoạn văn để tạo điểm nhấn, không bắt đầu mỗi câu bằng emoji.
     2.  **hashtags:** Viết 3 hashtag **liên quan mật thiết và trực tiếp nhất** đến nội dung video. Sau đó, **BẮT BUỘC** thêm 3 hashtag sau vào cuối: #lamyoutubeai, #huynhxuyenson, #huongdanai. Tổng cộng là 6 hashtag. Hashtag phải không dấu, viết bằng chữ thường, và viết liền. **QUAN TRỌNG:** Mỗi hashtag trong mảng kết quả BẮT BUỘC phải bắt đầu bằng ký tự '#'.
     3.  **primaryKeywords:** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
-    4.  **secondaryKeywords:** Liệt kê 15 từ khóa phụ mở rộng, **tập trung vào các khía cạnh cụ thể** của video.
+    4.  **secondaryKeywords:** Liệt kê 15 từ khóa phụ mở rộng, **tập trung vào các khía cạnh cụ thể** của video.`;
 
-    Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }`;
-    
-    const userPrompt = `Mô tả video gốc: "${description}"\nTiêu đề đã chọn: "${title}"`;
+    let finalError;
 
-    const messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-    ];
-    
-    try {
-        const result = await callOpenAI(apiKey, messages, 0.7);
-        return result;
-    } catch (error) {
-        console.error("Error generating full SEO content with OpenAI:", error);
-        throw new Error("Không thể tạo nội dung SEO bằng OpenAI. Vui lòng kiểm tra API Key và thử lại.");
+    // 1. Try OpenRouter
+    if (openRouterKey) {
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }' }],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter failed');
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.warn('OpenRouter failed', e);
+            finalError = e;
+        }
     }
+
+    // 2. Try Gemini
+    if (geminiKey) {
+        try {
+            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: systemPrompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: window.GenAIType.OBJECT,
+                        properties: {
+                            description: { type: window.GenAIType.STRING },
+                            hashtags: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
+                            primaryKeywords: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
+                            secondaryKeywords: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
+                        },
+                        required: ["description", "hashtags", "primaryKeywords", "secondaryKeywords"]
+                    }
+                }
+            });
+            return JSON.parse(response.text);
+        } catch (e) {
+            console.warn('Gemini failed', e);
+            finalError = e;
+        }
+    }
+
+    // 3. Try OpenAI
+    if (openaiKey) {
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }' }],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenAI failed');
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.warn('OpenAI failed', e);
+            finalError = e;
+        }
+    }
+
+    throw finalError || new Error("All providers failed");
 };
 
 // =================================================================
 // MAIN APP COMPONENT
 // =================================================================
 
-const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
+const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
   const [videoDescription, setVideoDescription] = useState('');
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
@@ -319,13 +277,9 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [selectedDescStyle, setSelectedDescStyle] = useState<string | null>('Tiêu chuẩn');
   
   const handleGenerateTitles = useCallback(async () => {
-    if (selectedAIModel === 'gemini' && !geminiApiKey) {
-      setError('Vui lòng vào "Cài đặt API Key" để thêm key Gemini.');
+    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+      setError('Vui lòng vào "Cài đặt API Key" để thêm ít nhất một key.');
       return;
-    }
-    if (selectedAIModel === 'gpt' && !openaiApiKey) {
-        setError('Vui lòng vào "Cài đặt API Key" để thêm key OpenAI.');
-        return;
     }
     if (!videoDescription.trim()) {
       setError('Vui lòng nhập mô tả video.');
@@ -337,30 +291,19 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
     setSelectedTitle(null);
     setSeoContent(null);
 
-    const lengthConstraint = selectedTitleLength;
-
     try {
-      let titles;
-      if (selectedAIModel === 'gemini') {
-        titles = await generateTitlesWithGemini(videoDescription, geminiApiKey, lengthConstraint);
-      } else {
-        titles = await generateTitlesWithOpenAI(videoDescription, openaiApiKey, lengthConstraint);
-      }
+      const titles = await generateTitles(videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedTitleLength);
       setSuggestedTitles(titles);
     } catch (err: any) {
-      setError(err.message);
+      setError("Không thể tạo tiêu đề: " + err.message);
     } finally {
       setIsLoadingTitles(false);
     }
-  }, [videoDescription, geminiApiKey, openaiApiKey, selectedTitleLength, selectedAIModel]);
+  }, [videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedTitleLength]);
 
   const handleGenerateContent = useCallback(async (title: string) => {
-    if (selectedAIModel === 'gemini' && !geminiApiKey) {
-        setError('Vui lòng vào "Cài đặt API Key" để thêm key Gemini.');
-        return;
-    }
-    if (selectedAIModel === 'gpt' && !openaiApiKey) {
-        setError('Vui lòng vào "Cài đặt API Key" để thêm key OpenAI.');
+    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+        setError('Vui lòng vào "Cài đặt API Key" để thêm ít nhất một key.');
         return;
     }
     setSelectedTitle(title);
@@ -368,23 +311,16 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
     setSeoContent(null);
     setError(null);
 
-    const descStyle = selectedDescStyle;
-
     try {
-      let content;
-      if (selectedAIModel === 'gemini') {
-        content = await generateFullSEOContentWithGemini(videoDescription, title, geminiApiKey, descStyle);
-      } else {
-        content = await generateFullSEOContentWithOpenAI(videoDescription, title, openaiApiKey, descStyle);
-      }
+      const content = await generateFullSEOContent(videoDescription, title, geminiApiKey, openaiApiKey, openRouterApiKey, selectedDescStyle);
       setSeoContent(content);
     } catch (err: any)
     {
-      setError(err.message);
+      setError("Không thể tạo nội dung SEO: " + err.message);
     } finally {
       setIsLoadingContent(false);
     }
-  }, [videoDescription, geminiApiKey, openaiApiKey, selectedDescStyle, selectedAIModel]);
+  }, [videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedDescStyle]);
 
 
   const renderSEOContent = () => {
@@ -393,7 +329,7 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
     const hashtagsText = seoContent.hashtags.join(' ');
     const allKeywords = [...seoContent.primaryKeywords, ...seoContent.secondaryKeywords];
     const keywordsText = allKeywords.join(', ');
-    const descriptionText = seoContent.description; // Now a string
+    const descriptionText = seoContent.description;
 
     return React.createElement('div', { className: "space-y-6 animate-fade-in" },
       React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg shadow-lg relative" },

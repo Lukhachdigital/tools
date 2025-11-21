@@ -18,8 +18,6 @@ const Button = ({ children, className = '', variant = 'primary', ...props }) => 
   );
 };
 
-// Fix: Add an interface for Input props to make `label` optional and provide proper typing.
-// Fix: Corrected Input component props typing to resolve issues with destructuring inherited properties.
 const Input = ({ label, className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; }) => {
   const baseStyles = 'w-full bg-slate-800 border border-slate-600 rounded-md p-3 text-base text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition';
   if (label) {
@@ -113,29 +111,29 @@ const getApiErrorMessage = (error) => {
       const nestedError = errorObj.error || errorObj;
 
       if (nestedError.status === 'UNAVAILABLE' || nestedError.code === 503) {
-        return 'Lỗi từ Google AI: Model đang bị quá tải. Vui lòng thử lại sau ít phút.';
+        return 'Lỗi từ API: Model đang bị quá tải. Vui lòng thử lại sau ít phút.';
       }
       if (nestedError.message && (nestedError.message.includes('API key not valid') || nestedError.message.includes('API_KEY_INVALID'))) {
-        return 'Lỗi API Google: API key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt API Key.';
+        return 'Lỗi API: API key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt API Key.';
       }
       if (nestedError.message) {
-        return `Lỗi từ Google AI: ${nestedError.message}`;
+        return `Lỗi từ API: ${nestedError.message}`;
       }
     }
   } catch (e) {}
 
   if (message.includes('Incorrect API key')) {
-    return 'Lỗi API OpenAI: API key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt API Key.';
+    return 'Lỗi API: API key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt API Key.';
   }
   if (message.toLowerCase().includes('rate limit')) {
-    return 'Lỗi API OpenAI: Bạn đã vượt quá giới hạn sử dụng. Vui lòng thử lại sau hoặc kiểm tra gói cước của bạn.';
+    return 'Lỗi API: Bạn đã vượt quá giới hạn sử dụng.';
   }
   
-  return `Không thể tạo kịch bản. Vui lòng kiểm tra API key và prompt. Chi tiết lỗi: ${message}`;
+  return `Không thể tạo kịch bản. Chi tiết lỗi: ${message}`;
 };
 
 
-const PromptJsonApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
+const PromptJsonApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
   const [idea, setIdea] = useState('');
   const [duration, setDuration] = useState('');
   const [results, setResults] = useState<Scene[]>([]);
@@ -196,17 +194,14 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
 }`;
 
   const handleGenerate = async () => {
-    if (selectedAIModel === 'gemini' && !geminiApiKey) {
-      setError("Chưa có Google Gemini API key. Vui lòng vào Cài đặt API Key để thêm key.");
-      return;
-    }
-    if (selectedAIModel === 'gpt' && !openaiApiKey) {
-      setError("Chưa có OpenAI API key. Vui lòng vào Cài đặt API Key để thêm key.");
-      return;
-    }
     if (!idea.trim()) {
       setError("Vui lòng nhập ý tưởng nội dung.");
       return;
+    }
+
+    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+        setError("Vui lòng cài đặt ít nhất một API Key.");
+        return;
     }
 
     setIsGenerating(true);
@@ -222,124 +217,127 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
         userPrompt += `\n\nDesired Video Duration: "${duration || 'not specified'}"`;
     }
 
-    try {
-      if (selectedAIModel === 'gemini') {
-        const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: userPrompt,
-          config: {
-            systemInstruction,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: window.GenAIType.ARRAY,
-              items: {
-                type: window.GenAIType.OBJECT,
-                properties: {
-                  scene: { type: window.GenAIType.INTEGER, description: "The scene number, starting from 1." },
-                  description: { type: window.GenAIType.STRING, description: "A VIETNAMESE description of what happens in this scene." },
-                  prompt: {
-                    type: window.GenAIType.OBJECT,
-                    description: "A structured JSON prompt object for the video generation AI.",
-                    properties: {
-                      Objective: { type: window.GenAIType.STRING },
-                      Persona: {
-                        type: window.GenAIType.OBJECT,
-                        properties: {
-                          Role: { type: window.GenAIType.STRING },
-                          Tone: { type: window.GenAIType.STRING },
-                          Knowledge_Level: { type: window.GenAIType.STRING },
-                        },
-                        required: ['Role', 'Tone', 'Knowledge_Level'],
-                      },
-                      Task_Instructions: {
-                        type: window.GenAIType.ARRAY,
-                        items: { type: window.GenAIType.STRING },
-                      },
-                      Constraints: {
-                        type: window.GenAIType.ARRAY,
-                        items: { type: window.GenAIType.STRING },
-                      },
-                      Input_Examples: {
+    const openAISystemInstruction = `${systemInstruction}\n\n**OUTPUT FORMAT (CRITICAL):**\nYour final output must be a single, valid JSON object with one key: "scenes". The value of "scenes" should be an array of objects, where each object represents a scene. Each scene object must contain 'scene', 'description', and 'prompt' keys.`;
+
+    let finalError = null;
+
+    // 1. Try OpenRouter
+    if (openRouterApiKey) {
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openRouterApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001',
+                    messages: [
+                        { role: 'system', content: openAISystemInstruction },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter API failed');
+            const data = await response.json();
+            const parsedResponse = JSON.parse(data.choices[0].message.content);
+            if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) throw new Error("Invalid JSON structure");
+            setResults(parsedResponse.scenes);
+            setIsGenerating(false);
+            return;
+        } catch (e) {
+            console.warn("OpenRouter failed, trying Gemini...", e);
+            finalError = e;
+        }
+    }
+
+    // 2. Try Gemini
+    if (geminiApiKey) {
+        try {
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: userPrompt,
+                config: {
+                    systemInstruction,
+                    responseMimeType: "application/json",
+                    responseSchema: {
                         type: window.GenAIType.ARRAY,
                         items: {
-                          type: window.GenAIType.OBJECT,
-                          properties: {
-                            Input: { type: window.GenAIType.STRING },
-                            Expected_Output: { type: window.GenAIType.STRING },
-                          },
-                          required: ['Input', 'Expected_Output'],
-                        },
-                      },
-                      Output_Format: {
-                        type: window.GenAIType.OBJECT,
-                        properties: {
-                          Type: { type: window.GenAIType.STRING },
-                          Structure: {
                             type: window.GenAIType.OBJECT,
                             properties: {
-                              character_details: { type: window.GenAIType.STRING },
-                              setting_details: { type: window.GenAIType.STRING },
-                              key_action: { type: window.GenAIType.STRING },
-                              camera_direction: { type: window.GenAIType.STRING },
+                                scene: { type: window.GenAIType.INTEGER },
+                                description: { type: window.GenAIType.STRING },
+                                prompt: {
+                                    type: window.GenAIType.OBJECT,
+                                    properties: {
+                                        Objective: { type: window.GenAIType.STRING },
+                                        Persona: {
+                                            type: window.GenAIType.OBJECT,
+                                            properties: { Role: { type: window.GenAIType.STRING }, Tone: { type: window.GenAIType.STRING }, Knowledge_Level: { type: window.GenAIType.STRING } },
+                                            required: ['Role', 'Tone', 'Knowledge_Level'],
+                                        },
+                                        Task_Instructions: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
+                                        Constraints: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } },
+                                        Input_Examples: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.OBJECT, properties: { Input: { type: window.GenAIType.STRING }, Expected_Output: { type: window.GenAIType.STRING } }, required: ['Input', 'Expected_Output'] } },
+                                        Output_Format: {
+                                            type: window.GenAIType.OBJECT,
+                                            properties: { Type: { type: window.GenAIType.STRING }, Structure: { type: window.GenAIType.OBJECT, properties: { character_details: { type: window.GenAIType.STRING }, setting_details: { type: window.GenAIType.STRING }, key_action: { type: window.GenAIType.STRING }, camera_direction: { type: window.GenAIType.STRING } }, required: ['character_details', 'setting_details', 'key_action', 'camera_direction'] } },
+                                            required: ['Type', 'Structure'],
+                                        },
+                                    },
+                                    required: ['Objective', 'Persona', 'Task_Instructions', 'Constraints', 'Input_Examples', 'Output_Format'],
+                                },
                             },
-                            required: ['character_details', 'setting_details', 'key_action', 'camera_direction'],
-                          },
+                            required: ['scene', 'description', 'prompt'],
                         },
-                        required: ['Type', 'Structure'],
-                      },
                     },
-                    required: ['Objective', 'Persona', 'Task_Instructions', 'Constraints', 'Input_Examples', 'Output_Format'],
-                  },
                 },
-                required: ['scene', 'description', 'prompt'],
-              },
-            },
-          },
-        });
-        const jsonText = response.text.trim();
-        const parsedResults = JSON.parse(jsonText);
-        setResults(parsedResults);
-      } else { // OpenAI
-        const openAISystemInstruction = `${systemInstruction}\n\n**OUTPUT FORMAT (CRITICAL):**\nYour final output must be a single, valid JSON object with one key: "scenes". The value of "scenes" should be an array of objects, where each object represents a scene. Each scene object must contain 'scene', 'description', and 'prompt' keys.`;
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openaiApiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-5.1',
-                messages: [
-                    { role: 'system', content: openAISystemInstruction },
-                    { role: 'user', content: userPrompt }
-                ],
-                response_format: { type: 'json_object' }
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            });
+            const parsedResults = JSON.parse(response.text.trim());
+            setResults(parsedResults);
+            setIsGenerating(false);
+            return;
+        } catch (e) {
+            console.warn("Gemini failed, trying OpenAI...", e);
+            finalError = e;
         }
-
-        const data = await response.json();
-        const jsonText = data.choices[0].message.content;
-        const parsedResponse = JSON.parse(jsonText);
-        
-        if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) {
-          throw new Error("Invalid response format from OpenAI. Expected a 'scenes' array.");
-        }
-        
-        setResults(parsedResponse.scenes);
-      }
-
-    } catch (e) {
-      console.error(e);
-      setError(getApiErrorMessage(e));
-    } finally {
-      setIsGenerating(false);
     }
+
+    // 3. Try OpenAI
+    if (openaiApiKey) {
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: openAISystemInstruction },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenAI API failed');
+            const data = await response.json();
+            const parsedResponse = JSON.parse(data.choices[0].message.content);
+            if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) throw new Error("Invalid JSON");
+            setResults(parsedResponse.scenes);
+            setIsGenerating(false);
+            return;
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            finalError = e;
+        }
+    }
+
+    setError(getApiErrorMessage(finalError || new Error("All providers failed")));
+    setIsGenerating(false);
   };
 
   const handleCopyPrompt = (promptText, sceneNumber) => {

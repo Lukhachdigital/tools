@@ -36,7 +36,7 @@ const ResultCard = ({ language, text }) => {
 };
 
 
-const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
+const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string }): React.ReactElement => {
     const [text, setText] = useState('');
     const [selectedLanguages, setSelectedLanguages] = useState(['English']);
     const [results, setResults] = useState([]);
@@ -63,12 +63,8 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
     };
 
     const handleTranslate = async () => {
-        if (selectedAIModel === 'gemini' && !geminiApiKey) {
-            setError('API Key Gemini chưa được cài đặt.');
-            return;
-        }
-        if (selectedAIModel === 'gpt' && !openaiApiKey) {
-            setError('API Key OpenAI chưa được cài đặt.');
+        if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+            setError('Vui lòng cài đặt ít nhất một API Key.');
             return;
         }
 
@@ -101,42 +97,79 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
 
 
         try {
-            let translationPromises;
-            if (selectedAIModel === 'gemini') {
-                const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-                translationPromises = selectedLanguages.map(async (lang) => {
-                    const prompt = `Dịch đoạn văn bản sau đây sang ngôn ngữ ${lang}.\n${commonPrompt}`;
-                    const response = await ai.models.generateContent({
-                        model: 'gemini-2.5-flash',
-                        contents: prompt,
-                    });
-                    return { language: lang, translation: response.text };
-                });
-            } else { // OpenAI
-                translationPromises = selectedLanguages.map(async (lang) => {
-                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${openaiApiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: 'gpt-5.1',
-                            messages: [
-                                { role: 'system', content: `Dịch văn bản sau sang ${lang}. ${commonPrompt}` },
-                                { role: 'user', content: text }
-                            ],
-                            temperature: 0.2
-                        })
-                    });
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(`Lỗi dịch sang ${lang}: ${errorData.error?.message}`);
+            const translationPromises = selectedLanguages.map(async (lang) => {
+                const userPrompt = `Dịch đoạn văn bản sau đây sang ngôn ngữ ${lang}.\n${commonPrompt}`;
+                let translatedText = null;
+                let langError = null;
+
+                // 1. Try OpenRouter
+                if (!translatedText && openRouterApiKey) {
+                    try {
+                        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${openRouterApiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: 'google/gemini-2.0-flash-001',
+                                messages: [{ role: 'user', content: userPrompt }]
+                            })
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            translatedText = data.choices[0].message.content;
+                        }
+                    } catch (e) {
+                        console.warn(`OpenRouter failed for ${lang}`, e);
                     }
-                    const data = await response.json();
-                    return { language: lang, translation: data.choices[0].message.content };
-                });
-            }
+                }
+
+                // 2. Try Gemini
+                if (!translatedText && geminiApiKey) {
+                    try {
+                        const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+                        const response = await ai.models.generateContent({
+                            model: 'gemini-2.5-flash',
+                            contents: userPrompt,
+                        });
+                        translatedText = response.text;
+                    } catch (e) {
+                        console.warn(`Gemini failed for ${lang}`, e);
+                    }
+                }
+
+                // 3. Try OpenAI
+                if (!translatedText && openaiApiKey) {
+                    try {
+                        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${openaiApiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: 'gpt-4o',
+                                messages: [{ role: 'user', content: userPrompt }],
+                                temperature: 0.2
+                            })
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            translatedText = data.choices[0].message.content;
+                        }
+                    } catch (e) {
+                        console.warn(`OpenAI failed for ${lang}`, e);
+                        langError = e;
+                    }
+                }
+
+                if (!translatedText) {
+                    throw langError || new Error(`Không thể dịch sang ${lang}`);
+                }
+
+                return { language: lang, translation: translatedText };
+            });
 
             const newResults = await Promise.all(translationPromises);
             setResults(newResults);
@@ -183,7 +216,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
                 }, isLoading ? 'Đang dịch...' : 'Dịch')
             ),
             React.createElement('div', { className: 'bg-slate-900/50 p-6 rounded-2xl border border-slate-700' },
-                React.createElement('h2', { className: 'text-lg font-semibold text-cyan-300 mb-2' }, 'Kết quả'),
+                React.createElement('h2', { className: "text-lg font-semibold text-cyan-300 mb-2" }, 'Kết quả'),
                 error && React.createElement('div', { className: 'text-red-400 bg-red-900/50 p-3 rounded-lg mb-4' }, error),
                 React.createElement('div', { className: 'w-full h-full space-y-4 overflow-auto' },
                     isLoading

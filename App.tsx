@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -28,9 +27,6 @@ const iconProps = {
     strokeWidth: "1.5"
 };
 
-// Fix: Typed props for all icon components to correctly handle SVG attributes
-// like 'className', resolving TypeScript errors with React.createElement and React.cloneElement.
-// Updated Icons to accept props for flexible styling
 const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         ...iconProps,
@@ -218,7 +214,6 @@ const IconContentPodcast = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// Fix for line 137: Refactored component to extract props into a variable to avoid TypeScript errors with React.createElement.
 const IconConsistentFlow = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         ...iconProps,
@@ -234,7 +229,6 @@ const IconConsistentFlow = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// FIX: Updated IconHome to accept props to resolve TypeScript errors by explicitly typing the props object.
 const IconHome = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -250,7 +244,6 @@ const IconHome = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// FIX: Updated IconGift to accept props to resolve TypeScript errors by explicitly typing the props object.
 const IconGift = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -266,11 +259,6 @@ const IconGift = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// FIX: Updated IconYoutube to accept props to resolve TypeScript errors by explicitly typing the props object.
-// FIX: Refactored to use a typed props variable, which is a consistent fix pattern in this file for createElement type inference issues.
-// FIX: Refactored IconYoutube to use an implicit return, resolving a TypeScript error with React.createElement.
-// FIX: Corrected a TypeScript error by defining props in a variable instead of an object literal inside React.createElement.
-// FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
 const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -287,9 +275,6 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
-// FIX: Explicitly type svgProps to resolve a TypeScript overload resolution issue with React.createElement.
-// FIX: Refactored IconFacebook to use an object literal for its child path element's props. This resolves a TypeScript overload issue with React.createElement that occurred when using a typed variable for the path's properties.
 const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -305,7 +290,6 @@ const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// FIX: Updated IconTiktok to accept props to resolve TypeScript errors by explicitly typing the props object.
 const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -314,7 +298,6 @@ const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
         className: "w-7 h-7",
         ...props
     };
-    // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
     const pathProps: React.SVGProps<SVGPathElement> = {
         d: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-2.43.05-4.86-.95-6.69-2.81-1.77-1.77-2.69-4.14-2.6-6.6.02-1.28.31-2.57.88-3.73.9-1.86 2.54-3.24 4.5-4.13.57-.25 1.19-.41 1.81-.48v3.86c-.33.04-.66.11-.97.22-1.03.34-1.93 1-2.61 1.82-.69.83-1.11 1.83-1.16 2.86-.05 1.08.28 2.18.9 3.08.62.91 1.52 1.58 2.58 1.95.88.31 1.82.35 2.75.14.93-.21 1.77-.73 2.4-1.45.63-.72 1-1.61 1.11-2.59v-9.35c-1.39.42-2.85.6-4.25.54V.02z"
     };
@@ -323,8 +306,6 @@ const IconTiktok = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// FIX: Updated IconZalo to accept props to resolve TypeScript errors by explicitly typing the props object.
-// FIX: Refactored IconZalo to use an object literal for its child path element's props. This resolves a TypeScript overload issue with React.createElement that occurred when using a typed variable for the path's properties.
 const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -338,7 +319,6 @@ const IconZalo = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// FIX: Refactored IconSettings to use an object literal for its child path element's props. This resolves a TypeScript overload issue with React.createElement that occurred when using a typed variable for the path's properties.
 const IconSettings = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -358,7 +338,6 @@ const IconSettings = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-// FIX: Updated IconTutorial to accept props to resolve TypeScript errors by explicitly typing the props object.
 const IconTutorial = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         xmlns: "http://www.w3.org/2000/svg",
@@ -374,16 +353,16 @@ const IconTutorial = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) => {
+const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey, initialOpenRouterKey }) => {
     const [geminiKey, setGeminiKey] = useState(initialGeminiKey || '');
     const [openAIKey, setOpenAIKey] = useState(initialOpenAIKey || '');
+    const [openRouterKey, setOpenRouterKey] = useState(initialOpenRouterKey || '');
 
     const handleSave = () => {
-        onSave({ gemini: geminiKey, openai: openAIKey });
+        onSave({ gemini: geminiKey, openai: openAIKey, openrouter: openRouterKey });
         onClose();
     };
 
-    // FIX: Extracted props to React.HTMLAttributes to resolve overload issues and ensure type safety.
     const overlayProps: React.HTMLAttributes<HTMLDivElement> = {
         className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
         'aria-modal': true,
@@ -420,6 +399,15 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
         placeholder: "Nhập OpenAI API Key của bạn..."
     };
 
+    const inputOpenRouterProps: React.InputHTMLAttributes<HTMLInputElement> = {
+        id: "openrouter-key",
+        type: "password",
+        value: openRouterKey,
+        onChange: (e) => setOpenRouterKey(e.target.value),
+        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
+        placeholder: "Nhập OpenRouter API Key của bạn..."
+    };
+
     const saveBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
         onClick: handleSave,
         className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
@@ -442,10 +430,17 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                     )
                 )
             ),
-            React.createElement('div', { className: "p-6 space-y-6" },
+            React.createElement('div', { className: "p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar" },
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
-                        React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key"),
+                        React.createElement('label', { htmlFor: "openrouter-key", className: "block text-lg font-semibold text-slate-300" }, "OpenRouter API Key"),
+                        React.createElement('a', { href: APP_LINKS.OPENROUTER_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
+                    ),
+                    React.createElement('input', inputOpenRouterProps)
+                ),
+                React.createElement('div', {},
+                    React.createElement('div', { className: "flex justify-between items-center mb-2" },
+                        React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key (Ưu tiên tạo ảnh)"),
                         React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
                     React.createElement('input', inputGeminiProps)
@@ -463,8 +458,6 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
     );
 };
 
-// FIX: Updated UpgradeNoticeWrapper to use React.PropsWithChildren to make children optional in props type, resolving compatibility with React.createElement calls where children are passed as arguments.
-// FIX: Extracted props to typed variables to resolve TypeScript error "No overload matches this call" and "Object literal may only specify known properties".
 const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.PropsWithChildren<{ targetAppId: string; onNavigate: (id: string) => void; }>) => {
     const [showNotice, setShowNotice] = useState(true);
 
@@ -510,10 +503,11 @@ const App = () => {
     const [currentView, setCurrentView] = useState('dashboard');
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
-    const [selectedAIModel, setSelectedAIModel] = useState('gemini');
+    const [openRouterApiKey, setOpenRouterApiKey] = useState('');
 
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
+    const OPENROUTER_API_KEY = 'OPENROUTER_API_KEY';
 
     const allTools = [
         { id: 'dashboard', text: 'Bảng điều khiển', title: 'AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng', icon: React.createElement(IconDashboard), description: 'Tổng quan các công cụ sáng tạo' },
@@ -564,23 +558,24 @@ const App = () => {
     
     const tutorialLinks = TUTORIAL_LINKS;
 
-    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'audio_to_prompt_video', 'auto_prompt', 'seo_youtube', 'youtube_external', 'prompt_json', 'create_thumbnail', 'tao_anh_trend', 'app_affiliate', 'content_podcast'];
-
     useEffect(() => {
-        // Load API keys
         const savedGeminiKey = localStorage.getItem(GEMINI_API_KEY);
         if (savedGeminiKey) setGeminiApiKey(savedGeminiKey);
         const savedOpenAIKey = localStorage.getItem(OPENAI_API_KEY);
         if (savedOpenAIKey) setOpenaiApiKey(savedOpenAIKey);
+        const savedOpenRouterKey = localStorage.getItem(OPENROUTER_API_KEY);
+        if (savedOpenRouterKey) setOpenRouterApiKey(savedOpenRouterKey);
 
         setIsLoading(false);
     }, []);
 
-    const handleApiKeySave = ({ gemini, openai }) => {
+    const handleApiKeySave = ({ gemini, openai, openrouter }) => {
         setGeminiApiKey(gemini);
         setOpenaiApiKey(openai);
+        setOpenRouterApiKey(openrouter);
         localStorage.setItem(GEMINI_API_KEY, gemini);
         localStorage.setItem(OPENAI_API_KEY, openai);
+        localStorage.setItem(OPENROUTER_API_KEY, openrouter);
     };
 
     const handleToolClick = (toolId: string) => {
@@ -601,24 +596,19 @@ const App = () => {
     const Dashboard = ({ onToolClick }) => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
 
-        // Fix: Explicitly type div props to avoid overload errors
-        // CHANGE: Removed explicit type and passed object literal directly to createElement or inferred variable to avoid strict checking issues with 'Attributes' type in some environments.
         const gridProps = {
             className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
         };
 
         return React.createElement('div', { ...gridProps } as any,
             dashboardTools.map(tool => {
-                // Fix: Extract props to resolve TypeScript overload error for className in React.createElement
                 const buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
                     onClick: () => onToolClick(tool.id),
                     className: "group bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/20"
                 };
                 
-                // Fix: Use explicit any cast for props with spread and key to resolve overload issues
                 return React.createElement('button', { key: tool.id, ...buttonProps } as any,
                     React.createElement('div', { className: 'mb-4' },
-                        // Fix for line 323: Wrapped props in a variable to avoid TypeScript errors with React.cloneElement.
                         (() => {
                              const iconEl = tool.icon as React.ReactElement<{ className?: string }>;
                              return React.cloneElement(iconEl, { className: "w-10 h-10 text-cyan-400 group-hover:text-cyan-300 transition-colors" });
@@ -631,7 +621,7 @@ const App = () => {
     };
 
     const renderCurrentView = () => {
-        const appProps = { geminiApiKey, openaiApiKey, selectedAIModel };
+        const appProps = { geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel: 'auto' }; // Pass auto or let component decide
         const upgradeWrapperProps = { targetAppId: 'audio_to_prompt_video', onNavigate: handleToolClick };
 
         switch (currentView) {
@@ -683,7 +673,8 @@ const App = () => {
                 onClose: () => setShowApiKeyModal(false),
                 onSave: handleApiKeySave,
                 initialGeminiKey: geminiApiKey,
-                initialOpenAIKey: openaiApiKey
+                initialOpenAIKey: openaiApiKey,
+                initialOpenRouterKey: openRouterApiKey
              }),
             React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col" },
                 React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-4 w-full mb-1 p-2 sm:p-4" },
@@ -711,24 +702,12 @@ const App = () => {
                             React.createElement('span', { className: "text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500" }, currentTool && currentView !== 'dashboard' ? currentTool.title : mainTitle)
                          ),
                          React.createElement('p', { className: "text-cyan-400 mt-1 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription),
-                         appsWithModelSelector.includes(currentView) && React.createElement('div', { className: "mt-2 flex justify-center items-center gap-4" },
-                            React.createElement('button', {
-                                onClick: () => setSelectedAIModel('gemini'),
-                                className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gemini' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                            }, "Gemini 3 Pro"),
-                            React.createElement('button', {
-                                onClick: () => setSelectedAIModel('gpt'),
-                                className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gpt' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                            }, "Chat GPT 5.1")
-                        )
                     ),
-// FIX: Wrapped social links container in an IIFE with explicitly typed props to resolve a TypeScript error.
                      (() => {
                         const divProps: React.HTMLAttributes<HTMLDivElement> = {
                             className: "flex items-center justify-end flex-wrap gap-3"
                         };
                         return React.createElement('div', divProps,
-// FIX: Extracted link properties into a typed variable to resolve TypeScript type inference issues with React.createElement.
                             socialLinks.map(link => {
                                 const linkProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {
                                     href: link.href,
@@ -737,7 +716,6 @@ const App = () => {
                                     'aria-label': link.name,
                                     className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
                                 };
-                                // FIX: Removed 'key' from linkProps object and passed it directly to createElement to resolve TypeScript error "Object literal may only specify known properties".
                                 return React.createElement('a', { key: link.name, ...linkProps } as any, link.icon);
                             }
                             ),

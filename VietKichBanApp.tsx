@@ -34,7 +34,6 @@ const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void
       document.body.removeChild(link);
     };
   
-    // FIX: Extracted div props into typed variables to avoid TypeScript errors with React.createElement.
     const outerDivProps: React.HTMLAttributes<HTMLDivElement> = {
       className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
       onClick: onClose
@@ -170,7 +169,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
+const VietKichBanApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [duration, setDuration] = useState('');
   const [numMainCharacters, setNumMainCharacters] = useState('');
@@ -252,27 +251,54 @@ ${characterInstruction}
 - Cinematic Style: "${cinematicStyle}"
 - Total Duration: Approximately ${durationInMinutes} minutes.
 `;
-    
-    try {
-        if (selectedAIModel === 'gemini') {
-            if (!geminiApiKey) {
-                throw new Error("API Key Gemini chưa được cấu hình.");
-            }
-            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+    const systemPrompt = `${commonPrompt}\n\nGenerate a JSON object that strictly adheres to the following structure: { "characterList": [ ... ], "prompts": [ ... ] }`;
 
+    let finalError: unknown;
+
+    // 1. Try OpenRouter
+    if (openRouterApiKey) {
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openRouterApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter API failed');
+            const data = await response.json();
+            const parsedResponse = JSON.parse(data.choices[0].message.content);
+            if (parsedResponse.characterList && parsedResponse.prompts) return parsedResponse;
+        } catch (e) {
+            console.warn("OpenRouter failed, trying Gemini...", e);
+            finalError = e;
+        }
+    }
+
+    // 2. Try Gemini
+    if (geminiApiKey) {
+        try {
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
             const schema = {
                 type: window.GenAIType.OBJECT,
                 properties: {
                     characterList: {
                         type: window.GenAIType.ARRAY,
-                        description: "A list of character objects, distinguishing between main and supporting roles.",
                         items: {
                             type: window.GenAIType.OBJECT,
                             properties: {
-                                name: { type: window.GenAIType.STRING, description: "The character's name." },
-                                role: { type: window.GenAIType.STRING, description: "The character's role, either 'Nhân vật chính' or 'Nhân vật phụ'." },
-                                description: { type: window.GenAIType.STRING, description: "The character's detailed description in Vietnamese." },
-                                whiskPrompt: { type: window.GenAIType.STRING, description: "A detailed English prompt for Whisk AI to generate the character's image against a solid white background." }
+                                name: { type: window.GenAIType.STRING },
+                                role: { type: window.GenAIType.STRING },
+                                description: { type: window.GenAIType.STRING },
+                                whiskPrompt: { type: window.GenAIType.STRING }
                             },
                             required: ["name", "role", "description", "whiskPrompt"]
                         }
@@ -280,7 +306,6 @@ ${characterInstruction}
                     prompts: {
                         type: window.GenAIType.ARRAY,
                         items: { type: window.GenAIType.STRING },
-                        description: `An array of exactly ${numberOfScenes} English video generation prompts for VEO 3.1.`
                     }
                 },
                 required: ["characterList", "prompts"]
@@ -294,16 +319,17 @@ ${characterInstruction}
                 responseSchema: schema,
               },
             });
-      
             const jsonStr = response.text.trim();
             return JSON.parse(jsonStr) as GeneratedContent;
+        } catch (e) {
+            console.warn("Gemini failed, trying OpenAI...", e);
+            finalError = e;
+        }
+    }
 
-        } else { // OpenAI
-            if (!openaiApiKey) {
-                throw new Error("API Key OpenAI chưa được cấu hình.");
-            }
-            const systemPrompt = `${commonPrompt}\n\nGenerate a JSON object that strictly adheres to the following structure: { "characterList": [ ... ], "prompts": [ ... ] }`;
-            
+    // 3. Try OpenAI
+    if (openaiApiKey) {
+        try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -311,7 +337,7 @@ ${characterInstruction}
                     'Authorization': `Bearer ${openaiApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-5.1',
+                    model: 'gpt-4o',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }
@@ -319,27 +345,24 @@ ${characterInstruction}
                     response_format: { type: 'json_object' }
                 })
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error('OpenAI failed');
             const data = await response.json();
             const jsonText = data.choices[0].message.content;
             return JSON.parse(jsonText) as GeneratedContent;
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            finalError = e;
         }
-
-    } catch (error) {
-      console.error("Error generating script:", error);
-      throw new Error("Không thể tạo kịch bản. Vui lòng thử lại.");
     }
-  }, [geminiApiKey, openaiApiKey, selectedAIModel]);
+
+    throw finalError || new Error("Không thể tạo kịch bản. Vui lòng thử lại.");
+
+  }, [geminiApiKey, openaiApiKey, openRouterApiKey]);
   
   const handleGenerateCharacterImage = useCallback(async (characterIndex: number, prompt: string, aspectRatio: '16:9' | '9:16') => {
-    if (!geminiApiKey) { // Image generation is done via Gemini
-      setError("API Key Gemini chưa được cấu hình.");
-      return;
+    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+        setError("Vui lòng cài đặt ít nhất một API Key.");
+        return;
     }
 
     setCharacterImages(prev => ({
@@ -347,45 +370,112 @@ ${characterInstruction}
         [characterIndex]: { isGenerating: true, error: undefined, imageUrl: prev[characterIndex]?.imageUrl }
     }));
 
-    try {
-        const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-
-        let finalPrompt = prompt;
-        if (selectedCinematicStyle !== 'Hoạt hình') {
-          finalPrompt = `ultra photorealistic, realistic photograph, cinematic shot. ${prompt}. The final image must be absolutely realistic, not animated, not 3D, not a cartoon, not fantasy.`;
-        }
-
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: finalPrompt,
-            config: {
-              numberOfImages: 1,
-              outputMimeType: 'image/png',
-              aspectRatio: aspectRatio,
-            },
-        });
-        
-        if (!response.generatedImages?.[0]?.image?.imageBytes) {
-            throw new Error('Không có dữ liệu ảnh được trả về từ AI.');
-        }
-
-        const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-        const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-
-        setCharacterImages(prev => ({
-            ...prev,
-            [characterIndex]: { isGenerating: false, imageUrl: imageUrl }
-        }));
-
-    } catch (err: any) {
-        console.error("Image generation error:", err);
-        const errorMessage = err.message || "Lỗi không xác định khi tạo ảnh.";
-        setCharacterImages(prev => ({
-            ...prev,
-            [characterIndex]: { isGenerating: false, error: errorMessage }
-        }));
+    let finalPrompt = prompt;
+    if (selectedCinematicStyle !== 'Hoạt hình') {
+        finalPrompt = `ultra photorealistic, realistic photograph, cinematic shot. ${prompt}. The final image must be absolutely realistic, not animated, not 3D, not a cartoon, not fantasy.`;
     }
-  }, [geminiApiKey, selectedCinematicStyle]);
+    const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792' };
+
+    let finalError = null;
+
+    // 1. Try OpenRouter (Image)
+    if (openRouterApiKey) {
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
+                body: JSON.stringify({
+                    model: 'black-forest-labs/flux-1-schnell',
+                    prompt: finalPrompt,
+                    n: 1,
+                    size: sizeMap[aspectRatio] || '1024x1024',
+                })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const imageUrl = data.data[0].url;
+                setCharacterImages(prev => ({
+                    ...prev,
+                    [characterIndex]: { isGenerating: false, imageUrl: imageUrl }
+                }));
+                return;
+            }
+        } catch (e) {
+            console.warn("OpenRouter Image Gen failed", e);
+        }
+    }
+
+    // 2. Try Gemini (Image)
+    if (geminiApiKey) {
+        try {
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+            const response = await ai.models.generateImages({
+                model: 'imagen-4.0-generate-001',
+                prompt: finalPrompt,
+                config: {
+                    numberOfImages: 1,
+                    outputMimeType: 'image/png',
+                    aspectRatio: aspectRatio,
+                },
+            });
+            if (response.generatedImages?.[0]?.image?.imageBytes) {
+                const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+                const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                setCharacterImages(prev => ({
+                    ...prev,
+                    [characterIndex]: { isGenerating: false, imageUrl: imageUrl }
+                }));
+                return;
+            }
+        } catch (e) {
+            console.warn("Gemini Image Gen failed", e);
+            finalError = e;
+        }
+    } else {
+        // Fallback triggered, but Gemini key is missing
+        if (openRouterApiKey && !openaiApiKey) {
+             alert("OpenRouter tạo ảnh thất bại. Vui lòng nhập Gemini API Key để tiếp tục.");
+        }
+    }
+
+    // 3. Try OpenAI (Image)
+    if (openaiApiKey) {
+        try {
+            const response = await fetch('https://api.openai.com/v1/images/generations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+                body: JSON.stringify({
+                    model: 'dall-e-3',
+                    prompt: finalPrompt,
+                    n: 1,
+                    size: sizeMap[aspectRatio] || '1024x1024',
+                    response_format: 'b64_json',
+                    quality: 'hd',
+                    style: 'vivid'
+                })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const imageUrl = `data:image/png;base64,${data.data[0].b64_json}`;
+                setCharacterImages(prev => ({
+                    ...prev,
+                    [characterIndex]: { isGenerating: false, imageUrl: imageUrl }
+                }));
+                return;
+            }
+        } catch (e) {
+            console.warn("OpenAI Image Gen failed", e);
+            finalError = e;
+        }
+    }
+
+    const errorMessage = "Không thể tạo ảnh. Vui lòng kiểm tra API Key.";
+    setCharacterImages(prev => ({
+        ...prev,
+        [characterIndex]: { isGenerating: false, error: errorMessage }
+    }));
+
+  }, [geminiApiKey, openaiApiKey, openRouterApiKey, selectedCinematicStyle]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

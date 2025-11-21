@@ -70,7 +70,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
+const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [totalDuration, setTotalDuration] = useState('');
   const [durationUnit, setDurationUnit] = useState('minutes');
@@ -103,78 +103,29 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
   Crucially, ensure the generated script maintains strong contextual consistency between the "Video Idea" and the selected "Cinematic style." For example, if the video idea involves a "forest man" and the cinematic style is "cinematic," do not include modern items like walkie-talkies or compasses in the scene descriptions or prompts. All elements (environment, objects, actions) must be thematically aligned with the core concept.
   `;
 
-    try {
-        if (selectedAIModel === 'gemini') {
-            if (!geminiApiKey) {
-                throw new Error("API Key Gemini chưa được cấu hình.");
-            }
-            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-    
-            const sceneSchema = {
-              type: window.GenAIType.OBJECT,
-              properties: {
-                character: { type: window.GenAIType.STRING, description: "Left empty, user will attach reference character in Whisk." },
-                style: { type: window.GenAIType.STRING, description: "Cinematic style, lighting, tone, depth of field, visual texture, camera." },
-                scene: { type: window.GenAIType.STRING, description: "Context, action, emotion, lighting, environment. NO specific character description. In Vietnamese." },
-                characterSummary: { type: window.GenAIType.STRING, description: "Summarize the main characters in this scene, e.g., '1 Nam', '1 Nữ', '1 Thú', '1 Nam và 1 Nữ', '1 Nam và 1 Thú', 'Không có nhân vật chính'." },
-                whisk_prompt_vi: { type: window.GenAIType.STRING, description: "Vietnamese prompt for static image generation on Whisk. Must clearly describe the context according to the script. Concise, cinematic, sufficiently detailed, evocative. No faces, clothes, gender, identity." },
-                motion_prompt: { type: window.GenAIType.STRING, description: "English prompt for Flow VEO 3.1. Describes camera movement, dynamic lighting, emotional rhythm, moving objects or environment. No faces, clothes, gender, identity." },
-              },
-              required: ["character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt"],
-            };
-    
-            const fullSchema = { type: window.GenAIType.ARRAY, items: sceneSchema };
+    const systemPrompt = `${commonPrompt}
+    Your final output must be a single, valid JSON object with one key: "scenes". The value of "scenes" should be an array of scene objects. Each scene object must contain the following keys: "character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt".`;
 
-            const prompt = `${commonPrompt}
-            Video Idea: "${videoIdea}"
-            This video will be divided into ${numberOfScenes} scenes, each 8 seconds long.
-            ${styleInstruction}
+    const userPrompt = `Video Idea: "${videoIdea}"
+    This video will be divided into ${numberOfScenes} scenes, each 8 seconds long.
+    ${styleInstruction}
+    whisk_prompt_vi description: "${whiskPromptDescription}"
+    Generate a JSON object with a "scenes" array containing ${numberOfScenes} scene objects.`;
 
-            For each scene, generate the following structure as a JSON array. Ensure all fields are present and follow the specified guidelines:
-            {
-              "character": "Leave empty — user will attach reference character in Whisk. Provide an empty string.",
-              "style": "Cinematic style, lighting, tone, depth of field, visual texture, camera. (e.g., 'Cinematic, warm golden hour, shallow depth of field, soft grain, handheld close-up.')",
-              "scene": "In Vietnamese, you MUST describe the context (bối cảnh), action, emotion, lighting, and environment. A detailed context description is mandatory for every scene. DO NOT describe specific characters (faces, clothes, gender, identity). Focus on the atmosphere and overall situation. This description should go straight to the main high-climax point or pivotal moment of the scene.",
-              "characterSummary": "Summarize the main characters appearing in this scene, adhering to a maximum of 2 main human characters (1 Nam, 1 Nữ) and potentially 1 giant animal character (1 Thú). Examples: '1 Nam', '1 Nữ', '1 Thú', '1 Nam và 1 Nữ', '1 Nam và 1 Thú', '1 Nữ và 1 Thú', 'Không có nhân vật chính'. If the scene implies characters that are not a main boy/girl/giant animal, describe them generally (e.g., 'nhóm người', 'đám đông') but do not count them in the summary. It is absolutely critical that this summary is accurate for every single scene without exception. There must be no errors.",
-              "whisk_prompt_vi": "${whiskPromptDescription}",
-              "motion_prompt": "English prompt for Flow VEO 3.1. Describe camera movement (e.g., 'slow zoom out', 'subtle pan left'), dynamic lighting (e.g., 'flickering shadows'), emotional rhythm, and moving objects or environmental elements (e.g., 'leaves rustling', 'gentle sway of water'). DO NOT describe faces, clothes, gender, or identity. This prompt should be independent from 'whisk_prompt_vi' and focus solely on motion."
-            }
-            Generate a JSON array with ${numberOfScenes} scene objects, following the video idea and scene-by-scene progression.
-            The narrative should have a realistic cinematic tone, natural lighting, and an emotional, narrative rhythm.
-            `;
-            
-            const response = await ai.models.generateContent({
-              model: "gemini-2.5-pro",
-              contents: prompt,
-              config: {
-                responseMimeType: "application/json",
-                responseSchema: fullSchema,
-              },
-            });
-      
-            const jsonStr = response.text.trim();
-            return JSON.parse(jsonStr) as Scene[];
-        } else { // OpenAI
-            if (!openaiApiKey) {
-                throw new Error("API Key OpenAI chưa được cấu hình.");
-            }
-            const systemPrompt = `${commonPrompt}
-            Your final output must be a single, valid JSON object with one key: "scenes". The value of "scenes" should be an array of scene objects. Each scene object must contain the following keys: "character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt".`;
+    // --- FALLBACK LOGIC ---
+    let finalError: unknown;
 
-            const userPrompt = `Video Idea: "${videoIdea}"
-            This video will be divided into ${numberOfScenes} scenes, each 8 seconds long.
-            ${styleInstruction}
-            whisk_prompt_vi description: "${whiskPromptDescription}"
-            Generate a JSON object with a "scenes" array containing ${numberOfScenes} scene objects.`;
-            
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // 1. Try OpenRouter
+    if (openRouterApiKey) {
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openaiApiKey}`
+                    'Authorization': `Bearer ${openRouterApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-5.1',
+                    model: 'google/gemini-2.0-flash-001', // Use a reliable model on OpenRouter
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }
@@ -182,27 +133,87 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
                     response_format: { type: 'json_object' }
                 })
             });
+            if (!response.ok) throw new Error('OpenRouter API failed');
+            const data = await response.json();
+            const jsonText = data.choices[0].message.content;
+            const parsedResponse = JSON.parse(jsonText);
+            if (parsedResponse.scenes) return parsedResponse.scenes;
+        } catch (e) {
+            console.warn("OpenRouter failed, trying Gemini...", e);
+            finalError = e;
+        }
+    }
 
+    // 2. Try Gemini
+    if (geminiApiKey) {
+        try {
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+            const sceneSchema = {
+              type: window.GenAIType.OBJECT,
+              properties: {
+                character: { type: window.GenAIType.STRING, description: "Left empty, user will attach reference character in Whisk." },
+                style: { type: window.GenAIType.STRING, description: "Cinematic style, lighting, tone, depth of field, visual texture, camera." },
+                scene: { type: window.GenAIType.STRING, description: "Context, action, emotion, lighting, environment. NO specific character description. In Vietnamese." },
+                characterSummary: { type: window.GenAIType.STRING, description: "Summarize the main characters in this scene." },
+                whisk_prompt_vi: { type: window.GenAIType.STRING, description: "Vietnamese prompt for static image generation on Whisk." },
+                motion_prompt: { type: window.GenAIType.STRING, description: "English prompt for Flow VEO 3.1." },
+              },
+              required: ["character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt"],
+            };
+            const fullSchema = { type: window.GenAIType.ARRAY, items: sceneSchema };
+            const geminiPrompt = `${systemPrompt}\n\n${userPrompt}`;
+            
+            const response = await ai.models.generateContent({
+              model: "gemini-2.5-pro",
+              contents: geminiPrompt,
+              config: {
+                responseMimeType: "application/json",
+                responseSchema: fullSchema,
+              },
+            });
+            const jsonStr = response.text.trim();
+            return JSON.parse(jsonStr) as Scene[];
+        } catch (e) {
+            console.warn("Gemini failed, trying OpenAI...", e);
+            finalError = e;
+        }
+    }
+
+    // 3. Try OpenAI
+    if (openaiApiKey) {
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
             }
-
             const data = await response.json();
             const jsonText = data.choices[0].message.content;
             const parsedResponse = JSON.parse(jsonText);
-            
-            if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) {
-              throw new Error("Invalid response format from OpenAI. Expected a 'scenes' array.");
-            }
-            
-            return parsedResponse.scenes;
+            if (parsedResponse.scenes) return parsedResponse.scenes;
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            finalError = e;
         }
-    } catch (error) {
-      console.error("Error generating script:", error);
-      throw new Error("Failed to generate script. Please try again.");
     }
-  }, [geminiApiKey, openaiApiKey, selectedAIModel]);
+
+    throw finalError || new Error("Không thể tạo kịch bản. Vui lòng kiểm tra API Key.");
+
+  }, [geminiApiKey, openaiApiKey, openRouterApiKey]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

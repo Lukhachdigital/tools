@@ -3,7 +3,8 @@ export const APP_LINKS = {
     FREE_RESOURCES: "https://lamyoutubeai.com/free",
     API_KEY_TUTORIAL: "https://www.youtube.com/watch?v=1Pi-xnnFq70",
     GEMINI_API_KEY_GET: "https://aistudio.google.com/app/apikey",
-    OPENAI_API_KEY_GET: "https://platform.openai.com/api-keys"
+    OPENAI_API_KEY_GET: "https://platform.openai.com/api-keys",
+    OPENROUTER_API_KEY_GET: "https://openrouter.ai/keys"
 };
 
 export const SOCIAL_LINKS = {
