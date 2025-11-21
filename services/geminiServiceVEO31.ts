@@ -1,4 +1,3 @@
-
 import type { ScriptParams, ScriptResponse } from '../types/veo31';
 import { GoogleGenAI, Type } from '@google/genai';
 
@@ -108,7 +107,7 @@ ${params.topic}
             const prompt = `${commonPrompt}\n\n**ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ chứa một khóa duy nhất là "script".`;
 
             const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
+                model: "gemini-2.5-pro",
                 contents: prompt,
                 config: {
                     responseMimeType: "application/json",
