@@ -449,7 +449,7 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                         React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
                     React.createElement('input', inputGeminiProps),
-                    React.createElement('p', { className: "text-xs text-yellow-500 mt-2" }, "Lưu ý: Nếu chạy trên GitHub hoặc Hosting riêng, hãy đảm bảo API Key không bị giới hạn Referrer (hoặc đã thêm domain vào danh sách cho phép).")
+                    React.createElement('p', { className: "text-xs text-yellow-500 mt-2" }, "Lưu ý: Cần cài đặt tài khaon3 thanh toán cho Google Cloud để sử dụng API miển phí")
                 ),
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
