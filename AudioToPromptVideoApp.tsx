@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 
@@ -171,30 +172,111 @@ const chopAudio = async (file: File): Promise<File[]> => {
     return chunks;
 };
 
-const generatePromptsFromAudioChunks = async (files: File[], apiKey: string): Promise<string[]> => {
+const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, style: string, language: string): Promise<string[]> => {
   const ai = new GoogleGenAI({ apiKey });
-  const promptForSingleAudio = `You are an expert video script director. Your task is to analyze the provided audio file and generate a single, concise, visually descriptive prompt for a video generation model like VEO. The prompt should capture the essence, mood, and key information of the entire audio file.
   
-  **CRITICAL INSTRUCTIONS:**
-  1.  **Analyze Audio:** Listen carefully to the entire audio content.
-  2.  **Summarize Visually:** Create ONE single prompt that summarizes the audio content visually. It should be suitable for generating an 8-second video clip that represents the audio.
-  3.  **Output Format (Strict):**
-      *   Return ONLY the generated prompt text.
-      *   Do not include any other text, explanations, headers, or introductory/concluding remarks. Just the prompt itself.
-      *   The prompt can be in English or Vietnamese, but English is preferred for better compatibility with video models.
+  const styleMap: Record<string, string> = {
+        'Hoạt hình': 'Cartoon, 3D Render, Vivid Colors',
+        'Thực tế': 'Realistic, Photorealistic, True to life, 8k, Raw footage',
+        'Anime': 'Anime Style, 2D, Japanese Animation',
+        'Điện ảnh': 'Cinematic, Photorealistic, 8k, High Quality, Dramatic Lighting',
+        'Hiện đại': 'Modern, Sharp, High Quality, Clean',
+        'Viễn tưởng': 'Sci-fi, Futuristic, Neon, Cyberpunk'
+  };
+
+  // Negative constraints to enforce style purity
+  const styleNegativeConstraints: Record<string, string> = {
+      'Thực tế': 'ABSOLUTELY NO sci-fi, NO futuristic technology, NO fantasy elements, NO cartoons, NO anime, NO drawings. The scene must look like a real-world location in the present day (2024).',
+      'Hoạt hình': 'NO photorealism, NO real-life footage.',
+      'Anime': 'NO photorealism, NO 3D render.',
+      'Điện ảnh': 'NO low quality, NO cartoonish elements unless specified.',
+      'Hiện đại': 'NO ancient, NO prehistoric, NO sci-fi, NO futuristic elements.',
+      'Viễn tưởng': 'NO boring present-day elements.',
+  };
+
+  const langMap: Record<string, string> = {
+      'Vietnamese': 'Vietnamese',
+      'English': 'English',
+      'Không thoại': 'None',
+  };
+
+  const mappedStyle = styleMap[style] || styleMap['Điện ảnh'];
+  const negativeConstraint = styleNegativeConstraints[style] || '';
+  const mappedLang = langMap[language] || 'None';
+
+  // STRICTLY FORCE NONE FOR VOICE AND DIALOGUE IF 'None' IS SELECTED
+  const dialogueInstruction = mappedLang === 'None' 
+    ? 'OUTPUT EXACTLY: "Dialog: [None]". IT IS FORBIDDEN TO WRITE ANY DIALOGUE.' 
+    : `Transcribe the spoken words from the audio accurately. The language MUST be in ${mappedLang}. Prefix with "Dialog:".`;
+
+  const voiceInstruction = mappedLang === 'None'
+    ? 'OUTPUT EXACTLY: "Voice: [None]". IT IS FORBIDDEN TO DESCRIBE ANY VOICE.'
+    : 'Describe the voice heard in the audio (e.g., "Voice: Male, deep, calm" or "Voice: Female, energetic"). Prefix with "Voice:".';
+
+  const promptForSingleAudio = `You are an expert video script director for VEO 3.1. Your task is to analyze the provided audio file and generate a video generation prompt that strictly follows the VEO 3.1 format.
+
+    **FORMAT REQUIREMENTS (Strictly Enforced):**
+    The output must be a SINGLE string with exactly 11 parts separated by " | ".
+    Format: Scene Title | Character 1 Description | Character 2 Description | Style Description | Character Voices | Camera Shot | Setting Details | Mood | Audio Cues | Dialog | Subtitles
+
+    **USER SETTINGS:**
+    - **Visual Style:** ${style} (Keywords: ${mappedStyle})
+    - **Dialogue Mode:** ${language}
+
+    **MANDATORY VISUAL STYLE INSTRUCTIONS:**
+    - **NEGATIVE CONSTRAINTS:** ${negativeConstraint}
+    - The descriptions for "Character 1", "Character 2", and "Setting Details" MUST strictly reflect the "${style}" style.
+    - If "${style}" is "Hoạt hình" (Cartoon), you MUST describe characters and settings as stylized, animated, 3D render, colorful.
+    - If "${style}" is "Thực tế" (Realistic), you MUST describe them as photorealistic, raw, 8k, detailed textures of REAL LIFE. Do not include anything that does not exist in the real world today.
+    - If "${style}" is "Anime", you MUST describe them as 2D animation, anime art style.
+
+    **CONTENT GUIDELINES:**
+    1.  **Scene Title**: Always "Scene Title: [None]".
+    2.  **Character 1 Description**: Describe the main subject visible in the video based on the audio context. Prefix with "Character 1:". Ensure the visual description matches the "${style}" style.
+    3.  **Character 2 Description**: Describe a secondary character or write "Character 2: [None]".
+    4.  **Style Description**: "Style: ${mappedStyle}".
+    5.  **Character Voices**: ${voiceInstruction}
+    6.  **Camera Shot**: Describe a camera movement suitable for an 8-second clip (e.g., "Camera: Slow zoom in", "Camera: Pan right").
+    7.  **Setting Details**: Describe the environment/background that matches the audio's context. Prefix with "Setting:". Ensure the setting visuals align with the "${style}" style.
+    8.  **Mood**: The emotional tone of the audio. Prefix with "Mood:".
+    9.  **Audio Cues**: Describe background sounds or music heard in the audio file. Prefix with "Audio:". DO NOT describe voices here if Dialogue Mode is None.
+    10. **Dialog**: ${dialogueInstruction}
+    11. **Subtitles**: Always "Subtitles: [None]".
+
+    **CRITICAL INSTRUCTIONS:**
+    - If "Không thoại" (None) is selected, you MUST strictly output "Voice: [None]" and "Dialog: [None]". Do not describe voices or transcribe speech in these fields under any circumstances.
+    - Output ONLY the formatted string. No markdown, no explanations.
   `;
   
-  const generationPromises = files.map(async (file) => {
+  const prompts: string[] = [];
+  // Process files sequentially to avoid Rate Limit 429
+  for (const file of files) {
     const base64EncodedData = await new Promise<string>(r => {
         const reader = new FileReader();
         reader.onloadend = () => r((reader.result as string).split(',')[1]);
         reader.readAsDataURL(file);
     });
     const audioPart = { inlineData: { data: base64EncodedData, mimeType: file.type } };
+    
+    // Add small delay between chunks
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: { parts: [{ text: promptForSingleAudio }, audioPart] } });
-    return response.text.trim();
-  });
-  return Promise.all(generationPromises);
+    let promptText = response.text.trim();
+
+    // FORCE POST-PROCESSING TO REMOVE VOICE/DIALOGUE IF "NONE" SELECTED
+    if (mappedLang === 'None') {
+        const parts = promptText.split('|');
+        // Index 4 is Character Voices, Index 9 is Dialog in 11-part VEO format.
+        if (parts.length >= 10) {
+            parts[4] = " Voice: [None] ";
+            parts[9] = " Dialog: [None] ";
+            promptText = parts.join('|');
+        }
+    }
+    prompts.push(promptText);
+  }
+  return prompts;
 };
 
 // --- MAIN APP COMPONENT ---
@@ -210,7 +292,14 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
     const [error, setError] = useState<string | null>(null);
     const [results, setResults] = useState<ScriptResponse | null>(null);
     const [dragOver, setDragOver] = useState<boolean>(false);
+    const [videoStyle, setVideoStyle] = useState('Điện ảnh');
+    const [dialogueLanguage, setDialogueLanguage] = useState('Không thoại'); // Default is 'Không thoại'
+    const [processingStatus, setProcessingStatus] = useState('');
+    
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const videoStyles = ['Hoạt hình', 'Thực tế', 'Anime', 'Điện ảnh', 'Hiện đại', 'Viễn tưởng'];
+    const dialogueLanguages = ['Vietnamese', 'English', 'Không thoại'];
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
@@ -263,22 +352,39 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
         setIsLoading(true);
         setError(null);
         setResults(null);
+        setProcessingStatus('Đang cắt file audio...');
 
         try {
             // Step 1: Chop audio
             const chunks = await chopAudio(file);
             
+            setProcessingStatus(`Đang tạo prompt từ ${chunks.length} đoạn âm thanh... (Vui lòng đợi)`);
+
             // Step 2: Generate prompts for chunks
-            const prompts = await generatePromptsFromAudioChunks(chunks, geminiApiKey);
+            const prompts = await generatePromptsFromAudioChunks(chunks, geminiApiKey, videoStyle, dialogueLanguage);
             
             setResults({ script: prompts });
         } catch (e) {
             console.error(e);
-            setError(e instanceof Error ? e.message : "Đã xảy ra lỗi không xác định.");
+            // Translate specific API errors if needed
+            let errorMessage = "Đã xảy ra lỗi không xác định.";
+            if (e instanceof Error) {
+                if (e.message.includes('429') || e.message.toLowerCase().includes('quota')) {
+                    errorMessage = "Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429/Quota).";
+                } else if (e.message.toLowerCase().includes('api key')) {
+                    errorMessage = "API Key không hợp lệ. Vui lòng kiểm tra lại.";
+                } else {
+                    errorMessage = e.message;
+                }
+            }
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
+            setProcessingStatus('');
         }
-    }, [file, geminiApiKey]);
+    }, [file, geminiApiKey, videoStyle, dialogueLanguage]);
+    
+    const buttonClasses = (isSelected: boolean) => `py-2 px-2 text-xs font-semibold rounded-lg transition ${isSelected ? 'bg-cyan-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`;
 
     return (
         <div className="w-full h-full p-4">
@@ -317,6 +423,40 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
                                 <p className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
                             </div>
                         )}
+                        
+                        {/* Style Selector */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-300">Phong cách Video</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {videoStyles.map(style => (
+                                    <button
+                                        key={style}
+                                        onClick={() => setVideoStyle(style)}
+                                        className={buttonClasses(videoStyle === style)}
+                                        disabled={isLoading}
+                                    >
+                                        {style}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Language Selector */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-semibold text-slate-300">Ngôn ngữ thoại</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {dialogueLanguages.map(lang => (
+                                    <button
+                                        key={lang}
+                                        onClick={() => setDialogueLanguage(lang)}
+                                        className={buttonClasses(dialogueLanguage === lang)}
+                                        disabled={isLoading}
+                                    >
+                                        {lang}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
                         <button
                             onClick={handleGenerate}
@@ -330,7 +470,7 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
 
                 {/* Right Column: Results */}
                 <div className="md:w-3/5 lg:w-2/3 md:h-[calc(100vh-150px)] md:overflow-y-auto custom-scrollbar md:pr-4">
-                    {isLoading && <Loader message="Đang cắt file audio và tạo prompt..." />}
+                    {isLoading && <Loader message={processingStatus || "Đang cắt file audio và tạo prompt..."} />}
                     {error && (
                          <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded relative mb-8">
                             <strong className="font-bold">Lỗi! </strong>
