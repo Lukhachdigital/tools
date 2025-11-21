@@ -119,8 +119,12 @@ const generateTitlesWithGemini = async (description: string, apiKey: string, len
     const result = JSON.parse(jsonText);
     return result.titles || [];
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating titles with Gemini:", error);
+    let message = error.message || "";
+    if (message.includes("429") || message.toLowerCase().includes("quota")) {
+        throw new Error("Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429/Quota).");
+    }
     throw new Error("Không thể tạo tiêu đề bằng Gemini. Vui lòng kiểm tra API Key và thử lại.");
   }
 };
@@ -181,8 +185,12 @@ const generateFullSEOContentWithGemini = async (description: string, title: stri
         const result = JSON.parse(jsonText);
         return result;
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error generating full SEO content with Gemini:", error);
+        let message = error.message || "";
+        if (message.includes("429") || message.toLowerCase().includes("quota")) {
+            throw new Error("Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429/Quota).");
+        }
         throw new Error("Không thể tạo nội dung SEO bằng Gemini. Vui lòng kiểm tra API Key và thử lại.");
     }
 };
@@ -209,6 +217,9 @@ const callOpenAI = async (apiKey: string, messages: object[], temperature: numbe
     });
 
     if (!response.ok) {
+        if (response.status === 429) {
+             throw new Error("Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429).");
+        }
         const errorData = await response.json();
         console.error("OpenAI API Error:", errorData);
         throw new Error(`Lỗi từ OpenAI API: ${errorData.error?.message || response.statusText}`);
@@ -254,9 +265,9 @@ const generateTitlesWithOpenAI = async (description: string, apiKey: string, len
         // Use high temperature for titles to ensure uniqueness and creativity
         const result = await callOpenAI(apiKey, messages, 1.0);
         return result.titles || [];
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error generating titles with OpenAI:", error);
-        throw new Error("Không thể tạo tiêu đề bằng OpenAI. Vui lòng kiểm tra API Key và thử lại.");
+        throw new Error(error.message || "Không thể tạo tiêu đề bằng OpenAI. Vui lòng kiểm tra API Key và thử lại.");
     }
 };
 
@@ -298,9 +309,9 @@ const generateFullSEOContentWithOpenAI = async (description: string, title: stri
     try {
         const result = await callOpenAI(apiKey, messages, 0.7);
         return result;
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error generating full SEO content with OpenAI:", error);
-        throw new Error("Không thể tạo nội dung SEO bằng OpenAI. Vui lòng kiểm tra API Key và thử lại.");
+        throw new Error(error.message || "Không thể tạo nội dung SEO bằng OpenAI. Vui lòng kiểm tra API Key và thử lại.");
     }
 };
 

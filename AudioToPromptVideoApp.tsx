@@ -248,13 +248,19 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     - Output ONLY the formatted string. No markdown, no explanations.
   `;
   
-  const generationPromises = files.map(async (file) => {
+  const prompts: string[] = [];
+  // Process files sequentially to avoid Rate Limit 429
+  for (const file of files) {
     const base64EncodedData = await new Promise<string>(r => {
         const reader = new FileReader();
         reader.onloadend = () => r((reader.result as string).split(',')[1]);
         reader.readAsDataURL(file);
     });
     const audioPart = { inlineData: { data: base64EncodedData, mimeType: file.type } };
+    
+    // Add small delay between chunks
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: { parts: [{ text: promptForSingleAudio }, audioPart] } });
     let promptText = response.text.trim();
 
@@ -262,17 +268,15 @@ const generatePromptsFromAudioChunks = async (files: File[], apiKey: string, sty
     if (mappedLang === 'None') {
         const parts = promptText.split('|');
         // Index 4 is Character Voices, Index 9 is Dialog in 11-part VEO format.
-        // We verify length to ensure it's likely a valid VEO prompt string.
         if (parts.length >= 10) {
             parts[4] = " Voice: [None] ";
             parts[9] = " Dialog: [None] ";
             promptText = parts.join('|');
         }
     }
-
-    return promptText;
-  });
-  return Promise.all(generationPromises);
+    prompts.push(promptText);
+  }
+  return prompts;
 };
 
 // --- MAIN APP COMPONENT ---
@@ -290,6 +294,7 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
     const [dragOver, setDragOver] = useState<boolean>(false);
     const [videoStyle, setVideoStyle] = useState('Điện ảnh');
     const [dialogueLanguage, setDialogueLanguage] = useState('Không thoại'); // Default is 'Không thoại'
+    const [processingStatus, setProcessingStatus] = useState('');
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -347,11 +352,14 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
         setIsLoading(true);
         setError(null);
         setResults(null);
+        setProcessingStatus('Đang cắt file audio...');
 
         try {
             // Step 1: Chop audio
             const chunks = await chopAudio(file);
             
+            setProcessingStatus(`Đang tạo prompt từ ${chunks.length} đoạn âm thanh... (Vui lòng đợi)`);
+
             // Step 2: Generate prompts for chunks
             const prompts = await generatePromptsFromAudioChunks(chunks, geminiApiKey, videoStyle, dialogueLanguage);
             
@@ -362,7 +370,7 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
             let errorMessage = "Đã xảy ra lỗi không xác định.";
             if (e instanceof Error) {
                 if (e.message.includes('429') || e.message.toLowerCase().includes('quota')) {
-                    errorMessage = "Hệ thống đang quá tải (Lỗi 429/Quota). Vui lòng thử lại sau ít phút.";
+                    errorMessage = "Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429/Quota).";
                 } else if (e.message.toLowerCase().includes('api key')) {
                     errorMessage = "API Key không hợp lệ. Vui lòng kiểm tra lại.";
                 } else {
@@ -372,6 +380,7 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
             setError(errorMessage);
         } finally {
             setIsLoading(false);
+            setProcessingStatus('');
         }
     }, [file, geminiApiKey, videoStyle, dialogueLanguage]);
     
@@ -461,7 +470,7 @@ const AudioToPromptVideoApp: React.FC<AudioToPromptVideoAppProps> = ({ geminiApi
 
                 {/* Right Column: Results */}
                 <div className="md:w-3/5 lg:w-2/3 md:h-[calc(100vh-150px)] md:overflow-y-auto custom-scrollbar md:pr-4">
-                    {isLoading && <Loader message="Đang cắt file audio và tạo prompt..." />}
+                    {isLoading && <Loader message={processingStatus || "Đang cắt file audio và tạo prompt..."} />}
                     {error && (
                          <div className="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded relative mb-8">
                             <strong className="font-bold">Lỗi! </strong>

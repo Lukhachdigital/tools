@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { GoogleGenAI } from "@google/genai";
 
 interface Language {
     name: string;
@@ -42,12 +43,14 @@ const ResultCard = ({ language, text }: { language: string, text: string }) => {
     );
 };
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
     const [text, setText] = useState('');
     const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['English']);
     const [results, setResults] = useState<{ language: string, translation: string }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingStatus, setLoadingStatus] = useState('');
     const [error, setError] = useState('');
 
     const languages = [
@@ -106,21 +109,22 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
         ---
         Bản dịch:`;
 
-
         try {
-            let translationPromises: Promise<{ language: string, translation: string }>[];
-            if (selectedAIModel === 'gemini') {
-                const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-                translationPromises = selectedLanguages.map(async (lang) => {
+            const newResults: { language: string, translation: string }[] = [];
+            
+            // Process sequentially to avoid 429 errors
+            for (const lang of selectedLanguages) {
+                setLoadingStatus(`Đang dịch sang ${lang}...`);
+                
+                if (selectedAIModel === 'gemini') {
+                    const ai = new GoogleGenAI({ apiKey: geminiApiKey });
                     const prompt = `Dịch đoạn văn bản sau đây sang ngôn ngữ ${lang}.\n${commonPrompt}`;
                     const response = await ai.models.generateContent({
                         model: 'gemini-2.5-flash',
                         contents: prompt,
                     });
-                    return { language: lang, translation: response.text || "" };
-                });
-            } else { // OpenAI
-                translationPromises = selectedLanguages.map(async (lang) => {
+                    newResults.push({ language: lang, translation: response.text || "" });
+                } else { // OpenAI
                     const response = await fetch('https://api.openai.com/v1/chat/completions', {
                         method: 'POST',
                         headers: {
@@ -138,21 +142,32 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
 
                     if (!response.ok) {
                         const errorData = await response.json();
+                        if (response.status === 429) {
+                             throw new Error("Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429).");
+                        }
                         throw new Error(`OpenAI Error for ${lang}: ${errorData.error?.message || response.statusText}`);
                     }
                     const data = await response.json();
-                    return { language: lang, translation: data.choices[0]?.message?.content || "" };
-                });
+                    newResults.push({ language: lang, translation: data.choices[0]?.message?.content || "" });
+                }
+                
+                // Update results incrementally
+                setResults([...newResults]);
+                
+                // Add a small delay between requests to respect rate limits
+                await delay(1000);
             }
-
-            const translationResults = await Promise.all(translationPromises);
-            setResults(translationResults);
 
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Đã xảy ra lỗi trong quá trình dịch.');
+            let message = err.message || 'Đã xảy ra lỗi trong quá trình dịch.';
+            if (message.includes('429') || message.toLowerCase().includes('quota')) {
+                message = 'Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429/Quota).';
+            }
+            setError(message);
         } finally {
             setIsLoading(false);
+            setLoadingStatus('');
         }
     };
 
@@ -194,7 +209,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    Đang dịch thuật...
+                                    {loadingStatus || 'Đang dịch...'}
                                 </>
                             ) : (
                                 '3. Dịch ngay'
