@@ -448,7 +448,8 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
                         React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key"),
                         React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
-                    React.createElement('input', inputGeminiProps)
+                    React.createElement('input', inputGeminiProps),
+                    React.createElement('p', { className: "text-xs text-yellow-500 mt-2" }, "Lưu ý: Nếu chạy trên GitHub hoặc Hosting riêng, hãy đảm bảo API Key không bị giới hạn Referrer (hoặc đã thêm domain vào danh sách cho phép).")
                 ),
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
