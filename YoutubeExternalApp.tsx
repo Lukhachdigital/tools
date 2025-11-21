@@ -1,14 +1,6 @@
-
 import React, { useState } from 'react';
-import { GoogleGenAI } from "@google/genai";
 
-interface Language {
-    name: string;
-    country: string;
-    flag: string;
-}
-
-const LanguageButton = ({ language, selected, onClick }: { language: Language, selected: string[], onClick: (name: string) => void }) => {
+const LanguageButton = ({ language, selected, onClick }) => {
     const isSelected = selected.includes(language.name);
     const buttonClasses = `
         flex items-center justify-center px-4 py-2 rounded-lg border-2 transition-all duration-200
@@ -22,7 +14,7 @@ const LanguageButton = ({ language, selected, onClick }: { language: Language, s
     );
 };
 
-const ResultCard = ({ language, text }: { language: string, text: string }) => {
+const ResultCard = ({ language, text }) => {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
@@ -43,14 +35,12 @@ const ResultCard = ({ language, text }: { language: string, text: string }) => {
     );
 };
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
     const [text, setText] = useState('');
-    const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['English']);
-    const [results, setResults] = useState<{ language: string, translation: string }[]>([]);
+    const [selectedLanguages, setSelectedLanguages] = useState(['English']);
+    const [results, setResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [loadingStatus, setLoadingStatus] = useState('');
     const [error, setError] = useState('');
 
     const languages = [
@@ -64,7 +54,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
         { name: 'Vietnamese', country: 'Việt Nam', flag: '🇻🇳' },
     ];
 
-    const toggleLanguage = (langName: string) => {
+    const toggleLanguage = (langName) => {
         setSelectedLanguages(prev =>
             prev.includes(langName)
                 ? prev.filter(l => l !== langName)
@@ -109,22 +99,21 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
         ---
         Bản dịch:`;
 
+
         try {
-            const newResults: { language: string, translation: string }[] = [];
-            
-            // Process sequentially to avoid 429 errors
-            for (const lang of selectedLanguages) {
-                setLoadingStatus(`Đang dịch sang ${lang}...`);
-                
-                if (selectedAIModel === 'gemini') {
-                    const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+            let translationPromises;
+            if (selectedAIModel === 'gemini') {
+                const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+                translationPromises = selectedLanguages.map(async (lang) => {
                     const prompt = `Dịch đoạn văn bản sau đây sang ngôn ngữ ${lang}.\n${commonPrompt}`;
                     const response = await ai.models.generateContent({
                         model: 'gemini-2.5-flash',
                         contents: prompt,
                     });
-                    newResults.push({ language: lang, translation: response.text || "" });
-                } else { // OpenAI
+                    return { language: lang, translation: response.text };
+                });
+            } else { // OpenAI
+                translationPromises = selectedLanguages.map(async (lang) => {
                     const response = await fetch('https://api.openai.com/v1/chat/completions', {
                         method: 'POST',
                         headers: {
@@ -134,114 +123,77 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
                         body: JSON.stringify({
                             model: 'gpt-4o',
                             messages: [
-                                { role: 'system', content: `Bạn là một chuyên gia dịch thuật sang tiếng ${lang}.` },
-                                { role: 'user', content: commonPrompt }
-                            ]
+                                { role: 'system', content: `Dịch văn bản sau sang ${lang}. ${commonPrompt}` },
+                                { role: 'user', content: text }
+                            ],
+                            temperature: 0.2
                         })
                     });
-
                     if (!response.ok) {
                         const errorData = await response.json();
-                        if (response.status === 429) {
-                             throw new Error("Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429).");
-                        }
-                        throw new Error(`OpenAI Error for ${lang}: ${errorData.error?.message || response.statusText}`);
+                        throw new Error(`Lỗi dịch sang ${lang}: ${errorData.error?.message}`);
                     }
                     const data = await response.json();
-                    newResults.push({ language: lang, translation: data.choices[0]?.message?.content || "" });
-                }
-                
-                // Update results incrementally
-                setResults([...newResults]);
-                
-                // Add a small delay between requests to respect rate limits
-                await delay(1000);
+                    return { language: lang, translation: data.choices[0].message.content };
+                });
             }
 
-        } catch (err: any) {
-            console.error(err);
-            let message = err.message || 'Đã xảy ra lỗi trong quá trình dịch.';
-            if (message.includes('429') || message.toLowerCase().includes('quota')) {
-                message = 'Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429/Quota).';
-            }
-            setError(message);
+            const newResults = await Promise.all(translationPromises);
+            setResults(newResults);
+
+        } catch (e) {
+            console.error(e);
+            setError(e instanceof Error ? e.message : 'Không thể dịch văn bản. Vui lòng thử lại sau.');
         } finally {
             setIsLoading(false);
-            setLoadingStatus('');
         }
     };
+    
+    const textareaProps = {
+        id: 'text-to-translate',
+        value: text,
+        onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value),
+        rows: 8,
+        className: "w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition",
+        placeholder: "Nhập tiêu đề, mô tả hoặc kịch bản vào đây..."
+    };
 
-    return (
-        <div className="w-full h-full p-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column: Input */}
-                <div className="flex flex-col space-y-6">
-                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 shadow-lg">
-                        <h3 className="text-xl font-bold text-cyan-400 mb-4">1. Nhập nội dung</h3>
-                        <textarea
-                            value={text}
-                            onChange={(e) => setText(e.target.value)}
-                            placeholder="Nhập tiêu đề, mô tả video của bạn vào đây..."
-                            className="w-full h-64 p-4 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors resize-none"
-                        />
-                    </div>
-
-                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 shadow-lg">
-                        <h3 className="text-xl font-bold text-cyan-400 mb-4">2. Chọn ngôn ngữ</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-                            {languages.map(lang => (
-                                <LanguageButton
-                                    key={lang.name}
-                                    language={lang}
-                                    selected={selectedLanguages}
-                                    onClick={toggleLanguage}
-                                />
-                            ))}
-                        </div>
-                        <button
-                            onClick={handleTranslate}
-                            disabled={isLoading}
-                            className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex justify-center items-center"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    {loadingStatus || 'Đang dịch...'}
-                                </>
-                            ) : (
-                                '3. Dịch ngay'
-                            )}
-                        </button>
-                        {error && (
-                            <div className="mt-4 p-3 bg-red-900/50 border border-red-500 text-red-200 rounded-lg text-sm">
-                                {error}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Right Column: Results */}
-                <div className="flex flex-col space-y-6">
-                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 shadow-lg h-full">
-                        <h3 className="text-xl font-bold text-cyan-400 mb-4">Kết quả dịch</h3>
-                        <div className="space-y-4 max-h-[800px] overflow-y-auto custom-scrollbar pr-2">
-                            {results.length > 0 ? (
-                                results.map((res, index) => (
-                                    <ResultCard key={index} language={res.language} text={res.translation} />
-                                ))
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-                                    <p>Kết quả dịch sẽ hiển thị ở đây.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    return React.createElement('div', { className: 'w-full h-full flex flex-col p-4' },
+        React.createElement('main', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-8 flex-grow' },
+            React.createElement('div', { className: 'bg-slate-900/50 p-6 rounded-2xl border border-slate-700 space-y-6' },
+                React.createElement('div', null,
+                    React.createElement('label', { htmlFor: 'text-to-translate', className: "block text-lg font-semibold text-cyan-300 mb-2" }, 'Văn bản gốc'),
+                    React.createElement('textarea', textareaProps)
+                ),
+                React.createElement('div', null,
+                    React.createElement('label', { className: "block text-lg font-semibold text-cyan-300 mb-3" }, 'Dịch sang ngôn ngữ'),
+                    React.createElement('div', { className: "flex flex-wrap gap-3 justify-center" },
+                        languages.map(lang => React.createElement(LanguageButton, {
+                            key: lang.name,
+                            language: lang,
+                            selected: selectedLanguages,
+                            onClick: toggleLanguage
+                        }))
+                    )
+                ),
+                React.createElement('button', {
+                    onClick: handleTranslate,
+                    disabled: isLoading || !text || selectedLanguages.length === 0,
+                    className: "w-full text-lg font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center bg-cyan-500 hover:bg-cyan-600 text-slate-900 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed"
+                }, isLoading ? 'Đang dịch...' : 'Dịch')
+            ),
+            React.createElement('div', { className: 'bg-slate-900/50 p-6 rounded-2xl border border-slate-700' },
+                React.createElement('h2', { className: 'text-lg font-semibold text-cyan-300 mb-2' }, 'Kết quả'),
+                error && React.createElement('div', { className: 'text-red-400 bg-red-900/50 p-3 rounded-lg mb-4' }, error),
+                React.createElement('div', { className: 'w-full h-full space-y-4 overflow-auto' },
+                    isLoading
+                        ? React.createElement('div', { className: 'flex items-center justify-center h-full text-slate-400' }, 'Đang chờ kết quả...')
+                        : results.length > 0
+                            ? results.map(res => React.createElement(ResultCard, { key: res.language, language: res.language, text: res.translation }))
+                            : React.createElement('p', { className: 'text-slate-500 text-center pt-8' }, 'Bản dịch sẽ hiển thị ở đây.')
+                )
+            )
+        )
     );
 };
 

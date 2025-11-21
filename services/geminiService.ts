@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from '@google/genai';
 
 const fileToGenerativePart = async (file: File) => {
@@ -28,10 +27,7 @@ export const generatePromptsFromAudio = async (files: File[], apiKey: string): P
       *   Do not include any other text, explanations, headers, or introductory/concluding remarks. Just the prompt itself.
   `;
   
-  const prompts: string[] = [];
-
-  // Execute sequentially to avoid Rate Limit 429 errors
-  for (const file of files) {
+  const generationPromises = files.map(async (file) => {
       const audioPart = await fileToGenerativePart(file);
       const contents = {
           parts: [
@@ -41,31 +37,29 @@ export const generatePromptsFromAudio = async (files: File[], apiKey: string): P
       };
       
       try {
-          // Add delay to respect rate limits (4s for Gemini Free Tier)
-          await new Promise(resolve => setTimeout(resolve, 4000));
-
           const response = await ai.models.generateContent({
               model: 'gemini-2.5-flash',
               contents,
           });
-          prompts.push(response.text.trim());
+          return response.text.trim();
       } catch (error) {
           console.error(`Error processing file ${file.name}:`, error);
-          let errorMessage = `Lỗi khi tạo prompt cho file: ${file.name}.`;
-          
-          if (error instanceof Error) {
-             if (error.message.includes('API key not valid')) {
-                 throw new Error('API Key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt.');
-             }
-             if (error.message.includes('429') || error.message.toLowerCase().includes('quota')) {
-                 throw new Error('Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429/Quota).');
-             }
-             errorMessage += ` Chi tiết: ${error.message}`;
+          if (error instanceof Error && error.message.includes('API key not valid')) {
+              // Re-throw to be caught by Promise.all and fail fast
+              throw new Error('API Key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt.');
           }
-          // Push error message as result so user knows which file failed, or throw to stop all
-          prompts.push(errorMessage);
+          // Return an error message for the specific file that failed
+          return `Lỗi khi tạo prompt cho file: ${file.name}. Vui lòng thử lại.`;
       }
-  }
+  });
 
-  return prompts;
+  // Promise.all will run requests in parallel and reject if any of them reject (e.g., API key error)
+  try {
+    const prompts = await Promise.all(generationPromises);
+    return prompts;
+  } catch (error) {
+    console.error("Error calling Gemini API:", error);
+    // Propagate the specific error (like the API key error)
+    throw error;
+  }
 };

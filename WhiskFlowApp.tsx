@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -117,7 +116,7 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
                 character: { type: window.GenAIType.STRING, description: "Left empty, user will attach reference character in Whisk." },
                 style: { type: window.GenAIType.STRING, description: "Cinematic style, lighting, tone, depth of field, visual texture, camera." },
                 scene: { type: window.GenAIType.STRING, description: "Context, action, emotion, lighting, environment. NO specific character description. In Vietnamese." },
-                characterSummary: { type: window.GenAIType.STRING, description: "Summarize the main characters in this scene, e.g., '1 Nam', '1 Nữ', '1 Thú', '1 Nam và 1 Nữ', '1 Nam và 1 Thú', '1 Nữ và 1 Thú', 'Không có nhân vật chính'." },
+                characterSummary: { type: window.GenAIType.STRING, description: "Summarize the main characters in this scene, e.g., '1 Nam', '1 Nữ', '1 Thú', '1 Nam và 1 Nữ', '1 Nam và 1 Thú', 'Không có nhân vật chính'." },
                 whisk_prompt_vi: { type: window.GenAIType.STRING, description: "Vietnamese prompt for static image generation on Whisk. Must clearly describe the context according to the script. Concise, cinematic, sufficiently detailed, evocative. No faces, clothes, gender, identity." },
                 motion_prompt: { type: window.GenAIType.STRING, description: "English prompt for Flow VEO 3.1. Describes camera movement, dynamic lighting, emotional rhythm, moving objects or environment. No faces, clothes, gender, identity." },
               },
@@ -145,7 +144,7 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
             `;
             
             const response = await ai.models.generateContent({
-              model: "gemini-2.5-flash",
+              model: "gemini-2.5-pro",
               contents: prompt,
               config: {
                 responseMimeType: "application/json",

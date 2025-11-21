@@ -149,7 +149,7 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
               `;
       
             const response = await ai.models.generateContent({
-              model: "gemini-2.5-flash",
+              model: "gemini-2.5-pro",
               contents: prompt,
               config: {
                 responseMimeType: "application/json",
@@ -179,7 +179,7 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
                     'Authorization': `Bearer ${openaiApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-5.1',
+                    model: 'gpt-4o',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }

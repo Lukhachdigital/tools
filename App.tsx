@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -16,10 +18,6 @@ import AudioToPromptApp from './AudioToPromptApp';
 import AIPromptVEO31App from './AIPromptVEO31App';
 import AudioChoppingApp from './AudioChoppingApp';
 import AudioToPromptVideoApp from './AudioToPromptVideoApp';
-import ContentPodcastApp from './ContentPodcastApp';
-
-// Import Constants Links
-import { APP_LINKS, SOCIAL_LINKS, TUTORIAL_LINKS, FALLBACK_TUTORIAL } from './constants';
 
 
 // --- ICONS ---
@@ -31,192 +29,82 @@ const iconProps = {
 // Fix: Typed props for all icon components to correctly handle SVG attributes
 // like 'className', resolving TypeScript errors with React.createElement and React.cloneElement.
 // Updated Icons to accept props for flexible styling
-const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.25 12l8.954-8.955a.75.75 0 011.06 0l8.955 8.955M3 10.5v8.25a1.5 1.5 0 001.5 1.5h15a1.5 1.5 0 001.5-1.5V10.5M9 21V15a1.5 1.5 0 011.5-1.5h3A1.5 1.5 0 0115 15v6" })
-    );
-};
+    )
+);
 
-const IconPromptJson = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconPromptJson = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" })
-    );
-};
+    )
+);
 
-const IconWhiskFlow = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconWhiskFlow = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" })
-    );
-};
+    )
+);
 
-const IconVietKichBan = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconVietKichBan = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" })
-    );
-};
+    )
+);
 
-const IconAIPromptVEO31 = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconAIPromptVEO31 = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" }),
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15 13l-3 3m0 0l-3-3m3 3V8" })
-    );
-};
+    )
+);
 
 
-const IconCreateThumbnail = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconCreateThumbnail = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M3 8V6a2 2 0 012-2h2M3 16v2a2 2 0 002 2h2M16 3h2a2 2 0 012 2v2M16 21h2a2 2 0 002-2v-2" }),
         React.createElement('rect', { x: "7", y: "7", width: "10", height: "10", rx: "1", strokeWidth: "1.5" })
-    );
-};
+    )
+);
 
-const IconSeoYoutube = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconSeoYoutube = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" })
-    );
-};
+    )
+);
 
-const IconYoutubeExternal = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconYoutubeExternal = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" })
-    );
-};
+    )
+);
 
-const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconAppAffiliate = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" })
-    );
-};
+    )
+);
 
-const IconAudioToPromptVideo = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconAudioToPromptVideo = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.552 8.352a4.502 4.502 0 01-6.364 6.364m6.364-6.364a4.5 4.5 0 00-6.364 6.364m6.364-6.364l-6.364 6.364M12 8.25v2.25m0 7.5V15m0-2.25a.75.75 0 00-.75.75v.01c0 .414.336.75.75.75h.01a.75.75 0 00.75-.75v-.01a.75.75 0 00-.75-.75H12z" }),
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M7 4v16M17 4v16M3 12h4m10 0h4" })
-    );
-};
+    )
+);
 
 
-const IconAudioChopping = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconAudioChopping = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM3 3l18 18" })
-    );
-};
+    )
+);
 
-const IconAudioToPrompt = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
+const IconAudioToPrompt = (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', { ...iconProps, xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", ...props },
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" })
-    );
-};
-
-const IconContentPodcast = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
-        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" })
-    );
-};
+    )
+);
 
 // Fix for line 137: Refactored component to extract props into a variable to avoid TypeScript errors with React.createElement.
 const IconConsistentFlow = (props: React.SVGProps<SVGSVGElement>) => {
@@ -288,7 +176,7 @@ const IconYoutube = (props: React.SVGProps<SVGSVGElement>) => {
 };
 
 // FIX: Extracted path properties into a typed variable to resolve a TypeScript type inference issue with React.createElement.
-// FIX: Explicitly type svgProps to resolve a TypeScript overload resolution issue with React.createElement.
+// FIX: Explicitly typed svgProps to resolve a TypeScript overload resolution issue with React.createElement.
 // FIX: Refactored IconFacebook to use an object literal for its child path element's props. This resolves a TypeScript overload issue with React.createElement that occurred when using a typed variable for the path's properties.
 const IconFacebook = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
@@ -382,121 +270,100 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) =>
         onSave({ gemini: geminiKey, openai: openAIKey });
         onClose();
     };
-
-    // FIX: Extracted props to React.HTMLAttributes to resolve overload issues and ensure type safety.
-    const overlayProps: React.HTMLAttributes<HTMLDivElement> = {
+    
+    return React.createElement('div', {
         className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
-        'aria-modal': true,
+        'aria-modal': "true",
         role: "dialog",
         onClick: onClose
-    };
-
-    const modalContainerProps: React.HTMLAttributes<HTMLDivElement> = {
-        className: "bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg m-4 border border-cyan-500/50",
-        onClick: (e) => e.stopPropagation()
-    };
-
-    const closeBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
-        onClick: onClose,
-        className: "text-slate-400 hover:text-white transition-colors",
-        'aria-label': "Close modal"
-    };
-    
-    const inputGeminiProps: React.InputHTMLAttributes<HTMLInputElement> = {
-        id: "gemini-key",
-        type: "password",
-        value: geminiKey,
-        onChange: (e) => setGeminiKey(e.target.value),
-        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
-        placeholder: "Nhập Gemini API Key của bạn..."
-    };
-
-    const inputOpenAIProps: React.InputHTMLAttributes<HTMLInputElement> = {
-        id: "openai-key",
-        type: "password",
-        value: openAIKey,
-        onChange: (e) => setOpenAIKey(e.target.value),
-        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
-        placeholder: "Nhập OpenAI API Key của bạn..."
-    };
-
-    const saveBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
-        onClick: handleSave,
-        className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
-    };
-    
-    return React.createElement('div', overlayProps,
-        React.createElement('div', modalContainerProps,
+    },
+        React.createElement('div', {
+            className: "bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg m-4 border border-cyan-500/50",
+            onClick: (e) => e.stopPropagation()
+        },
             React.createElement('div', { className: "flex justify-between items-center p-4 border-b border-slate-700" },
                 React.createElement('h3', { className: "text-xl font-bold text-cyan-300" }, "Cài đặt API Keys"),
-                React.createElement('button', closeBtnProps,
-                    React.createElement('svg', {
-                        xmlns: "http://www.w3.org/2000/svg",
-                        fill: "none",
-                        viewBox: "0 0 24 24",
-                        strokeWidth: "2",
-                        stroke: "currentColor",
-                        className: "w-6 h-6"
-                    },
-                        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 18L18 6M6 6l12 12" })
-                    )
+                React.createElement('button', {
+                    onClick: onClose,
+                    className: "text-slate-400 hover:text-white transition-colors",
+                    'aria-label': "Close modal"
+                },
+// FIX: Refactored to use a typed props variable inside an IIFE to resolve a TypeScript type inference issue with React.createElement.
+                    (() => {
+                        const svgProps: React.SVGProps<SVGSVGElement> = {
+                            xmlns: "http://www.w3.org/2000/svg",
+                            fill: "none",
+                            viewBox: "0 0 24 24",
+                            strokeWidth: "2",
+                            stroke: "currentColor",
+                            className: "w-6 h-6"
+                        };
+                        return React.createElement('svg', svgProps,
+                            React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 18L18 6M6 6l12 12" })
+                        );
+                    })()
                 )
             ),
             React.createElement('div', { className: "p-6 space-y-6" },
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
                         React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key"),
-                        React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
+                        React.createElement('a', { href: "https://aistudio.google.com/app/apikey", target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
-                    React.createElement('input', inputGeminiProps)
+                    React.createElement('input', {
+                        id: "gemini-key",
+                        type: "password",
+                        value: geminiKey,
+                        onChange: (e) => setGeminiKey(e.target.value),
+                        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
+                        placeholder: "Nhập Gemini API Key của bạn..."
+                    })
                 ),
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
                          React.createElement('label', { htmlFor: "openai-key", className: "block text-lg font-semibold text-slate-300" }, "OpenAI API Key"),
-                         React.createElement('a', { href: APP_LINKS.OPENAI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
+                         React.createElement('a', { href: "https://platform.openai.com/api-keys", target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
-                    React.createElement('input', inputOpenAIProps)
+                    React.createElement('input', {
+                        id: "openai-key",
+                        type: "password",
+                        value: openAIKey,
+                        onChange: (e) => setOpenAIKey(e.target.value),
+                        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
+                        placeholder: "Nhập OpenAI API Key của bạn..."
+                    })
                 ),
-                React.createElement('button', saveBtnProps, "Lưu Cài Đặt")
+                React.createElement('button', {
+                    onClick: handleSave,
+                    className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
+                }, "Lưu Cài Đặt")
             )
         )
     );
 };
 
-// FIX: Updated UpgradeNoticeWrapper to use React.PropsWithChildren to make children optional in props type, resolving compatibility with React.createElement calls where children are passed as arguments.
-// FIX: Extracted props to typed variables to resolve TypeScript error "No overload matches this call" and "Object literal may only specify known properties".
-const UpgradeNoticeWrapper = ({ children, targetAppId, onNavigate }: React.PropsWithChildren<{ targetAppId: string; onNavigate: (id: string) => void; }>) => {
+const UpgradeNoticeWrapper: React.FC<{ children: React.ReactNode; targetAppId: string; onNavigate: (id: string) => void; }> = ({ children, targetAppId, onNavigate }) => {
     const [showNotice, setShowNotice] = useState(true);
 
     if (!showNotice) {
         return React.createElement(React.Fragment, null, children);
     }
 
-    const wrapperProps: React.HTMLAttributes<HTMLDivElement> = { className: "relative w-full h-full" };
-    const blurProps: React.HTMLAttributes<HTMLDivElement> = { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" };
-    const contentWrapperProps: React.HTMLAttributes<HTMLDivElement> = { className: "absolute inset-0 z-10 flex items-center justify-center p-4" };
-    const modalProps: React.HTMLAttributes<HTMLDivElement> = { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-2xl text-center p-8" };
-    const titleProps: React.HTMLAttributes<HTMLHeadingElement> = { className: "text-2xl font-bold text-cyan-300 mb-4" };
-    const descProps: React.HTMLAttributes<HTMLParagraphElement> = { className: "text-slate-300 mb-6" };
-    const btnGroupProps: React.HTMLAttributes<HTMLDivElement> = { className: "flex justify-center items-center gap-4" };
-    const useBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
-        onClick: () => setShowNotice(false),
-        className: "bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300"
-    };
-    const navBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
-        onClick: () => onNavigate(targetAppId),
-        className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300"
-    };
-
-    return React.createElement('div', wrapperProps,
-        React.createElement('div', blurProps, children),
-        React.createElement('div', contentWrapperProps,
-            React.createElement('div', modalProps,
-                React.createElement('h2', titleProps, "Chức năng này đã được nâng cấp!"),
-                React.createElement('p', descProps, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
-                React.createElement('div', btnGroupProps,
-                    React.createElement('button', useBtnProps, "Sử dụng ứng dụng này"),
-                    React.createElement('button', navBtnProps, "Chuyển đến ứng dụng mới")
+    return React.createElement('div', { className: "relative w-full h-full" },
+        React.createElement('div', { className: "w-full h-full filter blur-md brightness-50 pointer-events-none" }, children),
+        React.createElement('div', { className: "absolute inset-0 z-10 flex items-center justify-center p-4" },
+            React.createElement('div', { className: "bg-slate-800/80 backdrop-blur-sm border border-cyan-500/50 rounded-2xl shadow-2xl max-w-lg text-center p-8" },
+                React.createElement('h2', { className: "text-2xl font-bold text-cyan-300 mb-4" }, "Chức năng này đã được nâng cấp!"),
+                React.createElement('p', { className: "text-slate-300 mb-6" }, "Để mang lại trải nghiệm tốt hơn và giảm bớt các bước thao tác, chúng tôi đã hợp nhất công cụ này vào một ứng dụng mới mạnh mẽ và toàn diện hơn."),
+                React.createElement('div', { className: "flex justify-center items-center gap-4" },
+                    React.createElement('button', {
+                        onClick: () => setShowNotice(false),
+                        className: "bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300"
+                    }, "Sử dụng ứng dụng này"),
+                    React.createElement('button', {
+                        onClick: () => onNavigate(targetAppId),
+                        className: "bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-6 rounded-lg transition-all duration-300"
+                    }, "Chuyển đến ứng dụng mới")
                 )
             )
         )
@@ -510,7 +377,7 @@ const App = () => {
     const [currentView, setCurrentView] = useState('dashboard');
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
-    const [selectedAIModel, setSelectedAIModel] = useState('gpt'); // Default to GPT (OpenAI)
+    const [selectedAIModel, setSelectedAIModel] = useState('gemini');
 
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
@@ -531,7 +398,6 @@ const App = () => {
         { id: 'app_affiliate', text: 'App Affiliate', title: 'App Affiliate Video Shorts', icon: React.createElement(IconAppAffiliate), description: 'Sáng tạo vô hạn video Viral cho Tiktok, Facebook Reels, Shopee.' },
         { id: 'seo_youtube', text: 'SEO Youtube', title: 'Công cụ SEO Youtube đỉnh cao', icon: React.createElement(IconSeoYoutube), description: 'Tối ưu Tiêu đề, Mô tả, và Tags cho video YouTube của bạn.' },
         { id: 'youtube_external', text: 'Youtube ngoại', title: 'Công cụ tối ưu Youtube view ngoại', icon: React.createElement(IconYoutubeExternal), description: 'Dịch nội dung sang nhiều ngôn ngữ chuẩn ngữ pháp để tiếp cận khán giả toàn cầu.' },
-        { id: 'content_podcast', text: 'Content Podcast', title: 'AI Sáng Tạo Nội Dung Đa Lĩnh Vực', icon: React.createElement(IconContentPodcast), description: 'Sáng tạo nội dung bài viết sâu sắc, đa lĩnh vực với AI.' },
     ];
     
     const orderedIds = [
@@ -549,22 +415,38 @@ const App = () => {
         'tao_anh_trend', 
         'app_affiliate', 
         'seo_youtube', 
-        'youtube_external',
-        'content_podcast'
+        'youtube_external'
     ];
 
     const sidebarTools = orderedIds.map(id => allTools.find(tool => tool.id === id)).filter(Boolean);
 
     const socialLinks = [
-        { href: SOCIAL_LINKS.YOUTUBE, icon: React.createElement(IconYoutube), name: "Youtube", color: "bg-red-600 hover:bg-red-700" },
-        { href: SOCIAL_LINKS.FACEBOOK, icon: React.createElement(IconFacebook), name: "Facebook", color: "bg-blue-600 hover:bg-blue-700" },
-        { href: SOCIAL_LINKS.TIKTOK, icon: React.createElement(IconTiktok), name: "Tiktok", color: "bg-gray-900 hover:bg-gray-800" },
-        { href: SOCIAL_LINKS.ZALO, icon: React.createElement(IconZalo), name: "Zalo", color: "bg-blue-500 hover:bg-blue-600" },
+        { href: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1", icon: React.createElement(IconYoutube), name: "Youtube", color: "bg-red-600 hover:bg-red-700" },
+        { href: "https://www.facebook.com/huynhxuyenson", icon: React.createElement(IconFacebook), name: "Facebook", color: "bg-blue-600 hover:bg-blue-700" },
+        { href: "https://tiktok.com/@lamyoutubeai", icon: React.createElement(IconTiktok), name: "Tiktok", color: "bg-gray-900 hover:bg-gray-800" },
+        { href: "https://zalo.me/g/yesdti650", icon: React.createElement(IconZalo), name: "Zalo", color: "bg-blue-500 hover:bg-blue-600" },
     ];
     
-    const tutorialLinks = TUTORIAL_LINKS;
+    const tutorialLinks = {
+      "dashboard": "https://www.youtube.com/playlist?list=PLlpNqaFh8WE4y1ULxKgfjDWyCBWx4-LhL",
+      "prompt_json": "https://www.youtube.com/watch?v=Uql-HZz8UnM",
+      "whisk_flow": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "my_channel": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "viet_kich_ban": "https://www.youtube.com/watch?v=uQi0RKvnzek",
+      "ai_prompt_veo31": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "auto_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "audio_chopping": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "audio_to_prompt": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "audio_to_prompt_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "create_thumbnail": "https://www.youtube.com/watch?v=9d9c5Q1nID8",
+      "tao_anh_trend": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "create_video": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "seo_youtube": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "youtube_external": "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+      "app_affiliate": "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg"
+    };
 
-    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'audio_to_prompt_video', 'auto_prompt', 'seo_youtube', 'youtube_external', 'prompt_json', 'create_thumbnail', 'tao_anh_trend', 'app_affiliate', 'content_podcast'];
+    const appsWithModelSelector = ['whisk_flow', 'my_channel', 'viet_kich_ban', 'audio_to_prompt_video', 'auto_prompt', 'seo_youtube', 'youtube_external', 'prompt_json', 'create_thumbnail', 'tao_anh_trend', 'app_affiliate'];
 
     useEffect(() => {
         // Load API keys
@@ -585,69 +467,39 @@ const App = () => {
 
     const handleToolClick = (toolId: string) => {
         setCurrentView(toolId);
-        
-        // Logic to prioritize OpenAI for text apps if key is present, else fallback to Gemini
-        const geminiPreferredApps = [
-            'create_thumbnail', 
-            'tao_anh_trend', 
-            'app_affiliate', 
-            'audio_to_prompt', 
-            'audio_to_prompt_video'
-        ];
-        
-        if (geminiPreferredApps.includes(toolId)) {
-            setSelectedAIModel('gemini');
-        } else {
-            // For text apps, prefer OpenAI only if key is available
-            if (openaiApiKey) {
-                setSelectedAIModel('gpt');
-            } else {
-                // Fallback to Gemini if no OpenAI key
-                setSelectedAIModel('gemini');
-            }
-        }
     };
 
     const handleOpenTutorial = () => {
-        const fallbackUrl = FALLBACK_TUTORIAL;
+        const fallbackUrl = "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1";
         const url = tutorialLinks[currentView] || tutorialLinks.dashboard || fallbackUrl;
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     const handleOpenApiKeyTutorial = () => {
-        const apiKeyTutorialUrl = APP_LINKS.API_KEY_TUTORIAL;
+        const apiKeyTutorialUrl = "https://www.youtube.com/watch?v=1Pi-xnnFq70";
         window.open(apiKeyTutorialUrl, '_blank', 'noopener,noreferrer');
     };
 
     const Dashboard = ({ onToolClick }) => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
 
-        // Fix: Explicitly type div props to avoid overload errors
-        // CHANGE: Removed explicit type and passed object literal directly to createElement or inferred variable to avoid strict checking issues with 'Attributes' type in some environments.
-        const gridProps = {
-            className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
-        };
-
-        return React.createElement('div', { ...gridProps } as any,
-            dashboardTools.map(tool => {
-                // Fix: Extract props to resolve TypeScript overload error for className in React.createElement
-                const buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+        return React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' },
+            dashboardTools.map(tool => (
+                React.createElement('button', {
+                    key: tool.id,
                     onClick: () => onToolClick(tool.id),
                     className: "group bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/20"
-                };
-                
-                // Fix: Use explicit any cast for props with spread and key to resolve overload issues
-                return React.createElement('button', { key: tool.id, ...buttonProps } as any,
+                },
                     React.createElement('div', { className: 'mb-4' },
                         // Fix for line 323: Wrapped props in a variable to avoid TypeScript errors with React.cloneElement.
                         (() => {
-                             const iconEl = tool.icon as React.ReactElement<{ className?: string }>;
-                             return React.cloneElement(iconEl, { className: "w-10 h-10 text-cyan-400 group-hover:text-cyan-300 transition-colors" });
+                            const newProps = { className: "w-10 h-10 text-cyan-400 group-hover:text-cyan-300 transition-colors" };
+                            return React.cloneElement(tool.icon, newProps);
                         })()
                     ),
-                    React.createElement('h3', { className: 'text-lg font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors' }, tool.text)
-                );
-            })
+                    React.createElement('h3', { className: 'text-lg font-bold text-slate-200 group-hover:text-white transition-colors' }, tool.text)
+                )
+            ))
         );
     };
 
@@ -670,7 +522,6 @@ const App = () => {
             case 'seo_youtube': return React.createElement(SeoYoutubeApp, appProps);
             case 'youtube_external': return React.createElement(YoutubeExternalApp, appProps);
             case 'app_affiliate': return React.createElement(AppAffiliate, appProps);
-            case 'content_podcast': return React.createElement(ContentPodcastApp, appProps);
             case 'dashboard':
             default:
                 return React.createElement(Dashboard, { onToolClick: handleToolClick });
@@ -690,11 +541,11 @@ const App = () => {
     const currentTool = sidebarTools.find(tool => tool.id === currentView);
 
     const homeLinkProps = {
-        href: APP_LINKS.HOME,
+        href: "https://lamyoutubeai.com",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     const freeLinkProps = {
-        href: APP_LINKS.FREE_RESOURCES,
+        href: "https://lamyoutubeai.com/free",
         className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
     };
     
@@ -707,40 +558,40 @@ const App = () => {
                 initialOpenAIKey: openaiApiKey
              }),
             React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col" },
-                React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-4 w-full mb-1 p-2 sm:p-4" },
-                     React.createElement('div', { className: "flex flex-col items-start gap-2 sm:gap-3" },
+                React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-6 w-full mb-4 p-4 sm:p-6" },
+                     React.createElement('div', { className: "flex flex-col items-start gap-3 sm:gap-4" },
                         React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
-                            React.createElement('a', { ...homeLinkProps } as any,
+                            React.createElement('a', homeLinkProps,
                                 React.createElement(IconHome), 
                                 "Trang chủ"
                             ),
-                            React.createElement('a', { ...freeLinkProps } as any,
+                            React.createElement('a', freeLinkProps,
                                 React.createElement(IconGift),
                                 "Tài nguyên FREE"
                             )
                         ),
                         React.createElement('button', { 
                             onClick: handleOpenTutorial,
-                            className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-yellow-500 text-yellow-400 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-yellow-500/10 hover:bg-yellow-500/20 hover:text-yellow-200 hover:shadow-yellow-500/30 transition-all duration-300 transform hover:-translate-y-1"
-                        } as any, 
+                            className: "flex items-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1"
+                        }, 
                             React.createElement(IconTutorial),
                             "Hướng dẫn dùng App"
                         )
                     ),
                     React.createElement('div', { className: "text-center" },
                          React.createElement('h1', { className: "text-3xl sm:text-4xl lg:text-5xl font-extrabold" },
-                            React.createElement('span', { className: "text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500" }, currentTool && currentView !== 'dashboard' ? currentTool.title : mainTitle)
+                            React.createElement('span', { className: "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600" }, currentTool && currentView !== 'dashboard' ? currentTool.title : mainTitle)
                          ),
-                         React.createElement('p', { className: "text-cyan-400 mt-1 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription),
-                         appsWithModelSelector.includes(currentView) && React.createElement('div', { className: "mt-2 flex justify-center items-center gap-4" },
+                         React.createElement('p', { className: "text-slate-400 mt-2 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription),
+                         appsWithModelSelector.includes(currentView) && React.createElement('div', { className: "mt-4 flex justify-center items-center gap-4" },
                             React.createElement('button', {
                                 onClick: () => setSelectedAIModel('gemini'),
                                 className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gemini' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                            }, "Gemini 3 Pro"),
+                            }, "Gemini 2.5 Flash"),
                             React.createElement('button', {
                                 onClick: () => setSelectedAIModel('gpt'),
                                 className: `px-6 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedAIModel === 'gpt' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`
-                            }, "Chat GPT 4o")
+                            }, "Chat GPT 5")
                         )
                     ),
 // FIX: Wrapped social links container in an IIFE with explicitly typed props to resolve a TypeScript error.
@@ -752,28 +603,26 @@ const App = () => {
 // FIX: Extracted link properties into a typed variable to resolve TypeScript type inference issues with React.createElement.
                             socialLinks.map(link => {
                                 const linkProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {
+                                    key: link.name,
                                     href: link.href,
                                     target: "_blank",
                                     rel: "noopener noreferrer",
                                     'aria-label': link.name,
                                     className: `flex items-center justify-center w-11 h-11 rounded-lg text-white transition-all duration-300 transform hover:scale-115 ${link.color}`
                                 };
-                                // FIX: Removed 'key' from linkProps object and passed it directly to createElement to resolve TypeScript error "Object literal may only specify known properties".
-                                return React.createElement('a', { key: link.name, ...linkProps } as any, link.icon);
+                                return React.createElement('a', linkProps, link.icon);
                             }
                             ),
                             React.createElement('div', { className: "flex flex-col items-stretch gap-2" },
                                 React.createElement('button', { 
                                     onClick: () => setShowApiKeyModal(true),
-                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" 
-                                } as any, 
+                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-cyan-500 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
                                     React.createElement(IconSettings),
                                     "Cài đặt API Key"
                                 ),
                                  React.createElement('button', { 
                                     onClick: handleOpenApiKeyTutorial,
-                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" 
-                                } as any, 
+                                    className: "flex items-center justify-center bg-slate-800/60 backdrop-blur-sm border border-slate-600 text-cyan-300 font-semibold px-4 py-2 rounded-lg shadow-lg shadow-cyan-500/10 hover:bg-cyan-500/20 hover:text-cyan-200 hover:shadow-cyan-500/30 transition-all duration-300 transform hover:-translate-y-1 whitespace-nowrap" }, 
                                     React.createElement(IconTutorial),
                                     "Hướng dẫn API Key"
                                 )
@@ -781,8 +630,8 @@ const App = () => {
                         );
                      })()
                 ),
-                React.createElement('div', { className: "flex-grow flex w-full p-2 sm:p-4 gap-4" },
-                    currentView !== 'dashboard' && React.createElement('aside', { className: 'w-80 flex-shrink-0 flex flex-col gap-4' },
+                React.createElement('div', { className: "flex-grow flex w-full p-4 sm:p-6 gap-6" },
+                    currentView !== 'dashboard' && React.createElement('aside', { className: 'w-96 flex-shrink-0 flex flex-col gap-4' },
                         React.createElement('div', { className: 'bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 flex-grow' },
                             React.createElement('nav', { className: 'space-y-2' },
                                 sidebarTools.map((tool, index) => {
@@ -797,12 +646,7 @@ const App = () => {
                                         onClick: () => handleToolClick(tool.id)
                                     },
                                         tool.icon,
-                                        tool.id === 'dashboard' 
-                                            ? React.createElement('span', null, tool.text)
-                                            : React.createElement('span', null, 
-                                                React.createElement('span', { className: "text-yellow-400 mr-1" }, `${index}.`),
-                                                tool.text
-                                              )
+                                        React.createElement('span', null, `${index}. ${tool.text}`)
                                     );
                                 })
                             )
@@ -815,7 +659,7 @@ const App = () => {
                     )
                 ),
                  React.createElement('footer', { className: "text-center p-4" },
-                    React.createElement('p', { className: "text-base text-yellow-400 font-semibold tracking-wide" }, "Ứng dụng được phát triển bởi Mr. Huỳnh Xuyên Sơn")
+                    React.createElement('p', { className: "text-base text-cyan-400 font-semibold tracking-wide" }, "Ứng dụng được phát triển bởi Mr. Huỳnh Xuyên Sơn")
                 )
             )
         )

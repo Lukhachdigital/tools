@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 
 const WandIcon = () => (
@@ -367,6 +366,36 @@ ${backgroundPrompt}
     };
 };
 
+const generateAllContent = async (
+    ai,
+    modelImageBase64,
+    productImageBase64,
+    voice,
+    region,
+    numberOfResults,
+    generationMode,
+    outfitSuggestion,
+    backgroundSuggestion,
+    productInfo
+) => {
+    const generationPromises = Array.from({ length: numberOfResults }, (_, i) =>
+        generateSingleResult(
+            ai,
+            modelImageBase64,
+            productImageBase64,
+            voice,
+            region,
+            i, 
+            generationMode,
+            outfitSuggestion,
+            backgroundSuggestion,
+            productInfo
+        )
+    );
+
+    return Promise.all(generationPromises);
+};
+
 const OptionGroup = ({ label, children }) => (
     React.createElement('div', { className: "flex flex-col items-center gap-2" },
         React.createElement('label', { className: "block text-sm font-medium text-slate-400" }, label),
@@ -571,34 +600,25 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
             
             try {
                 const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-                
-                // Sequentially generate all content to avoid 429
-                const generatedResults = [];
-                for (let i = 0; i < numberOfResults; i++) {
-                    const result = await generateSingleResult(
-                        ai,
-                        modelImage.base64,
-                        productImage.base64,
-                        voice,
-                        region,
-                        i, 
-                        generationMode,
-                        outfitSuggestion,
-                        backgroundSuggestion,
-                        productInfo
-                    );
-                    generatedResults.push({ ...result, id: `result-${i}-${Date.now()}` });
-                    // Update UI incrementally
-                    setResults([...generatedResults]);
-                    // Small delay between requests
-                    if (i < numberOfResults - 1) await new Promise(r => setTimeout(r, 1000));
-                }
+                const generatedResults = await generateAllContent(
+                    ai,
+                    modelImage.base64,
+                    productImage.base64,
+                    voice,
+                    region,
+                    numberOfResults,
+                    generationMode,
+                    outfitSuggestion,
+                    backgroundSuggestion,
+                    productInfo
+                );
+                setResults(generatedResults.map((res, index) => ({ ...res, id: `result-${index}-${Date.now()}` })));
             } catch (err) {
                  let errorMessage = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
                  if (err instanceof Error) {
                      const msg = err.message.toLowerCase();
                      if (msg.includes('quota') || msg.includes('429') || msg.includes('resource_exhausted')) {
-                         errorMessage = `<strong>Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429).</strong><p class="mt-2">Bạn đã đạt đến giới hạn sử dụng của Gemini API.</p>`;
+                         errorMessage = `<strong>Lỗi: Đã vượt quá hạn ngạch sử dụng</strong><p class="mt-2">Bạn đã đạt đến giới hạn sử dụng của Gemini API. Hãy thử lại sau hoặc giảm số lượng kết quả.</p>`;
                      } else if (msg.includes('api key not valid') || msg.includes('400')) {
                          errorMessage = '<strong>Lỗi API:</strong> API key không hợp lệ hoặc môi trường Google AI Studio chưa được cấu hình đúng.';
                      } else {
@@ -623,8 +643,7 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
                     if (!openaiApiKey) {
                         throw new Error('Vui lòng cài đặt API Key OpenAI trước khi tạo.');
                     }
-                    const generatedResults = [];
-                    for (let i = 0; i < numberOfResults; i++) {
+                    const textGenPromises = Array.from({ length: numberOfResults }, (_, i) => {
                         const constructedPrompt = `
                             Create a single, high-resolution, photorealistic promotional image.
                             Style: high-end, polished, suitable for professional advertisement.
@@ -637,40 +656,37 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
                         `;
                         const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792', '1:1': '1024x1024' };
                         
-                        const response = await fetch('https://api.openai.com/v1/images/generations', {
+                        return fetch('https://api.openai.com/v1/images/generations', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
                             body: JSON.stringify({
                                 model: 'dall-e-3', prompt: constructedPrompt, n: 1, size: sizeMap[aspectRatio] || '1024x1024',
                                 response_format: 'b64_json', quality: 'hd', style: 'vivid'
                             })
+                        }).then(async response => {
+                            if (!response.ok) {
+                                const errorData = await response.json();
+                                throw new Error(`OpenAI DALL-E Error: ${errorData.error.message}`);
+                            }
+                            return response.json();
+                        }).then(data => {
+                            const imageUrl = `data:image/png;base64,${data.data[0].b64_json}`;
+                            return {
+                                id: `result-text-openai-${i}-${Date.now()}`,
+                                imageUrl: imageUrl,
+                                promptSets: [{ description: constructedPrompt, animationPrompt: null }]
+                            };
                         });
-                        
-                        if (!response.ok) {
-                            const errorData = await response.json();
-                            if (response.status === 429) throw new Error("Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429).");
-                            throw new Error(`OpenAI DALL-E Error: ${errorData.error.message}`);
-                        }
-                        
-                        const data = await response.json();
-                        const imageUrl = `data:image/png;base64,${data.data[0].b64_json}`;
-                        
-                        generatedResults.push({
-                            id: `result-text-openai-${i}-${Date.now()}`,
-                            imageUrl: imageUrl,
-                            promptSets: [{ description: constructedPrompt, animationPrompt: null }]
-                        });
-                        setResults([...generatedResults]);
-                        if (i < numberOfResults - 1) await new Promise(r => setTimeout(r, 1000));
-                    }
+                    });
+                     const generatedResults = await Promise.all(textGenPromises);
+                     setResults(generatedResults);
 
                 } else { // Gemini text-only
                      if (!geminiApiKey) {
                         throw new Error('Vui lòng cài đặt API Key Gemini trước khi tạo.');
                     }
                     const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-                    const generatedResults = [];
-                    for (let i = 0; i < numberOfResults; i++) {
+                    const textGenPromises = Array.from({ length: numberOfResults }, (_, i) => {
                         const constructedPrompt = `
                             Create a single, high-resolution, photorealistic promotional image.
                             Style: high-end, polished, suitable for professional advertisement.
@@ -681,32 +697,31 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
                             The image must NOT contain any text.
                             Seed: ${i}.
                         `;
-                        const response = await ai.models.generateImages({
+                        return ai.models.generateImages({
                             model: 'imagen-4.0-generate-001',
                             prompt: constructedPrompt,
                             config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: aspectRatio },
+                        }).then(response => {
+                            if (!response.generatedImages?.[0]?.image?.imageBytes) {
+                                throw new Error(`Image generation failed for result ${i+1}.`);
+                            }
+                            const imageUrl = `data:image/png;base64,${response.generatedImages[0].image.imageBytes}`;
+                            return {
+                                id: `result-text-gemini-${i}-${Date.now()}`,
+                                imageUrl: imageUrl,
+                                promptSets: [{ description: constructedPrompt, animationPrompt: null }]
+                            };
                         });
-                        
-                        if (!response.generatedImages?.[0]?.image?.imageBytes) {
-                            throw new Error(`Image generation failed for result ${i+1}.`);
-                        }
-                        const imageUrl = `data:image/png;base64,${response.generatedImages[0].image.imageBytes}`;
-                        
-                        generatedResults.push({
-                            id: `result-text-gemini-${i}-${Date.now()}`,
-                            imageUrl: imageUrl,
-                            promptSets: [{ description: constructedPrompt, animationPrompt: null }]
-                        });
-                        setResults([...generatedResults]);
-                        if (i < numberOfResults - 1) await new Promise(r => setTimeout(r, 1000));
-                    }
+                    });
+                    const generatedResults = await Promise.all(textGenPromises);
+                    setResults(generatedResults);
                 }
             } catch (err) {
                  let errorMessage = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
                  if (err instanceof Error) {
                      const msg = err.message.toLowerCase();
                      if (msg.includes('quota') || msg.includes('429') || msg.includes('resource_exhausted')) {
-                         errorMessage = `<strong>Hệ thống đang bận, vui lòng thử lại sau giây lát (Lỗi 429).</strong><p class="mt-2">Bạn đã đạt đến giới hạn sử dụng của API.</p>`;
+                         errorMessage = `<strong>Lỗi: Đã vượt quá hạn ngạch sử dụng</strong><p class="mt-2">Bạn đã đạt đến giới hạn sử dụng của API. Hãy thử lại sau hoặc giảm số lượng kết quả.</p>`;
                      } else if (msg.includes('api key not valid') || msg.includes('400')) {
                          errorMessage = '<strong>Lỗi API:</strong> API key không hợp lệ hoặc môi trường chưa được cấu hình đúng.';
                      } else {
