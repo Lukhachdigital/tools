@@ -504,6 +504,7 @@ const App = () => {
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
     const [openRouterApiKey, setOpenRouterApiKey] = useState('');
+    const [selectedAIModel, setSelectedAIModel] = useState('auto'); // 'auto', 'gemini', 'openai', 'openrouter'
 
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
@@ -621,7 +622,7 @@ const App = () => {
     };
 
     const renderCurrentView = () => {
-        const appProps = { geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel: 'auto' }; // Pass auto or let component decide
+        const appProps = { geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel: selectedAIModel };
         const upgradeWrapperProps = { targetAppId: 'audio_to_prompt_video', onNavigate: handleToolClick };
 
         switch (currentView) {
@@ -697,11 +698,24 @@ const App = () => {
                             "Hướng dẫn dùng App"
                         )
                     ),
-                    React.createElement('div', { className: "text-center" },
+                    React.createElement('div', { className: "text-center flex flex-col items-center" },
                          React.createElement('h1', { className: "text-3xl sm:text-4xl lg:text-5xl font-extrabold" },
                             React.createElement('span', { className: "text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500" }, currentTool && currentView !== 'dashboard' ? currentTool.title : mainTitle)
                          ),
                          React.createElement('p', { className: "text-cyan-400 mt-1 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription),
+                         currentView !== 'dashboard' && React.createElement('div', { className: "flex justify-center gap-4 mt-4 flex-wrap" },
+                            ['auto', 'gemini', 'openai', 'openrouter'].map((model) => (
+                                React.createElement('button', {
+                                    key: model,
+                                    onClick: () => setSelectedAIModel(model),
+                                    className: `px-6 py-2 rounded-lg font-bold text-sm transition-all shadow-md border transform hover:scale-105 ${
+                                        selectedAIModel === model 
+                                        ? 'bg-cyan-600 text-white border-cyan-400 shadow-cyan-500/50' 
+                                        : 'bg-slate-800 text-slate-400 border-slate-600 hover:bg-slate-700 hover:text-white'
+                                    }`
+                                }, model === 'auto' ? 'Tự động (Mặc định)' : model.charAt(0).toUpperCase() + model.slice(1))
+                            ))
+                        )
                     ),
                      (() => {
                         const divProps: React.HTMLAttributes<HTMLDivElement> = {
