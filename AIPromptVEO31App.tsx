@@ -49,21 +49,26 @@ const AIPromptVEO31App: React.FC<AIPromptVEO31AppProps> = ({ geminiApiKey, opena
     }
 
     let apiKey = '';
-    let currentApiType = params.apiType;
+    let currentApiType: 'gemini' | 'gpt' | 'openrouter' = 'gemini';
 
-    // Logic to select the correct key based on current selection or auto fallback
-    if (selectedAIModel === 'auto') {
-        if (geminiApiKey) { apiKey = geminiApiKey; currentApiType = 'gemini'; }
-        else if (openRouterApiKey) { apiKey = openRouterApiKey; currentApiType = 'openrouter'; }
-        else if (openaiApiKey) { apiKey = openaiApiKey; currentApiType = 'gpt'; }
-    } else {
-        if (currentApiType === 'gemini') apiKey = geminiApiKey;
-        else if (currentApiType === 'openrouter') apiKey = openRouterApiKey;
-        else apiKey = openaiApiKey;
+    // 1. Determine API Type based on Global Selector
+    if (selectedAIModel === 'gemini') currentApiType = 'gemini';
+    else if (selectedAIModel === 'openai') currentApiType = 'gpt';
+    else if (selectedAIModel === 'openrouter') currentApiType = 'openrouter';
+    else {
+        // Auto Mode: Fallback logic
+        if (geminiApiKey) currentApiType = 'gemini';
+        else if (openRouterApiKey) currentApiType = 'openrouter';
+        else if (openaiApiKey) currentApiType = 'gpt';
     }
 
+    // 2. Select Key based on determined Type
+    if (currentApiType === 'gemini') apiKey = geminiApiKey;
+    else if (currentApiType === 'openrouter') apiKey = openRouterApiKey;
+    else if (currentApiType === 'gpt') apiKey = openaiApiKey;
+
     if (!apiKey) {
-        setError(`Vui lòng nhập API Key cho ${currentApiType === 'gpt' ? 'OpenAI' : currentApiType === 'gemini' ? 'Gemini' : 'OpenRouter'}.`);
+        setError(`Vui lòng nhập API Key cho ${currentApiType === 'gpt' ? 'OpenAI' : currentApiType === 'gemini' ? 'Gemini' : 'OpenRouter'} hoặc chuyển sang chế độ Tự động.`);
         setIsLoading(false);
         return;
     }

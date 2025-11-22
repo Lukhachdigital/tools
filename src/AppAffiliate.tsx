@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 
 const WandIcon = () => (
     React.createElement('svg', { xmlns: "http://www.w3.org/2000/svg", className: "h-6 w-6", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", strokeWidth: 2 },
@@ -234,7 +234,7 @@ const generateTextAndPromptSet = async (
     if ((selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiKey))) {
         if (!geminiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
         try {
-            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
             const textAndPromptGenResponse = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
                 contents: {
@@ -400,13 +400,13 @@ ${checklistInstruction}
 
     // This feature (image composition) is Gemini-specific. Check model selection.
     if (selectedAIModel !== 'gemini' && selectedAIModel !== 'auto') {
-        throw new Error(`Tính năng tạo ảnh ghép (Face Swap & Product) hiện chỉ hỗ trợ model Gemini. Vui lòng chọn model 'Gemini' hoặc 'Tự động'.`);
+        throw new Error(`Tính năng tạo ảnh ghép (Face Swap & Product) hiện chỉ hỗ trợ model Gemini. Vui lòng chọn model 'Gemini' hoặc 'Tự động' trong Menu để sử dụng tính năng này.`);
     }
 
     // Try Gemini (Primary for this app due to multimodal capabilities)
     if (geminiKey) {
         try {
-            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
             const imageResponse = await ai.models.generateContent({
                 model: 'gemini-2.5-flash-image',
                 contents: {
@@ -417,7 +417,7 @@ ${checklistInstruction}
                     ],
                 },
                 config: {
-                    responseModalities: [window.GenAIModality.IMAGE],
+                    responseModalities: [Modality.IMAGE],
                 },
             });
 
