@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -139,7 +140,7 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
             try {
                 const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                 const result = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
+                    model: 'gemini-2.0-flash',
                     contents: systemPrompt + "\n\n" + userPrompt,
                     config: {
                         responseMimeType: 'application/json',
@@ -236,7 +237,7 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
                                     onChange: (e) => setTopic(e.target.value),
                                     className: "w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white h-32 focus:ring-2 focus:ring-blue-500 transition-colors",
                                     placeholder: "Ví dụ: Lịch sử hình thành Trái Đất..."
-                                })
+                                } as any)
                             ),
                             React.createElement("div", null,
                                 React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Thời lượng (Phút)"),
@@ -246,7 +247,7 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
                                     onChange: (e) => setDuration(e.target.value),
                                     className: "w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 transition-colors",
                                     placeholder: "Ví dụ: 3"
-                                })
+                                } as any)
                             ),
                             React.createElement("button", {
                                 onClick: generateContent,

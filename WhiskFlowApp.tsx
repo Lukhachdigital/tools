@@ -136,7 +136,7 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
             const geminiPrompt = `${systemPrompt}\n\n${userPrompt}`;
             
             const response = await ai.models.generateContent({
-              model: "gemini-2.5-pro",
+              model: "gemini-2.0-flash",
               contents: geminiPrompt,
               config: {
                 responseMimeType: "application/json",

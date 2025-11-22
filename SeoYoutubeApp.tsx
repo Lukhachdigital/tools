@@ -98,7 +98,7 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
             if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key missing");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-2.0-flash',
                 contents: systemPrompt,
                 config: {
                     temperature: 1.2,
@@ -201,7 +201,7 @@ const generateFullSEOContent = async (description: string, title: string, gemini
             if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key missing");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-2.0-flash',
                 contents: systemPrompt,
                 config: {
                     responseMimeType: "application/json",

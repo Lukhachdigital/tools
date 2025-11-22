@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -283,7 +284,7 @@ ${characterInstruction}
             };
 
             const response = await ai.models.generateContent({
-              model: "gemini-2.5-pro",
+              model: "gemini-2.0-flash",
               contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}\n\nGenerate a JSON object that strictly adheres to the provided schema.`,
               config: {
                 responseMimeType: "application/json",
@@ -379,276 +380,250 @@ ${characterInstruction}
         finalPrompt = `ultra photorealistic, realistic photograph, cinematic shot. ${prompt}. The final image must be absolutely realistic, not animated, not 3D, not a cartoon, not fantasy.`;
     }
     const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792' };
-
-    // Image Generation Fallback: Gemini -> OpenAI -> OpenRouter
-    let finalError = null;
-
-    // 1. Try Gemini (Image) - Priority 1
-    if (geminiApiKey) {
-        try {
-            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-            const response = await ai.models.generateImages({
-                model: 'imagen-4.0-generate-001',
-                prompt: finalPrompt,
-                config: {
-                    numberOfImages: 1,
-                    outputMimeType: 'image/png',
-                    aspectRatio: aspectRatio,
-                },
-            });
-            if (response.generatedImages?.[0]?.image?.imageBytes) {
-                const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-                const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-                setCharacterImages(prev => ({
-                    ...prev,
-                    [characterIndex]: { isGenerating: false, imageUrl: imageUrl }
-                }));
-                return;
-            }
-        } catch (e) {
-            console.warn("Gemini Image Gen failed", e);
-            finalError = e;
-        }
-    }
-
-    // 2. Try OpenAI (Image)
-    if (openaiApiKey) {
-        try {
-            const response = await fetch('https://api.openai.com/v1/images/generations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
-                body: JSON.stringify({
-                    model: 'dall-e-3',
-                    prompt: finalPrompt,
-                    n: 1,
-                    size: sizeMap[aspectRatio] || '1024x1024',
-                    response_format: 'b64_json',
-                    quality: 'hd',
-                    style: 'vivid'
-                })
-            });
-            if (response.ok) {
-                const data = await response.json();
-                const imageUrl = `data:image/png;base64,${data.data[0].b64_json}`;
-                setCharacterImages(prev => ({
-                    ...prev,
-                    [characterIndex]: { isGenerating: false, imageUrl: imageUrl }
-                }));
-                return;
-            }
-        } catch (e) {
-            console.warn("OpenAI Image Gen failed", e);
-            finalError = e;
-        }
-    }
-
-    // 3. Try OpenRouter (Image)
-    if (openRouterApiKey) {
-        try {
-            const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
-                body: JSON.stringify({
-                    model: 'black-forest-labs/flux-1-schnell',
-                    prompt: finalPrompt,
-                    n: 1,
-                    size: sizeMap[aspectRatio] || '1024x1024',
-                })
-            });
-            if (response.ok) {
-                const data = await response.json();
-                const imageUrl = data.data[0].url;
-                setCharacterImages(prev => ({
-                    ...prev,
-                    [characterIndex]: { isGenerating: false, imageUrl: imageUrl }
-                }));
-                return;
-            }
-        } catch (e) {
-            console.warn("OpenRouter Image Gen failed", e);
-            finalError = e;
-        }
-    }
-
-    const errorMessage = "Không thể tạo ảnh. Vui lòng kiểm tra API Key.";
-    setCharacterImages(prev => ({
-        ...prev,
-        [characterIndex]: { isGenerating: false, error: errorMessage }
-    }));
-
-  }, [geminiApiKey, openaiApiKey, openRouterApiKey, selectedCinematicStyle]);
-
-  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setGeneratedContent(null);
-    setCharacterImages({});
-    setLightboxImage(null);
-    setCopiedAll(false);
-
-    const durationNum = parseFloat(duration);
-
-    if (isNaN(durationNum) || durationNum <= 0) {
-      setError("Thời lượng video phải là một số dương.");
-      setLoading(false);
-      return;
-    }
     
-    const mainChars = numMainCharacters.trim() !== '' ? parseInt(numMainCharacters, 10) : null;
-    const supChars = numSupportingCharacters.trim() !== '' ? parseInt(numSupportingCharacters, 10) : null;
-
-
     try {
-      const content = await generateScript(videoIdea, durationNum, selectedCinematicStyle, mainChars, supChars);
-      setGeneratedContent(content);
+        let imageUrl = '';
+        
+        // Try Gemini (Nano Banana Image) - Priority 1 for best quality
+        if (geminiApiKey && !imageUrl && (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
+             try {
+                const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-preview-image',
+                    contents: { parts: [{ text: finalPrompt }] },
+                    config: { 
+                        responseModalities: [window.GenAIModality.IMAGE] 
+                    },
+                });
+                // Check for image part
+                const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
+                if (imagePart && imagePart.inlineData) {
+                    imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+                } else {
+                    // Fallback to Imagen if Nano Banana returns no image (rare but possible)
+                     const responseImagen = await ai.models.generateImages({
+                        model: 'imagen-4.0-generate-001',
+                        prompt: finalPrompt,
+                        config: {
+                            numberOfImages: 1,
+                            outputMimeType: 'image/png',
+                            aspectRatio: aspectRatio,
+                        },
+                    });
+                    if (responseImagen.generatedImages?.[0]?.image?.imageBytes) {
+                        imageUrl = `data:image/png;base64,${responseImagen.generatedImages[0].image.imageBytes}`;
+                    }
+                }
+             } catch(e) { console.warn("Gemini Image Gen failed", e); }
+        }
+
+        // Try OpenRouter (Flux) - Priority 2
+        if (openRouterApiKey && !imageUrl && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto')) {
+             try {
+                const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
+                    body: JSON.stringify({
+                        model: 'black-forest-labs/flux-1-schnell',
+                        prompt: finalPrompt,
+                        n: 1,
+                        size: sizeMap[aspectRatio],
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    imageUrl = data.data[0].url;
+                }
+             } catch (e) { console.warn("OpenRouter Image Gen failed", e); }
+        }
+
+        // Try OpenAI (DALL-E 3) - Priority 3
+        if (openaiApiKey && !imageUrl && (selectedAIModel === 'openai' || selectedAIModel === 'auto')) {
+             try {
+                const response = await fetch('https://api.openai.com/v1/images/generations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+                    body: JSON.stringify({
+                        model: 'dall-e-3',
+                        prompt: finalPrompt,
+                        n: 1,
+                        size: '1024x1024', // DALL-E 3 supports 1024x1024, 1024x1792, 1792x1024
+                        response_format: 'b64_json',
+                        quality: 'hd',
+                        style: 'vivid'
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    imageUrl = `data:image/png;base64,${data.data[0].b64_json}`;
+                }
+             } catch(e) { console.warn("OpenAI Image Gen failed", e); }
+        }
+
+        if (!imageUrl) throw new Error("Không thể tạo ảnh từ bất kỳ API nào.");
+
+        setCharacterImages(prev => ({
+            ...prev,
+            [characterIndex]: { isGenerating: false, imageUrl }
+        }));
+
     } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi khi tạo kịch bản. Vui lòng thử lại.");
-    } finally {
-      setLoading(false);
+        setCharacterImages(prev => ({
+            ...prev,
+            [characterIndex]: { isGenerating: false, error: err.message || "Lỗi tạo ảnh" }
+        }));
     }
-  }, [videoIdea, duration, selectedCinematicStyle, generateScript, numMainCharacters, numSupportingCharacters]);
+  }, [geminiApiKey, openaiApiKey, openRouterApiKey, selectedCinematicStyle, selectedAIModel]);
 
-  const handleDownloadPrompts = () => {
-    if (!generatedContent || generatedContent.prompts.length === 0) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+      setError(null);
+      setGeneratedContent(null);
+      setCharacterImages({});
 
-    const content = generatedContent.prompts.join('\n\n');
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'veo_prompts.txt';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      try {
+          const durationNum = parseFloat(duration) || 5;
+          const numMain = numMainCharacters ? parseInt(numMainCharacters) : null;
+          const numSup = numSupportingCharacters ? parseInt(numSupportingCharacters) : null;
+          
+          const result = await generateScript(videoIdea, durationNum, selectedCinematicStyle, numMain, numSup);
+          setGeneratedContent(result);
+      } catch (err: any) {
+          setError(err.message);
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  const handleDownload = () => {
+      if(!generatedContent) return;
+      const text = `--- NHÂN VẬT ---\n${generatedContent.characterList.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n')}\n\n--- KỊCH BẢN ---\n${generatedContent.prompts.join('\n\n')}`;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'kich_ban_veo.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
   };
 
   const handleCopyAll = () => {
       if (!generatedContent) return;
-      // Copy only the prompts separated by 2 empty lines
       const allText = generatedContent.prompts.join('\n\n\n');
-      navigator.clipboard.writeText(allText).then(() => {
-          setCopiedAll(true);
-      });
+      navigator.clipboard.writeText(allText).then(() => setCopiedAll(true));
   };
 
   return (
-    React.createElement(React.Fragment, null,
+    React.createElement("div", { className: "w-full h-full p-4" },
       lightboxImage && React.createElement(Lightbox, { imageUrl: lightboxImage, onClose: () => setLightboxImage(null) }),
-      React.createElement("div", { className: "w-full h-full p-4" },
-          React.createElement("div", { className: "flex flex-col md:flex-row md:gap-8 lg:gap-12" },
-            // Left Column
-            React.createElement("div", { className: "md:w-2/5 lg:w-1/3 mb-8 md:mb-0" },
-              React.createElement("form", { onSubmit: handleSubmit, className: "bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 sticky top-8" },
-                React.createElement("div", { className: "mb-6" },
-                  React.createElement("label", { htmlFor: "videoIdea", className: "block text-gray-200 text-sm font-bold mb-2" }, "Ý tưởng video:"),
-                  React.createElement("textarea", {
-                    id: "videoIdea",
-                    className: "shadow appearance-none border border-gray-600 rounded w-full py-3 px-4 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[100px] resize-y",
-                    placeholder: "Ví dụ: Một phi hành gia bị lạc trên một hành tinh xa lạ và phải tìm cách sinh tồn...",
-                    value: videoIdea,
-                    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => setVideoIdea(e.target.value),
-                    required: true
-                  })
-                ),
-                React.createElement("div", { className: "mb-6" },
-                  React.createElement("label", { htmlFor: "totalDuration", className: "block text-gray-200 text-sm font-bold mb-2" }, "Tổng thời lượng video:"),
-                  React.createElement("div", { className: "flex items-center" },
-                    React.createElement("input", {
-                      type: "number", id: "totalDuration",
-                      className: "shadow appearance-none border border-gray-600 rounded-l w-full py-3 px-4 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                      placeholder: "Ví dụ: 3", min: "0.2", step: "any", value: duration,
-                      onChange: (e: React.ChangeEvent<HTMLInputElement>) => setDuration(e.target.value),
-                      required: true
-                    }),
-                    React.createElement("span", { className: "inline-flex items-center px-4 py-3 border border-l-0 border-gray-600 rounded-r bg-gray-700 text-gray-100 text-sm"}, "Phút")
-                  )
-                ),
-                React.createElement("div", { className: "mb-6" },
-                  React.createElement("label", { className: "block text-gray-200 text-sm font-bold mb-2" }, "Số lượng nhân vật (tùy chọn):"),
-                  React.createElement("div", { className: "flex gap-4" },
-                    React.createElement("div", { className: "flex-1" },
-                      React.createElement("label", { htmlFor: "numMainCharacters", className: "block text-gray-400 text-xs mb-1" }, "Nhân vật chính"),
-                      React.createElement("input", {
-                        type: "number",
-                        id: "numMainCharacters",
-                        className: "shadow appearance-none border border-gray-600 rounded w-full py-3 px-4 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                        placeholder: "VD: 1",
-                        min: "0",
-                        value: numMainCharacters,
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => setNumMainCharacters(e.target.value)
-                      })
+      React.createElement("div", { className: "flex flex-col lg:flex-row gap-8" },
+        // Left Panel
+        React.createElement("div", { className: "lg:w-1/3 space-y-6" },
+            React.createElement("form", { onSubmit: handleSubmit, className: "bg-gray-800 p-6 rounded-lg border border-gray-700" },
+                React.createElement("h3", { className: "text-xl font-bold text-white mb-4" }, "Thiết lập Kịch bản"),
+                React.createElement("div", { className: "space-y-4" },
+                    React.createElement("div", null,
+                        React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Ý tưởng Video"),
+                        React.createElement("textarea", { 
+                            className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white h-24", 
+                            value: videoIdea,
+                            onChange: e => setVideoIdea(e.target.value),
+                            required: true,
+                            placeholder: "Ví dụ: Cuộc phiêu lưu của chú mèo máy..."
+                        } as any)
                     ),
-                    React.createElement("div", { className: "flex-1" },
-                      React.createElement("label", { htmlFor: "numSupportingCharacters", className: "block text-gray-400 text-xs mb-1" }, "Nhân vật phụ"),
-                      React.createElement("input", {
-                        type: "number",
-                        id: "numSupportingCharacters",
-                        className: "shadow appearance-none border border-gray-600 rounded w-full py-3 px-4 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                        placeholder: "VD: 2",
-                        min: "0",
-                        value: numSupportingCharacters,
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => setNumSupportingCharacters(e.target.value)
-                      })
-                    )
-                  )
-                ),
-                React.createElement("div", { className: "mb-6" },
-                  React.createElement("label", { className: "block text-gray-200 text-sm font-bold mb-2" }, "Phong cách điện ảnh:"),
-                  React.createElement("div", { className: "flex flex-wrap gap-2" },
-                    cinematicStyles.map((style) => React.createElement("button", {
-                      key: style, type: "button",
-                      onClick: () => setSelectedCinematicStyle(style),
-                      className: `px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${selectedCinematicStyle === style ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800`
-                    }, style))
-                  )
-                ),
-                React.createElement("button", {
-                  type: "submit",
-                  className: "w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
-                  disabled: loading
-                }, loading ? 'Đang tạo...' : 'Tạo Kịch Bản')
-              )
-            ),
-            // Right Column
-            React.createElement("div", { className: "md:w-3/5 lg:w-2/3 md:h-[calc(100vh-150px)] md:overflow-y-auto custom-scrollbar md:pr-4" },
-              loading && React.createElement(Loader, null),
-              error && React.createElement("div", { className: "bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded relative mb-8", role: "alert" },
-                React.createElement("strong", { className: "font-bold" }, "Lỗi!"),
-                React.createElement("span", { className: "block sm:inline ml-2" }, error)
-              ),
-              generatedContent && (
-                React.createElement("div", null,
-                  React.createElement("div", { className: "flex justify-center mb-8 gap-4" },
-                    React.createElement("button", { onClick: handleDownloadPrompts, className: "w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading }, "Tải xuống Prompts (.txt)"),
-                    React.createElement("button", { 
-                        onClick: handleCopyAll, 
-                        className: `w-full sm:w-auto font-bold py-3 px-6 rounded-md focus:outline-none transition-colors duration-200 ${copiedAll ? 'bg-green-600 text-white' : 'bg-cyan-600 hover:bg-cyan-700 text-white'}`,
-                        disabled: loading 
-                    }, copiedAll ? "Đã sao chép tất cả" : "Sao chép toàn bộ")
-                  ),
-                  React.createElement("div", { className: "bg-gray-800 rounded-lg shadow-lg p-6 mb-8 border border-gray-700" },
-                    React.createElement("h3", { className: "text-xl font-bold text-blue-400 mb-4" }, "Danh sách nhân vật"),
-                    React.createElement("div", { className: "space-y-6" },
-                      generatedContent.characterList.map((char, index) => React.createElement(CharacterCard, { 
-                          key: index, 
-                          character: char,
-                          characterIndex: index,
-                          onGenerateImage: handleGenerateCharacterImage,
-                          imageData: characterImages[index] || {},
-                          onImageClick: (url) => setLightboxImage(url)
-                      }))
-                    )
-                  ),
-                  React.createElement("div", null,
-                      React.createElement("h3", { className: "text-xl font-bold text-blue-400 mb-4" }, "Prompts cho VEO 3.1"),
-                      generatedContent.prompts.map((prompt, index) => React.createElement(PromptCard, { key: index, prompt: prompt, promptNumber: index + 1 }))
-                  )
+                    React.createElement("div", null,
+                        React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Thời lượng (phút)"),
+                        React.createElement("input", { 
+                            type: "number",
+                            className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white", 
+                            value: duration,
+                            onChange: e => setDuration(e.target.value),
+                            required: true,
+                            placeholder: "5"
+                        } as any)
+                    ),
+                    React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                        React.createElement("div", null,
+                            React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Số nhân vật chính"),
+                            React.createElement("input", { 
+                                type: "number",
+                                className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white", 
+                                value: numMainCharacters,
+                                onChange: e => setNumMainCharacters(e.target.value),
+                                placeholder: "Tùy chọn"
+                            } as any)
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Số nhân vật phụ"),
+                            React.createElement("input", { 
+                                type: "number",
+                                className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white", 
+                                value: numSupportingCharacters,
+                                onChange: e => setNumSupportingCharacters(e.target.value),
+                                placeholder: "Tùy chọn"
+                            } as any)
+                        )
+                    ),
+                    React.createElement("div", null,
+                        React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Phong cách"),
+                        React.createElement("div", { className: "flex flex-wrap gap-2" },
+                            cinematicStyles.map(style => (
+                                React.createElement("button", {
+                                    key: style,
+                                    type: "button",
+                                    onClick: () => setSelectedCinematicStyle(style),
+                                    className: `px-3 py-1 rounded text-sm border transition ${selectedCinematicStyle === style ? 'bg-blue-600 border-blue-500 text-white' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'}`
+                                }, style)
+                            ))
+                        )
+                    ),
+                    React.createElement("button", {
+                        type: "submit",
+                        disabled: loading,
+                        className: "w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition disabled:opacity-50"
+                    }, loading ? "Đang tạo..." : "Tạo Kịch Bản")
                 )
-              )
             )
-          )
+        ),
+        // Right Panel
+        React.createElement("div", { className: "lg:w-2/3" },
+            loading && React.createElement(Loader),
+            error && React.createElement("div", { className: "bg-red-900/50 border border-red-500 text-red-200 p-4 rounded mb-4" }, error),
+            generatedContent && (
+                React.createElement("div", { className: "space-y-8 h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar pr-2" },
+                    React.createElement("div", { className: "flex gap-4" },
+                        React.createElement("button", { onClick: handleDownload, className: "flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded font-bold" }, "Tải xuống (.txt)"),
+                        React.createElement("button", { onClick: handleCopyAll, className: "flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-bold" }, copiedAll ? "Đã sao chép toàn bộ" : "Sao chép toàn bộ Prompt")
+                    ),
+                    React.createElement("div", null,
+                        React.createElement("h3", { className: "text-xl font-bold text-yellow-400 mb-4" } as any, "Danh sách Nhân vật"),
+                        React.createElement("div", { className: "space-y-4" } as any,
+                            generatedContent.characterList.map((char, idx) => (
+                                React.createElement(CharacterCard, {
+                                    key: idx,
+                                    character: char,
+                                    characterIndex: idx,
+                                    onGenerateImage: handleGenerateCharacterImage,
+                                    imageData: characterImages[idx] || {},
+                                    onImageClick: setLightboxImage
+                                })
+                            ))
+                        )
+                    ),
+                    React.createElement("div", null,
+                        React.createElement("h3", { className: "text-xl font-bold text-cyan-400 mb-4" }, "Chuỗi Prompt Video (VEO 3.1)"),
+                        React.createElement("div", null,
+                            generatedContent.prompts.map((p, idx) => (
+                                React.createElement(PromptCard, { key: idx, prompt: p, promptNumber: idx + 1 })
+                            ))
+                        )
+                    )
+                )
+            )
+        )
       )
     )
   );

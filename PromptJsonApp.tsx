@@ -230,7 +230,7 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
             if (!geminiApiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key missing");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-2.0-flash',
                 contents: userPrompt,
                 config: {
                     systemInstruction,

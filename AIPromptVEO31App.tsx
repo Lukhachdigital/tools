@@ -8,17 +8,28 @@ import { ScriptIcon } from './components/AIPromptVEO31/icons';
 interface AIPromptVEO31AppProps {
   geminiApiKey: string;
   openaiApiKey: string;
+  openRouterApiKey: string;
   selectedAIModel: string;
 }
 
-const AIPromptVEO31App: React.FC<AIPromptVEO31AppProps> = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
-  // FIX: Updated the state type and initial value to include `apiType`, resolving a prop type mismatch with the InputForm component.
+const AIPromptVEO31App: React.FC<AIPromptVEO31AppProps> = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }) => {
+  // Determine initial API type based on selectedAIModel, defaulting to 'gemini' if available, else 'gpt'
+  const getInitialApiType = (): 'gemini' | 'gpt' | 'openrouter' => {
+      if (selectedAIModel === 'gemini') return 'gemini';
+      if (selectedAIModel === 'openai') return 'gpt';
+      if (selectedAIModel === 'openrouter') return 'openrouter';
+      // Auto fallback
+      if (geminiApiKey) return 'gemini';
+      if (openRouterApiKey) return 'openrouter';
+      return 'gpt';
+  };
+
   const [params, setParams] = useState<Omit<ScriptParams, 'apiKey' | 'numPrompts'>>({
     topic: '',
     videoStyle: 'Điện ảnh',
     dialogueLanguage: 'Không thoại',
     subtitles: false,
-    apiType: selectedAIModel as 'gemini' | 'gpt',
+    apiType: getInitialApiType(),
   });
   const [scriptData, setScriptData] = useState<ScriptResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -37,11 +48,31 @@ const AIPromptVEO31App: React.FC<AIPromptVEO31AppProps> = ({ geminiApiKey, opena
         return;
     }
 
+    let apiKey = '';
+    let currentApiType = params.apiType;
+
+    // Logic to select the correct key based on current selection or auto fallback
+    if (selectedAIModel === 'auto') {
+        if (geminiApiKey) { apiKey = geminiApiKey; currentApiType = 'gemini'; }
+        else if (openRouterApiKey) { apiKey = openRouterApiKey; currentApiType = 'openrouter'; }
+        else if (openaiApiKey) { apiKey = openaiApiKey; currentApiType = 'gpt'; }
+    } else {
+        if (currentApiType === 'gemini') apiKey = geminiApiKey;
+        else if (currentApiType === 'openrouter') apiKey = openRouterApiKey;
+        else apiKey = openaiApiKey;
+    }
+
+    if (!apiKey) {
+        setError(`Vui lòng nhập API Key cho ${currentApiType === 'gpt' ? 'OpenAI' : currentApiType === 'gemini' ? 'Gemini' : 'OpenRouter'}.`);
+        setIsLoading(false);
+        return;
+    }
+
     try {
       const fullParams: ScriptParams = { 
         ...params, 
-        apiKey: selectedAIModel === 'gemini' ? geminiApiKey : openaiApiKey,
-        apiType: selectedAIModel as 'gemini' | 'gpt',
+        apiKey: apiKey,
+        apiType: currentApiType,
         numPrompts: userPrompts.length 
       };
       const response = await generateScript(fullParams);

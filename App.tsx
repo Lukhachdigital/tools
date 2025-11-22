@@ -598,14 +598,15 @@ const App = () => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
 
         const gridProps = {
-            className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
+            // Update grid to have 5 columns on xl screens as requested
+            className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6'
         };
 
         return React.createElement('div', { ...gridProps } as any,
             dashboardTools.map(tool => {
                 const buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
                     onClick: () => onToolClick(tool.id),
-                    className: "group bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/20"
+                    className: "group bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/20 h-full"
                 };
                 
                 return React.createElement('button', { key: tool.id, ...buttonProps } as any,

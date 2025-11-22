@@ -381,7 +381,7 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey })
               }
               const apiContents = { parts };
               const response = await ai.models.generateContent({
-                  model: 'gemini-2.5-flash-image',
+                  model: 'gemini-2.5-flash-preview-image',
                   contents: apiContents,
                   config: { responseModalities: [window.GenAIModality.IMAGE] },
               });

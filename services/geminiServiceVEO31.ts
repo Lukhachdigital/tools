@@ -1,3 +1,4 @@
+
 import type { ScriptParams, ScriptResponse } from '../types/veo31';
 import { GoogleGenAI, Type } from '@google/genai';
 
@@ -57,7 +58,37 @@ ${params.topic}
     `;
 
     try {
-        if (params.apiType === 'gpt') {
+        if (params.apiType === 'openrouter') {
+             if (!params.apiKey) {
+                throw new Error("API Key OpenRouter chưa được cấu hình.");
+            }
+            const systemPrompt = `${commonPrompt}\n\n**ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ chứa một khóa duy nhất là "script". Giá trị của "script" phải là một mảng chuỗi (array of strings).`;
+            const userPrompt = `Vui lòng tạo kịch bản dựa trên các yêu cầu đã được cung cấp.`;
+
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${params.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`OpenRouter API failed with status: ${response.status}`);
+            }
+            const data = await response.json();
+            const jsonText = data.choices[0].message.content;
+            return JSON.parse(jsonText) as ScriptResponse;
+
+        } else if (params.apiType === 'gpt') {
              if (!params.apiKey) {
                 throw new Error("API Key OpenAI chưa được cấu hình.");
             }
@@ -107,7 +138,7 @@ ${params.topic}
             const prompt = `${commonPrompt}\n\n**ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ chứa một khóa duy nhất là "script".`;
 
             const response = await ai.models.generateContent({
-                model: "gemini-2.5-pro",
+                model: "gemini-2.0-flash",
                 contents: prompt,
                 config: {
                     responseMimeType: "application/json",
@@ -122,6 +153,6 @@ ${params.topic}
         if (error instanceof Error && (error.message.includes('API key not valid') || error.message.includes('Incorrect API key'))) {
             throw new Error('API Key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt.');
         }
-        throw new Error("Không thể tạo kịch bản từ AI. Vui lòng thử lại.");
+        throw new Error(`Không thể tạo kịch bản từ AI (${params.apiType}). Vui lòng thử lại. Chi tiết: ` + (error instanceof Error ? error.message : String(error)));
     }
 };

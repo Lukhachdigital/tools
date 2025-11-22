@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 
@@ -265,7 +264,7 @@ const generateTextAndPromptSet = async (
         try {
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const textAndPromptGenResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-2.0-flash',
                 contents: {
                     parts: [
                         { text: prompt },
@@ -396,7 +395,7 @@ ${checklistInstruction}
         try {
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const imageResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-image',
+                model: 'gemini-2.5-flash-preview-image',
                 contents: {
                     parts: [
                         { text: imagePrompt },

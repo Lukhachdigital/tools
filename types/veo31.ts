@@ -1,3 +1,4 @@
+
 export interface ScriptParams {
   topic: string;
   numPrompts: number;
@@ -5,7 +6,7 @@ export interface ScriptParams {
   dialogueLanguage: 'Vietnamese' | 'English' | 'Không thoại';
   subtitles: boolean;
   apiKey: string;
-  apiType: 'gemini' | 'gpt';
+  apiType: 'gemini' | 'gpt' | 'openrouter';
 }
 
 export interface ScriptResponse {
