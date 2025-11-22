@@ -204,7 +204,8 @@ const generateTextAndPromptSet = async (
     region,
     productInfo,
     seed,
-    generationMode
+    generationMode,
+    selectedAIModel
 ) => {
     const voiceDescription = voice === 'male' ? 'a male' : 'a female';
     const regionDescription = region === 'south' ? 'Southern Vietnamese' : 'Northern Vietnamese';
@@ -229,42 +230,13 @@ const generateTextAndPromptSet = async (
 
     let finalError;
 
-    // 1. Try OpenRouter
-    if (openRouterKey) {
-        try {
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openRouterKey}`
-                },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001',
-                    messages: [
-                        { role: 'user', content: [
-                            { type: 'text', text: prompt },
-                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${productImageBase64}` } },
-                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${generatedImageBase64}` } }
-                        ]}
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter API failed');
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.warn("OpenRouter failed, trying Gemini...", e);
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini
-    if (geminiKey) {
+    // 1. Try Gemini
+    if ((selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiKey))) {
+        if (!geminiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
         try {
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const textAndPromptGenResponse = await ai.models.generateContent({
-                model: 'gemini-2.0-flash',
+                model: 'gemini-2.5-flash',
                 contents: {
                     parts: [
                         { text: prompt },
@@ -276,13 +248,15 @@ const generateTextAndPromptSet = async (
             });
             return JSON.parse(textAndPromptGenResponse.text);
         } catch (e) {
-            console.warn("Gemini failed, trying OpenAI...", e);
+            console.warn("Gemini failed", e);
+            if (selectedAIModel === 'gemini') throw e;
             finalError = e;
         }
     }
 
-    // 3. Try OpenAI
-    if (openaiKey) {
+    // 2. Try OpenAI
+    if ((selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiKey))) {
+        if (!openaiKey && selectedAIModel === 'openai') throw new Error("OpenAI Key chưa được cài đặt.");
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -307,6 +281,39 @@ const generateTextAndPromptSet = async (
             return JSON.parse(data.choices[0].message.content);
         } catch (e) {
             console.warn("OpenAI failed", e);
+            if (selectedAIModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 3. Try OpenRouter
+    if ((selectedAIModel === 'openrouter' || (selectedAIModel === 'auto' && openRouterKey))) {
+        if (!openRouterKey && selectedAIModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openRouterKey}`
+                },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.5-flash-001',
+                    messages: [
+                        { role: 'user', content: [
+                            { type: 'text', text: prompt },
+                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${productImageBase64}` } },
+                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${generatedImageBase64}` } }
+                        ]}
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter API failed');
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.warn("OpenRouter failed", e);
+            if (selectedAIModel === 'openrouter') throw e;
             finalError = e;
         }
     }
@@ -325,7 +332,8 @@ const generateSingleResult = async (
     outfitSuggestion,
     backgroundSuggestion,
     productInfo,
-    faceSwapMode
+    faceSwapMode,
+    selectedAIModel
 ) => {
 
     const backgroundPrompt = backgroundSuggestion
@@ -390,12 +398,17 @@ ${checklistInstruction}
     let generatedImageBase64: string | null = null;
     let finalError = null;
 
+    // This feature (image composition) is Gemini-specific. Check model selection.
+    if (selectedAIModel !== 'gemini' && selectedAIModel !== 'auto') {
+        throw new Error(`Tính năng tạo ảnh ghép (Face Swap & Product) hiện chỉ hỗ trợ model Gemini. Vui lòng chọn model 'Gemini' hoặc 'Tự động'.`);
+    }
+
     // Try Gemini (Primary for this app due to multimodal capabilities)
     if (geminiKey) {
         try {
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const imageResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-preview-image',
+                model: 'gemini-2.5-flash-image',
                 contents: {
                     parts: [
                         { text: imagePrompt },
@@ -420,10 +433,7 @@ ${checklistInstruction}
 
     // If Gemini failed or key is missing, alert if we couldn't generate image
     if (!generatedImageBase64) {
-        if (!geminiKey && (openRouterKey || openaiKey)) {
-             throw new Error("Tính năng tạo ảnh ghép (Face Swap & Product) yêu cầu Gemini API Key. Vui lòng nhập Gemini API Key để sử dụng.");
-        }
-        throw finalError || new Error("Không thể tạo ảnh từ AI.");
+        throw finalError || new Error("Không thể tạo ảnh từ Gemini. Vui lòng kiểm tra API Key và thử lại.");
     }
 
     const imageUrl = `data:image/jpeg;base64,${generatedImageBase64}`;
@@ -436,7 +446,8 @@ ${checklistInstruction}
         region,
         productInfo,
         seed,
-        generationMode
+        generationMode,
+        selectedAIModel
     );
 
     return {
@@ -456,7 +467,8 @@ const generateAllContent = async (
     outfitSuggestion,
     backgroundSuggestion,
     productInfo,
-    faceSwapMode
+    faceSwapMode,
+    selectedAIModel
 ) => {
     const generationPromises = Array.from({ length: numberOfResults }, (_, i) =>
         generateSingleResult(
@@ -470,7 +482,8 @@ const generateAllContent = async (
             outfitSuggestion,
             backgroundSuggestion,
             productInfo,
-            faceSwapMode
+            faceSwapMode,
+            selectedAIModel
         )
     );
 
@@ -632,7 +645,7 @@ const ControlPanel = ({
     );
 };
 
-const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
+const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }) => {
   const [generationMode, setGenerationMode] = useState('product');
   const [voice, setVoice] = useState('female');
   const [region, setRegion] = useState('south');
@@ -674,7 +687,8 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
             outfitSuggestion,
             backgroundSuggestion,
             productInfo,
-            faceSwapMode
+            faceSwapMode,
+            selectedAIModel
         );
         setResults(generatedResults);
     } catch (e) {
