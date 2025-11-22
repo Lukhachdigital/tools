@@ -204,7 +204,8 @@ const generateTextAndPromptSet = async (
     region,
     productInfo,
     seed,
-    generationMode
+    generationMode,
+    selectedAIModel
 ) => {
     const voiceDescription = voice === 'male' ? 'a male' : 'a female';
     const regionDescription = region === 'south' ? 'Southern Vietnamese' : 'Northern Vietnamese';
@@ -229,38 +230,9 @@ const generateTextAndPromptSet = async (
 
     let finalError;
 
-    // 1. Try OpenRouter
-    if (openRouterKey) {
-        try {
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openRouterKey}`
-                },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001',
-                    messages: [
-                        { role: 'user', content: [
-                            { type: 'text', text: prompt },
-                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${productImageBase64}` } },
-                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${generatedImageBase64}` } }
-                        ]}
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter API failed');
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.warn("OpenRouter failed, trying Gemini...", e);
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini
-    if (geminiKey) {
+    // 1. Try Gemini
+    if ((selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiKey))) {
+        if (!geminiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
         try {
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const textAndPromptGenResponse = await ai.models.generateContent({
@@ -276,13 +248,15 @@ const generateTextAndPromptSet = async (
             });
             return JSON.parse(textAndPromptGenResponse.text);
         } catch (e) {
-            console.warn("Gemini failed, trying OpenAI...", e);
+            console.warn("Gemini failed", e);
+            if (selectedAIModel === 'gemini') throw e;
             finalError = e;
         }
     }
 
-    // 3. Try OpenAI
-    if (openaiKey) {
+    // 2. Try OpenAI
+    if ((selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiKey))) {
+        if (!openaiKey && selectedAIModel === 'openai') throw new Error("OpenAI Key chưa được cài đặt.");
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -307,6 +281,39 @@ const generateTextAndPromptSet = async (
             return JSON.parse(data.choices[0].message.content);
         } catch (e) {
             console.warn("OpenAI failed", e);
+            if (selectedAIModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 3. Try OpenRouter
+    if ((selectedAIModel === 'openrouter' || (selectedAIModel === 'auto' && openRouterKey))) {
+        if (!openRouterKey && selectedAIModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openRouterKey}`
+                },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.5-flash-001',
+                    messages: [
+                        { role: 'user', content: [
+                            { type: 'text', text: prompt },
+                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${productImageBase64}` } },
+                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${generatedImageBase64}` } }
+                        ]}
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter API failed');
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.warn("OpenRouter failed", e);
+            if (selectedAIModel === 'openrouter') throw e;
             finalError = e;
         }
     }
@@ -324,7 +331,9 @@ const generateSingleResult = async (
     generationMode,
     outfitSuggestion,
     backgroundSuggestion,
-    productInfo
+    productInfo,
+    faceSwapMode,
+    selectedAIModel
 ) => {
 
     const backgroundPrompt = backgroundSuggestion
@@ -337,13 +346,24 @@ const generateSingleResult = async (
 The aspect ratio of the final image must be inherited from the uploaded product/fashion item image. This is a critical rule.
 `;
 
+    let identityInstruction = "";
+    let checklistInstruction = "";
+
+    if (faceSwapMode) {
+        identityInstruction = `- **Person**: The person from the first image must be featured. Their facial features, body type, and appearance must be preserved EXACTLY. Do not alter the face.`;
+        checklistInstruction = `1.  **PERSON:** Is the person from image 1 recognizable with their exact face? -> If not, FAIL.`;
+    } else {
+        identityInstruction = `- **Person**: Use the person from the first image as a base reference. You have CREATIVE FREEDOM to adapt their appearance, facial features, and style to better fit the mood, lighting, and artistic direction. Prioritize a stunning, cohesive, and viral look over exact facial match.`;
+        checklistInstruction = `1.  **AESTHETICS:** Is the image visually stunning, creative, and high-quality? -> If not, FAIL.`;
+    }
+
     if (generationMode === 'fashion') {
         const complementaryOutfitPrompt = outfitSuggestion
             ? `- **Complementary Outfit Suggestion**: Style the rest of the outfit to complement the main fashion item, inspired by this suggestion: "${outfitSuggestion}".`
             : `- **Complementary Outfit**: Style the rest of the outfit to be fashionable and contextually appropriate, complementing the main fashion item. CRITICAL: For this specific generation (seed ${seed}), invent a COMPLETELY UNIQUE complementary outfit. Be creative with accessories, shoes, and other items.`;
 
         imagePrompt = `${promptPreamble}
-- **Person**: The person from the first image must be featured. Their facial features, body type, and appearance must be preserved exactly.
+${identityInstruction}
 - **Fashion Item**: The person MUST be wearing the fashion item (e.g., shirt, pants, dress) from the second image. The item's design, color, texture, and shape MUST be preserved with 100% fidelity and fitted naturally onto the person. IT IS CRITICAL THAT YOU DO NOT ALTER THE ORIGINAL ITEM IN ANY WAY.
 ${complementaryOutfitPrompt}
 ${backgroundPrompt}
@@ -352,7 +372,7 @@ ${backgroundPrompt}
 - **Variation Seed**: ${seed}.
 
 **FINAL MANDATORY CHECKLIST:**
-1.  **PERSON:** Is the person from image 1 recognizable? -> If not, FAIL.
+${checklistInstruction}
 2.  **ITEM:** Is the fashion item from image 2 accurately represented? -> If not, FAIL.`;
     } else { 
         const outfitPrompt = outfitSuggestion
@@ -360,7 +380,7 @@ ${backgroundPrompt}
             : `- **Outfit**: The person must be wearing a stylish and contextually appropriate outfit. CRITICAL: For this specific generation (seed ${seed}), invent a COMPLETELY UNIQUE outfit. Do not repeat styles from other generations. Be creative with different clothing items (e.g., blazer and jeans, summer dress, sportswear, elegant gown).`;
 
         imagePrompt = `${promptPreamble}
-- **Person**: The person from the first image must be featured. Their facial features and appearance must be preserved exactly.
+${identityInstruction}
 - **Product**: The product from the second image must be featured. The product's appearance, branding, color, and shape MUST be preserved with 100% fidelity. IT IS CRITICAL THAT YOU DO NOT ALTER THE ORIGINAL PRODUCT IN ANY WAY.
 - **REALISTIC SCALING (CRITICAL)**: The product's size MUST be realistic and proportional to the person. It should look natural, as it would in real life. DO NOT enlarge the product for emphasis. This realism is more important than making the product highly visible.
 - **Interaction**: The person should be interacting with or presenting the product in a natural, engaging way.
@@ -371,12 +391,17 @@ ${backgroundPrompt}
 - **Variation Seed**: ${seed}.
 
 **FINAL MANDATORY CHECKLIST:**
-1.  **PERSON:** Is the person from image 1 recognizable? -> If not, FAIL.
+${checklistInstruction}
 2.  **PRODUCT:** Is the product from image 2 accurately represented and realistically scaled? -> If not, FAIL.`;
     }
 
     let generatedImageBase64: string | null = null;
     let finalError = null;
+
+    // This feature (image composition) is Gemini-specific. Check model selection.
+    if (selectedAIModel !== 'gemini' && selectedAIModel !== 'auto') {
+        throw new Error(`Tính năng tạo ảnh ghép (Face Swap & Product) hiện chỉ hỗ trợ model Gemini. Vui lòng chọn model 'Gemini' hoặc 'Tự động'.`);
+    }
 
     // Try Gemini (Primary for this app due to multimodal capabilities)
     if (geminiKey) {
@@ -408,10 +433,7 @@ ${backgroundPrompt}
 
     // If Gemini failed or key is missing, alert if we couldn't generate image
     if (!generatedImageBase64) {
-        if (!geminiKey && (openRouterKey || openaiKey)) {
-             throw new Error("Tính năng tạo ảnh ghép (Face Swap & Product) yêu cầu Gemini API Key. Vui lòng nhập Gemini API Key để sử dụng.");
-        }
-        throw finalError || new Error("Không thể tạo ảnh từ AI.");
+        throw finalError || new Error("Không thể tạo ảnh từ Gemini. Vui lòng kiểm tra API Key và thử lại.");
     }
 
     const imageUrl = `data:image/jpeg;base64,${generatedImageBase64}`;
@@ -424,7 +446,8 @@ ${backgroundPrompt}
         region,
         productInfo,
         seed,
-        generationMode
+        generationMode,
+        selectedAIModel
     );
 
     return {
@@ -443,7 +466,9 @@ const generateAllContent = async (
     generationMode,
     outfitSuggestion,
     backgroundSuggestion,
-    productInfo
+    productInfo,
+    faceSwapMode,
+    selectedAIModel
 ) => {
     const generationPromises = Array.from({ length: numberOfResults }, (_, i) =>
         generateSingleResult(
@@ -456,7 +481,9 @@ const generateAllContent = async (
             generationMode,
             outfitSuggestion,
             backgroundSuggestion,
-            productInfo
+            productInfo,
+            faceSwapMode,
+            selectedAIModel
         )
     );
 
@@ -517,6 +544,7 @@ const ControlPanel = ({
     handleGenerateContent,
     modelImage, productImage, isLoading,
     aspectRatio, setAspectRatio,
+    faceSwapMode, setFaceSwapMode,
     isGpt
 }) => {
      const outfitInputProps = {
@@ -548,6 +576,10 @@ const ControlPanel = ({
     return (
          React.createElement('div', { className: "w-full lg:w-1/3 flex-shrink-0 space-y-6" },
             React.createElement('div', { className: "bg-slate-800/50 border border-slate-700 rounded-xl p-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-6" },
+                React.createElement(OptionGroup, { label: "Chế độ Tạo ảnh", children: [
+                    React.createElement(OptionButton, { key: 'swap', selected: faceSwapMode === true, onClick: () => setFaceSwapMode(true), children: "Face Swap (Giữ mặt)" }),
+                    React.createElement(OptionButton, { key: 'auto', selected: faceSwapMode === false, onClick: () => setFaceSwapMode(false), children: "Auto Generate (Sáng tạo)" })
+                ]}),
                 React.createElement(OptionGroup, { label: "Loại Nội dung", children: [
                     React.createElement(OptionButton, { key: 'product', selected: generationMode === 'product', onClick: () => setGenerationMode('product'), children: "Sản phẩm cầm tay" }),
                     React.createElement(OptionButton, { key: 'fashion', selected: generationMode === 'fashion', onClick: () => setGenerationMode('fashion'), children: "Trang phục" })
@@ -613,7 +645,7 @@ const ControlPanel = ({
     );
 };
 
-const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
+const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }) => {
   const [generationMode, setGenerationMode] = useState('product');
   const [voice, setVoice] = useState('female');
   const [region, setRegion] = useState('south');
@@ -627,6 +659,7 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
   const [results, setResults] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [aspectRatio, setAspectRatio] = useState('9:16');
+  const [faceSwapMode, setFaceSwapMode] = useState(true);
 
   const handleGenerateContent = async () => {
     if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
@@ -653,7 +686,9 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
             generationMode,
             outfitSuggestion,
             backgroundSuggestion,
-            productInfo
+            productInfo,
+            faceSwapMode,
+            selectedAIModel
         );
         setResults(generatedResults);
     } catch (e) {
@@ -689,6 +724,8 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
             isLoading={isLoading}
             aspectRatio={aspectRatio}
             setAspectRatio={setAspectRatio}
+            faceSwapMode={faceSwapMode}
+            setFaceSwapMode={setFaceSwapMode}
             isGpt={false}
         />
         
