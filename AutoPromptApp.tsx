@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -140,7 +141,7 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
             try {
                 const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                 const result = await ai.models.generateContent({
-                    model: 'gemini-2.0-flash',
+                    model: 'gemini-3-pro-preview',
                     contents: systemPrompt + "\n\n" + userPrompt,
                     config: {
                         responseMimeType: 'application/json',
@@ -198,7 +199,7 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
                     body: JSON.stringify({
-                        model: 'google/gemini-2.0-flash-001',
+                        model: 'google/gemini-2.5-pro',
                         messages: [
                             { role: 'system', content: systemPrompt },
                             { role: 'user', content: userPrompt }

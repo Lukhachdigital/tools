@@ -728,7 +728,7 @@ const App = () => {
                                     }, getModelLabel(model))
                                 ))
                             ),
-                            React.createElement('p', { className: "text-yellow-400 font-bold mt-2 text-center text-sm animate-pulse" }, "Lưu ý! Chọn mô hình AI thích hợp đề có kết quả tốt nhất")
+                            React.createElement('p', { className: "text-yellow-400 font-bold mt-2 text-center text-sm animate-pulse" }, "Lưu ý! Chọn mô hình AI thích hợp để có kết quả tốt nhất")
                         )
                     ),
                      (() => {

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -284,7 +285,7 @@ ${characterInstruction}
             };
 
             const response = await ai.models.generateContent({
-              model: "gemini-2.0-flash",
+              model: "gemini-3-pro-preview",
               contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}\n\nGenerate a JSON object that strictly adheres to the provided schema.`,
               config: {
                 responseMimeType: "application/json",
@@ -341,7 +342,7 @@ ${characterInstruction}
                     'Authorization': `Bearer ${openRouterApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001',
+                    model: 'google/gemini-2.5-pro',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }
@@ -389,7 +390,7 @@ ${characterInstruction}
              try {
                 const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                 const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-preview-image',
+                    model: 'gemini-2.5-flash-image',
                     contents: { parts: [{ text: finalPrompt }] },
                     config: { 
                         responseModalities: [window.GenAIModality.IMAGE] 

@@ -42,117 +42,99 @@ ${params.topic}
     - **Realistic (Thực tế):** QUAN TRỌNG NHẤT. Phong cách này yêu cầu sự chân thực tuyệt đối. Mọi thứ trong cảnh quay—con người, công nghệ, kiến trúc, quần áo, hành động—phải phản ánh chính xác thế giới **HIỆN TẠI (những năm 2020)**. **CẤM TUYỆT ĐỐI** mọi yếu tố tương lai, công nghệ viễn tưởng (như năm 2099, robot, xe bay), hay các yếu tố kỳ ảo. Nếu người dùng mô tả "một người đi trên đường phố", đó phải là một đường phố bình thường ngày nay, không phải một thành phố tương lai. Quy tắc này là BẮT BUỘC.
     - **Modern (Hiện đại):** Phong cách này cho phép thẩm mỹ đẹp mắt, sạch sẽ, và công nghệ tân tiến nhưng **có thật hoặc sắp có thật**. Ví dụ: kiến trúc tối giản, xe điện cao cấp, các thiết bị thông minh tinh vi. Vẫn bám sát thực tế, nhưng tập trung vào khía cạnh tiên tiến của thế giới hiện tại.
     - **Sci-fi (Viễn tưởng):** Cho phép tự do sáng tạo với các khái niệm tương lai xa, không gian, người ngoài hành tinh, AI siêu trí tuệ, công nghệ không tưởng.
-    - **Cinematic (Điện ảnh):** Tập trung vào chất lượng hình ảnh như phim điện ảnh—ánh sáng kịch tính, màu sắc nghệ thuật, góc quay sáng tạo. Nội dung vẫn phải tuân theo logic của các phong cách khác (ví dụ: Cinematic + Realistic phải là một cảnh thực tế được quay đẹp như phim).
-    - **Cartoon (Hoạt hình) & Anime:** Phong cách đồ họa, không cần tuân thủ quy luật vật lý thực tế.
+    - **Cinematic (Điện ảnh):** Tập trung vào chất lượng hình ảnh như phim điện ảnh—ánh sáng kịch tính (dramatic lighting), độ sâu trường ảnh (depth of field), bố cục nghệ thuật.
+    - **Cartoon (Hoạt hình):** Phong cách hoạt hình, màu sắc tươi sáng, nhân vật cách điệu.
+    - **Anime (Anime):** Phong cách hoạt hình Nhật Bản 2D.
 
-    **CÁC QUY TẮC QUAN TRỌNG KHÁC:**
-    1.  **KHÔNG NHẤT QUÁN NHÂN VẬT:** Bạn không cần giữ sự nhất quán về ngoại hình của nhân vật giữa các cảnh. Mỗi cảnh là độc lập. Hãy mô tả nhân vật dựa trên hành động và bối cảnh của từng cảnh.
-    2.  **QUY TẮC NGÔN NGỮ:** TẤT CẢ các phần phải bằng TIẾNG ANH, NGOẠI TRỪ phần 'Dialog' phải được viết bằng '${mappedLang}'. Nếu ngôn ngữ là "None", hãy viết "Dialog: [None]".
-    3.  **QUY TẮC ĐỊNH DẠNG:** Mỗi nhắc lệnh là MỘT chuỗi dài duy nhất, sử dụng " | " làm ký tự phân tách, và có chính xác 11 phần theo đúng thứ tự.
-    4.  **KHÔNG CÓ VĂN BẢN TRÊN VIDEO:**
-        - Phần 'Scene Title' PHẢI LUÔN LÀ "Scene Title: [None]".
-        - Phần 'Subtitles' PHẢI LUÔN LÀ "Subtitles: [None]".
-
-    **QUY TRÌNH LÀM VIỆC:**
-    Đối với MỖI mô tả cảnh từ người dùng, hãy tạo ra một nhắc lệnh VEO 3.1 chi tiết. Nhắc lệnh này phải được phân tách bằng dấu gạch đứng có không gian (" | ") với chính xác 11 phần theo thứ tự sau: Scene Title, Character 1 Description, Character 2 Description, Style Description, Character Voices, Camera Shot, Setting Details, Mood, Audio Cues, Dialog, Subtitles. Bạn PHẢI tạo ra chính xác ${params.numPrompts} nhắc lệnh.
+    **CẤU TRÚC ĐẦU RA (BẮT BUỘC JSON):**
+    Bạn phải trả về một đối tượng JSON duy nhất với khóa "script". Giá trị của "script" là một mảng các chuỗi (array of strings), mỗi chuỗi là một prompt chi tiết cho một cảnh quay.
+    {
+      "script": [
+        "Prompt cảnh 1...",
+        "Prompt cảnh 2...",
+        ...
+      ]
+    }
+    
+    **QUY TẮC VIẾT PROMPT:**
+    1. Ngôn ngữ: TIẾNG ANH (English).
+    2. Cấu trúc VEO 3.1: [Shot Type] of [Subject + Action] in [Setting], [Lighting], [Style], [Camera Movement].
+    3. Chi tiết: Mô tả cực kỳ chi tiết về hình ảnh, ánh sáng, và chuyển động camera.
     `;
 
-    try {
-        if (params.apiType === 'openrouter') {
-             if (!params.apiKey) {
-                throw new Error("API Key OpenRouter chưa được cấu hình.");
-            }
-            const systemPrompt = `${commonPrompt}\n\n**ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ chứa một khóa duy nhất là "script". Giá trị của "script" phải là một mảng chuỗi (array of strings).`;
-            const userPrompt = `Vui lòng tạo kịch bản dựa trên các yêu cầu đã được cung cấp.`;
-
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${params.apiKey}`
+    if (params.apiType === 'gemini') {
+        if (!params.apiKey) throw new Error("API Key Gemini chưa được cấu hình.");
+        const ai = new GoogleGenAI({ apiKey: params.apiKey });
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: commonPrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        script: {
+                            type: Type.ARRAY,
+                            items: { type: Type.STRING }
+                        }
+                    },
+                    required: ['script']
                 },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001',
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
+            },
+        });
+        const jsonStr = response.text.trim();
+        return JSON.parse(jsonStr) as ScriptResponse;
+    } else if (params.apiType === 'gpt') {
+        if (!params.apiKey) throw new Error("API Key OpenAI chưa được cấu hình.");
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${params.apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o',
+                messages: [
+                    { role: 'system', content: commonPrompt + "\n\nReturn STRICTLY JSON format." },
+                ],
+                response_format: { type: 'json_object' }
+            })
+        });
 
-            if (!response.ok) {
-                throw new Error(`OpenRouter API failed with status: ${response.status}`);
-            }
-            const data = await response.json();
-            const jsonText = data.choices[0].message.content;
-            return JSON.parse(jsonText) as ScriptResponse;
-
-        } else if (params.apiType === 'gpt') {
-             if (!params.apiKey) {
-                throw new Error("API Key OpenAI chưa được cấu hình.");
-            }
-            const systemPrompt = `${commonPrompt}\n\n**ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ chứa một khóa duy nhất là "script". Giá trị của "script" phải là một mảng chuỗi (array of strings).`;
-            const userPrompt = `Vui lòng tạo kịch bản dựa trên các yêu cầu đã được cung cấp.`;
-
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${params.apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o',
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            const jsonText = data.choices[0].message.content;
-            return JSON.parse(jsonText) as ScriptResponse;
-        } else { // Gemini
-            if (!params.apiKey) {
-                throw new Error("API Key Gemini chưa được cấu hình.");
-            }
-            const ai = new window.GoogleGenAI({ apiKey: params.apiKey });
-            const responseSchema = {
-                type: Type.OBJECT,
-                properties: {
-                    script: {
-                        type: Type.ARRAY,
-                        description: `Một mảng gồm chính xác ${params.numPrompts} chuỗi kịch bản được phân tách bằng dấu gạch đứng.`,
-                        items: { type: Type.STRING }
-                    }
-                },
-                required: ["script"]
-            };
-
-            const prompt = `${commonPrompt}\n\n**ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:** Chỉ trả về một đối tượng JSON hợp lệ chứa một khóa duy nhất là "script".`;
-
-            const response = await ai.models.generateContent({
-                model: "gemini-2.0-flash",
-                contents: prompt,
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: responseSchema,
-                },
-            });
-            const jsonText = response.text.trim();
-            return JSON.parse(jsonText) as ScriptResponse;
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
         }
-    } catch (error) {
-        console.error("Lỗi khi tạo kịch bản:", error);
-        if (error instanceof Error && (error.message.includes('API key not valid') || error.message.includes('Incorrect API key'))) {
-            throw new Error('API Key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt.');
+
+        const data = await response.json();
+        const jsonText = data.choices[0].message.content;
+        return JSON.parse(jsonText) as ScriptResponse;
+    } else if (params.apiType === 'openrouter') {
+        if (!params.apiKey) throw new Error("API Key OpenRouter chưa được cấu hình.");
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${params.apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'google/gemini-2.5-pro',
+                messages: [
+                    { role: 'system', content: commonPrompt + "\n\nReturn STRICTLY JSON format." },
+                ],
+                response_format: { type: 'json_object' }
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
         }
-        throw new Error(`Không thể tạo kịch bản từ AI (${params.apiType}). Vui lòng thử lại. Chi tiết: ` + (error instanceof Error ? error.message : String(error)));
+
+        const data = await response.json();
+        const jsonText = data.choices[0].message.content;
+        return JSON.parse(jsonText) as ScriptResponse;
     }
+
+    throw new Error("Loại API không hợp lệ.");
 };

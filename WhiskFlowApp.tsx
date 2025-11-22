@@ -136,7 +136,7 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
             const geminiPrompt = `${systemPrompt}\n\n${userPrompt}`;
             
             const response = await ai.models.generateContent({
-              model: "gemini-2.0-flash",
+              model: "gemini-3-pro-preview",
               contents: geminiPrompt,
               config: {
                 responseMimeType: "application/json",
@@ -197,7 +197,7 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
                     'Authorization': `Bearer ${openRouterApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001', // Use a reliable model on OpenRouter
+                    model: 'google/gemini-2.5-pro', // Use a reliable model on OpenRouter
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }

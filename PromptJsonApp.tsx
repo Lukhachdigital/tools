@@ -230,7 +230,7 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
             if (!geminiApiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key missing");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
             const response = await ai.models.generateContent({
-                model: 'gemini-2.0-flash',
+                model: 'gemini-3-pro-preview',
                 contents: userPrompt,
                 config: {
                     systemInstruction,
@@ -323,7 +323,7 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
                     'Authorization': `Bearer ${openRouterApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001',
+                    model: 'google/gemini-2.5-pro',
                     messages: [
                         { role: 'system', content: openAISystemInstruction },
                         { role: 'user', content: userPrompt }

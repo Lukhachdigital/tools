@@ -110,7 +110,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, sele
                     try {
                         const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                         const response = await ai.models.generateContent({
-                            model: 'gemini-2.5-flash-lite',
+                            model: 'gemini-2.5-flash',
                             contents: userPrompt,
                         });
                         translatedText = response.text;
@@ -155,7 +155,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, sele
                                 'Authorization': `Bearer ${openRouterApiKey}`
                             },
                             body: JSON.stringify({
-                                model: 'google/gemini-2.0-flash-001',
+                                model: 'google/gemini-2.5-pro',
                                 messages: [{ role: 'user', content: userPrompt }]
                             })
                         });

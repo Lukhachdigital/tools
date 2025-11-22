@@ -149,7 +149,7 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
               `;
       
             const response = await ai.models.generateContent({
-              model: "gemini-2.0-flash",
+              model: "gemini-3-pro-preview",
               contents: prompt,
               config: {
                 responseMimeType: "application/json",
