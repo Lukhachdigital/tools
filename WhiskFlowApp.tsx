@@ -45,9 +45,8 @@ const SceneCard = ({ scene, sceneNumber }: { scene: Scene; sceneNumber: number }
           React.createElement("p", { className: "text-gray-200 text-sm break-words pr-20" }, scene.whisk_prompt_vi),
           React.createElement("button", {
             onClick: () => copyToClipboard(scene.whisk_prompt_vi, setCopiedWhisk),
-            className: "absolute top-2 right-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:bg-green-600",
-            disabled: copiedWhisk
-          }, copiedWhisk ? 'Đã sao chép!' : 'Sao chép')
+            className: `absolute top-2 right-2 px-4 py-2 text-sm rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${copiedWhisk ? 'bg-green-600 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`
+          }, copiedWhisk ? 'Đã sao chép' : 'Sao chép')
         )
       ),
       React.createElement("div", { className: "mt-6" },
@@ -56,9 +55,8 @@ const SceneCard = ({ scene, sceneNumber }: { scene: Scene; sceneNumber: number }
           React.createElement("p", { className: "text-gray-200 text-sm break-words pr-20" }, scene.motion_prompt),
           React.createElement("button", {
             onClick: () => copyToClipboard(scene.motion_prompt, setCopiedFlow),
-            className: "absolute top-2 right-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:bg-green-600",
-            disabled: copiedFlow
-          }, copiedFlow ? 'Đã sao chép!' : 'Sao chép')
+            className: `absolute top-2 right-2 px-4 py-2 text-sm rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${copiedFlow ? 'bg-green-600 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`
+          }, copiedFlow ? 'Đã sao chép' : 'Sao chép')
         )
       )
     )
@@ -70,7 +68,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string }): React.ReactElement => {
+const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [totalDuration, setTotalDuration] = useState('');
   const [durationUnit, setDurationUnit] = useState('minutes');
@@ -78,11 +76,13 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { gemini
   const [generatedScenes, setGeneratedScenes] = useState<Scene[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   const generateScript = useCallback(async (
     videoIdea: string,
     numberOfScenes: number,
-    cinematicStyle: string
+    cinematicStyle: string,
+    model: string
   ): Promise<Scene[]> => {
     
     const styleInstruction = `The overall cinematic style for this video should be: ${cinematicStyle}. Elaborate on this style in each scene's 'style' field.`;
@@ -112,41 +112,13 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { gemini
     whisk_prompt_vi description: "${whiskPromptDescription}"
     Generate a JSON object with a "scenes" array containing ${numberOfScenes} scene objects.`;
 
-    // --- FALLBACK LOGIC ---
+    // --- FALLBACK LOGIC (Gemini -> OpenAI -> OpenRouter) ---
     let finalError: unknown;
 
-    // 1. Try OpenRouter
-    if (openRouterApiKey) {
+    // 1. Try Gemini
+    if (model === 'gemini' || (model === 'auto' && geminiApiKey)) {
         try {
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openRouterApiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001', // Use a reliable model on OpenRouter
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter API failed');
-            const data = await response.json();
-            const jsonText = data.choices[0].message.content;
-            const parsedResponse = JSON.parse(jsonText);
-            if (parsedResponse.scenes) return parsedResponse.scenes;
-        } catch (e) {
-            console.warn("OpenRouter failed, trying Gemini...", e);
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini
-    if (geminiApiKey) {
-        try {
+            if (!geminiApiKey && model === 'gemini') throw new Error("Gemini Key missing");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
             const sceneSchema = {
               type: window.GenAIType.OBJECT,
@@ -174,14 +146,16 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { gemini
             const jsonStr = response.text.trim();
             return JSON.parse(jsonStr) as Scene[];
         } catch (e) {
-            console.warn("Gemini failed, trying OpenAI...", e);
+            console.warn("Gemini failed", e);
+            if (model === 'gemini') throw e;
             finalError = e;
         }
     }
 
-    // 3. Try OpenAI
-    if (openaiApiKey) {
+    // 2. Try OpenAI
+    if (model === 'openai' || (model === 'auto' && openaiApiKey)) {
         try {
+            if (!openaiApiKey && model === 'openai') throw new Error("OpenAI Key missing");
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -207,6 +181,38 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { gemini
             if (parsedResponse.scenes) return parsedResponse.scenes;
         } catch (e) {
             console.warn("OpenAI failed", e);
+            if (model === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 3. Try OpenRouter
+    if (model === 'openrouter' || (model === 'auto' && openRouterApiKey)) {
+        try {
+            if (!openRouterApiKey && model === 'openrouter') throw new Error("OpenRouter Key missing");
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openRouterApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001', // Use a reliable model on OpenRouter
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter API failed');
+            const data = await response.json();
+            const jsonText = data.choices[0].message.content;
+            const parsedResponse = JSON.parse(jsonText);
+            if (parsedResponse.scenes) return parsedResponse.scenes;
+        } catch (e) {
+            console.warn("OpenRouter failed", e);
+            if (model === 'openrouter') throw e;
             finalError = e;
         }
     }
@@ -220,6 +226,7 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { gemini
     setLoading(true);
     setError(null);
     setGeneratedScenes([]);
+    setCopiedAll(false);
 
     let actualDurationInSeconds = 0;
     const durationNum = parseFloat(totalDuration);
@@ -246,14 +253,14 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { gemini
     }
 
     try {
-      const scenes = await generateScript(videoIdea, numberOfScenes, selectedCinematicStyle);
+      const scenes = await generateScript(videoIdea, numberOfScenes, selectedCinematicStyle, selectedAIModel);
       setGeneratedScenes(scenes);
     } catch (err: any) {
       setError(err.message || "Đã xảy ra lỗi khi tạo kịch bản. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
-  }, [videoIdea, totalDuration, durationUnit, selectedCinematicStyle, generateScript]);
+  }, [videoIdea, totalDuration, durationUnit, selectedCinematicStyle, generateScript, selectedAIModel]);
 
   const handleDownloadPrompts = (prompts: string[], filename: string) => {
     const content = prompts.map((prompt, index) => `Cảnh ${index + 1}:\n${prompt}`).join('\n\n');
@@ -276,6 +283,23 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { gemini
   const handleDownloadFlowPrompts = () => {
     const flowPrompts = generatedScenes.map(scene => scene.motion_prompt);
     handleDownloadPrompts(flowPrompts, 'flow_veo_prompts.txt');
+  };
+
+  const handleCopyAll = () => {
+      // Copy format: All prompts content separated by 2 empty lines (3 newlines characters)
+      // We'll alternate Whisk then Flow for each scene, or just all Whisk then all Flow?
+      // The user said "Result prompts", let's combine scene by scene for usefulness.
+      // Scene 1 Whisk
+      // Scene 1 Flow
+      // Scene 2 Whisk ...
+      
+      const allContent = generatedScenes.map(scene => 
+          `${scene.whisk_prompt_vi}\n\n\n${scene.motion_prompt}`
+      ).join('\n\n\n');
+      
+      navigator.clipboard.writeText(allContent).then(() => {
+          setCopiedAll(true);
+      });
   };
 
   return (
@@ -339,7 +363,12 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { gemini
               React.createElement("div", null,
                 React.createElement("div", { className: "flex flex-col sm:flex-row justify-center gap-4 mb-8" },
                   React.createElement("button", { onClick: handleDownloadWhiskPrompts, className: "flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading || generatedScenes.length === 0 }, "Tải xuống Prompt Whisk (.txt)"),
-                  React.createElement("button", { onClick: handleDownloadFlowPrompts, className: "flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading || generatedScenes.length === 0 }, "Tải xuống Prompt Flow VEO 3.1 (.txt)")
+                  React.createElement("button", { onClick: handleDownloadFlowPrompts, className: "flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading || generatedScenes.length === 0 }, "Tải xuống Prompt Flow VEO 3.1 (.txt)"),
+                  React.createElement("button", { 
+                      onClick: handleCopyAll, 
+                      className: `flex-1 font-bold py-3 px-4 rounded-md focus:outline-none transition-colors duration-200 ${copiedAll ? 'bg-green-600 text-white' : 'bg-cyan-600 hover:bg-cyan-700 text-white'}`,
+                      disabled: loading || generatedScenes.length === 0 
+                  }, copiedAll ? "Đã sao chép tất cả" : "Sao chép toàn bộ")
                 ),
                 generatedScenes.map((scene, index) => React.createElement(SceneCard, { key: index, scene: scene, sceneNumber: index + 1 }))
               )

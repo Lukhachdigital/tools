@@ -20,7 +20,6 @@ const ResultCard = ({ language, text }) => {
     const handleCopy = () => {
         navigator.clipboard.writeText(text).then(() => {
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
         }).catch(err => {
             console.error("Failed to copy text: ", err);
         });
@@ -29,19 +28,20 @@ const ResultCard = ({ language, text }) => {
     return React.createElement('div', { className: "bg-slate-800 p-4 rounded-lg border border-slate-700" },
         React.createElement('div', { className: "flex justify-between items-center mb-2" },
             React.createElement('h3', { className: "font-semibold text-cyan-400" }, language),
-            React.createElement('button', { onClick: handleCopy, className: 'text-sm text-slate-400 hover:text-white transition' }, copied ? 'Đã sao chép!' : 'Sao chép')
+            React.createElement('button', { onClick: handleCopy, className: `text-sm transition ${copied ? 'text-green-400 font-bold' : 'text-slate-400 hover:text-white'}` }, copied ? 'Đã sao chép' : 'Sao chép')
         ),
         React.createElement('p', { className: "text-white whitespace-pre-wrap" }, text)
     );
 };
 
 
-const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string }): React.ReactElement => {
+const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }): React.ReactElement => {
     const [text, setText] = useState('');
     const [selectedLanguages, setSelectedLanguages] = useState(['English']);
     const [results, setResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [copiedAll, setCopiedAll] = useState(false);
 
     const languages = [
         { name: 'English', country: 'Hoa Kỳ', flag: '🇺🇸' },
@@ -80,6 +80,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { 
         setIsLoading(true);
         setError('');
         setResults([]);
+        setCopiedAll(false);
 
         const commonPrompt = `Bạn là một chuyên gia dịch thuật với độ chính xác tuyệt đối.
         **Yêu cầu BẮT BUỘC và KHÔNG THAY ĐỔI:**
@@ -102,31 +103,10 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { 
                 let translatedText = null;
                 let langError = null;
 
-                // 1. Try OpenRouter
-                if (!translatedText && openRouterApiKey) {
-                    try {
-                        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${openRouterApiKey}`
-                            },
-                            body: JSON.stringify({
-                                model: 'google/gemini-2.0-flash-001',
-                                messages: [{ role: 'user', content: userPrompt }]
-                            })
-                        });
-                        if (response.ok) {
-                            const data = await response.json();
-                            translatedText = data.choices[0].message.content;
-                        }
-                    } catch (e) {
-                        console.warn(`OpenRouter failed for ${lang}`, e);
-                    }
-                }
+                // Fallback Chain: Gemini -> OpenAI -> OpenRouter
 
-                // 2. Try Gemini
-                if (!translatedText && geminiApiKey) {
+                // 1. Try Gemini
+                if (!translatedText && (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey))) {
                     try {
                         const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                         const response = await ai.models.generateContent({
@@ -136,11 +116,12 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { 
                         translatedText = response.text;
                     } catch (e) {
                         console.warn(`Gemini failed for ${lang}`, e);
+                        if (selectedAIModel === 'gemini') langError = e;
                     }
                 }
 
-                // 3. Try OpenAI
-                if (!translatedText && openaiApiKey) {
+                // 2. Try OpenAI
+                if (!translatedText && (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey))) {
                     try {
                         const response = await fetch('https://api.openai.com/v1/chat/completions', {
                             method: 'POST',
@@ -160,7 +141,31 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { 
                         }
                     } catch (e) {
                         console.warn(`OpenAI failed for ${lang}`, e);
-                        langError = e;
+                        if (selectedAIModel === 'openai') langError = e;
+                    }
+                }
+
+                // 3. Try OpenRouter
+                if (!translatedText && (selectedAIModel === 'openrouter' || (selectedAIModel === 'auto' && openRouterApiKey))) {
+                    try {
+                        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${openRouterApiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: 'google/gemini-2.0-flash-001',
+                                messages: [{ role: 'user', content: userPrompt }]
+                            })
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            translatedText = data.choices[0].message.content;
+                        }
+                    } catch (e) {
+                        console.warn(`OpenRouter failed for ${lang}`, e);
+                        if (selectedAIModel === 'openrouter') langError = e;
                     }
                 }
 
@@ -180,6 +185,14 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { 
         } finally {
             setIsLoading(false);
         }
+    };
+    
+    const handleCopyAll = () => {
+        if (results.length === 0) return;
+        const allText = results.map(res => res.translation).join('\n\n\n');
+        navigator.clipboard.writeText(allText).then(() => {
+            setCopiedAll(true);
+        });
     };
     
     const textareaProps = {
@@ -216,7 +229,13 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { 
                 }, isLoading ? 'Đang dịch...' : 'Dịch')
             ),
             React.createElement('div', { className: 'bg-slate-900/50 p-6 rounded-2xl border border-slate-700' },
-                React.createElement('h2', { className: "text-lg font-semibold text-cyan-300 mb-2" }, 'Kết quả'),
+                React.createElement('div', { className: "flex justify-between items-center mb-4" },
+                    React.createElement('h2', { className: "text-lg font-semibold text-cyan-300" }, 'Kết quả'),
+                    results.length > 0 && React.createElement('button', {
+                        onClick: handleCopyAll,
+                        className: `text-sm font-bold py-1 px-3 rounded transition-colors ${copiedAll ? 'bg-green-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`
+                    }, copiedAll ? "Đã sao chép tất cả" : "Sao chép toàn bộ")
+                ),
                 error && React.createElement('div', { className: 'text-red-400 bg-red-900/50 p-3 rounded-lg mb-4' }, error),
                 React.createElement('div', { className: 'w-full h-full space-y-4 overflow-auto' },
                     isLoading

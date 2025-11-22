@@ -43,7 +43,6 @@ const CopyButton = ({ textToCopy }: { textToCopy: string }) => {
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(textToCopy).then(() => {
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
     }).catch(err => {
       console.error("Failed to copy text: ", err);
     });
@@ -67,7 +66,7 @@ const CopyButton = ({ textToCopy }: { textToCopy: string }) => {
 // GENERATION SERVICES
 // =================================================================
 
-const generateTitles = async (description: string, geminiKey: string, openaiKey: string, openRouterKey: string, lengthConstraint: string | null): Promise<string[]> => {
+const generateTitles = async (description: string, geminiKey: string, openaiKey: string, openRouterKey: string, lengthConstraint: string | null, selectedModel: string): Promise<string[]> => {
     let lengthInstruction = "Các tiêu đề phải có độ dài tối đa 100 ký tự";
     if (lengthConstraint) {
         if (lengthConstraint === "Trên 100") {
@@ -90,33 +89,13 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
 
     Mô tả video: "${description}"`;
 
+    // Fallback Chain: Gemini -> OpenAI -> OpenRouter
     let finalError;
 
-    // 1. Try OpenRouter
-    if (openRouterKey) {
+    // 1. Try Gemini
+    if (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey)) {
         try {
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001',
-                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.' }],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter failed');
-            const data = await response.json();
-            const parsed = JSON.parse(data.choices[0].message.content);
-            return parsed.titles || [];
-        } catch (e) {
-            console.warn('OpenRouter failed', e);
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini
-    if (geminiKey) {
-        try {
+            if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key missing");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
@@ -133,13 +112,15 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
             return JSON.parse(response.text).titles || [];
         } catch (e) {
             console.warn('Gemini failed', e);
+            if (selectedModel === 'gemini') throw e;
             finalError = e;
         }
     }
 
-    // 3. Try OpenAI
-    if (openaiKey) {
+    // 2. Try OpenAI
+    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
         try {
+            if (!openaiKey && selectedModel === 'openai') throw new Error("OpenAI Key missing");
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
@@ -155,6 +136,31 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
             return JSON.parse(data.choices[0].message.content).titles || [];
         } catch (e) {
             console.warn('OpenAI failed', e);
+            if (selectedModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 3. Try OpenRouter
+    if (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey)) {
+        try {
+            if (!openRouterKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key missing");
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.' }],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter failed');
+            const data = await response.json();
+            const parsed = JSON.parse(data.choices[0].message.content);
+            return parsed.titles || [];
+        } catch (e) {
+            console.warn('OpenRouter failed', e);
+            if (selectedModel === 'openrouter') throw e;
             finalError = e;
         }
     }
@@ -162,7 +168,7 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
     throw finalError || new Error("All providers failed");
 };
 
-const generateFullSEOContent = async (description: string, title: string, geminiKey: string, openaiKey: string, openRouterKey: string, descStyle: string | null): Promise<SEOContent> => {
+const generateFullSEOContent = async (description: string, title: string, geminiKey: string, openaiKey: string, openRouterKey: string, descStyle: string | null, selectedModel: string): Promise<SEOContent> => {
     const styleMap = { 'Ngắn gọn': 'khoảng 80-120 từ', 'Vừa phải': 'khoảng 120-160 từ', 'Tiêu chuẩn': 'khoảng 160-220 từ', 'Dài': 'khoảng 220-300 từ' };
     const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
     
@@ -186,32 +192,13 @@ const generateFullSEOContent = async (description: string, title: string, gemini
     3.  **primaryKeywords:** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
     4.  **secondaryKeywords:** Liệt kê 15 từ khóa phụ mở rộng, **tập trung vào các khía cạnh cụ thể** của video.`;
 
+    // Fallback Chain: Gemini -> OpenAI -> OpenRouter
     let finalError;
 
-    // 1. Try OpenRouter
-    if (openRouterKey) {
+    // 1. Try Gemini
+    if (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey)) {
         try {
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001',
-                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }' }],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter failed');
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.warn('OpenRouter failed', e);
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini
-    if (geminiKey) {
-        try {
+            if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key missing");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
@@ -233,13 +220,15 @@ const generateFullSEOContent = async (description: string, title: string, gemini
             return JSON.parse(response.text);
         } catch (e) {
             console.warn('Gemini failed', e);
+            if (selectedModel === 'gemini') throw e;
             finalError = e;
         }
     }
 
-    // 3. Try OpenAI
-    if (openaiKey) {
+    // 2. Try OpenAI
+    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
         try {
+            if (!openaiKey && selectedModel === 'openai') throw new Error("OpenAI Key missing");
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
@@ -254,6 +243,30 @@ const generateFullSEOContent = async (description: string, title: string, gemini
             return JSON.parse(data.choices[0].message.content);
         } catch (e) {
             console.warn('OpenAI failed', e);
+            if (selectedModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 3. Try OpenRouter
+    if (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey)) {
+        try {
+            if (!openRouterKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key missing");
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }' }],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter failed');
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.warn('OpenRouter failed', e);
+            if (selectedModel === 'openrouter') throw e;
             finalError = e;
         }
     }
@@ -265,7 +278,7 @@ const generateFullSEOContent = async (description: string, title: string, gemini
 // MAIN APP COMPONENT
 // =================================================================
 
-const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
+const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }) => {
   const [videoDescription, setVideoDescription] = useState('');
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
@@ -275,6 +288,7 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedTitleLength, setSelectedTitleLength] = useState<string | null>(null);
   const [selectedDescStyle, setSelectedDescStyle] = useState<string | null>('Tiêu chuẩn');
+  const [copiedAll, setCopiedAll] = useState(false);
   
   const handleGenerateTitles = useCallback(async () => {
     if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
@@ -290,16 +304,17 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
     setSuggestedTitles([]);
     setSelectedTitle(null);
     setSeoContent(null);
+    setCopiedAll(false);
 
     try {
-      const titles = await generateTitles(videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedTitleLength);
+      const titles = await generateTitles(videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedTitleLength, selectedAIModel);
       setSuggestedTitles(titles);
     } catch (err: any) {
       setError("Không thể tạo tiêu đề: " + err.message);
     } finally {
       setIsLoadingTitles(false);
     }
-  }, [videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedTitleLength]);
+  }, [videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedTitleLength, selectedAIModel]);
 
   const handleGenerateContent = useCallback(async (title: string) => {
     if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
@@ -310,9 +325,10 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
     setIsLoadingContent(true);
     setSeoContent(null);
     setError(null);
+    setCopiedAll(false);
 
     try {
-      const content = await generateFullSEOContent(videoDescription, title, geminiApiKey, openaiApiKey, openRouterApiKey, selectedDescStyle);
+      const content = await generateFullSEOContent(videoDescription, title, geminiApiKey, openaiApiKey, openRouterApiKey, selectedDescStyle, selectedAIModel);
       setSeoContent(content);
     } catch (err: any)
     {
@@ -320,8 +336,18 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
     } finally {
       setIsLoadingContent(false);
     }
-  }, [videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedDescStyle]);
+  }, [videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedDescStyle, selectedAIModel]);
 
+  const handleCopyAll = () => {
+      if (!seoContent || !selectedTitle) return;
+      
+      // Simple text copy without headers or explanations as requested, each part separated by 2 empty lines
+      const allText = `${selectedTitle}\n\n\n${seoContent.description}\n\n\n${seoContent.hashtags.join(' ')}\n\n\n${seoContent.primaryKeywords.join(', ')}, ${seoContent.secondaryKeywords.join(', ')}`;
+      
+      navigator.clipboard.writeText(allText).then(() => {
+          setCopiedAll(true);
+      });
+  };
 
   const renderSEOContent = () => {
     if (!selectedTitle || !seoContent) return null;
@@ -332,6 +358,10 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
     const descriptionText = seoContent.description;
 
     return React.createElement('div', { className: "space-y-6 animate-fade-in" },
+      React.createElement('button', { 
+          onClick: handleCopyAll,
+          className: `w-full font-bold py-2 px-4 rounded-lg transition-colors shadow-md ${copiedAll ? 'bg-green-600 text-white' : 'bg-cyan-600 hover:bg-cyan-700 text-white'}`
+      }, copiedAll ? "Đã sao chép tất cả" : "Sao chép toàn bộ"),
       React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg shadow-lg relative" },
         React.createElement('h3', { className: "text-lg font-bold text-cyan-400 mb-2" }, "Tiêu đề đã chọn"),
         React.createElement('p', { className: "text-gray-200" }, selectedTitle),

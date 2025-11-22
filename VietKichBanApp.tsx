@@ -78,7 +78,6 @@ const CharacterCard = ({ character, characterIndex, onGenerateImage, imageData, 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }).catch(err => {
       console.error("Failed to copy text: ", err);
     });
@@ -115,9 +114,8 @@ const CharacterCard = ({ character, characterIndex, onGenerateImage, imageData, 
                React.createElement("p", { className: "text-gray-200 text-xs break-words pr-24" }, character.whiskPrompt),
                React.createElement("button", {
                  onClick: () => copyToClipboard(character.whiskPrompt),
-                 className: "absolute top-2 right-2 px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none disabled:bg-green-600",
-                 disabled: copied
-               }, copied ? 'Đã sao chép!' : 'Sao chép')
+                 className: `absolute top-2 right-2 px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none disabled:bg-green-600 ${copied ? 'bg-green-600' : ''}`,
+               }, copied ? 'Đã sao chép' : 'Sao chép')
              )
            )
          ),
@@ -146,7 +144,6 @@ const PromptCard = ({ prompt, promptNumber }: { prompt: string; promptNumber: nu
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }).catch(err => {
       console.error("Failed to copy text: ", err);
     });
@@ -157,9 +154,8 @@ const PromptCard = ({ prompt, promptNumber }: { prompt: string; promptNumber: nu
       React.createElement("p", { className: "text-gray-200 text-sm break-words pr-24" }, prompt),
       React.createElement("button", {
         onClick: () => copyToClipboard(prompt),
-        className: "absolute top-2 right-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:bg-green-600",
-        disabled: copied
-      }, copied ? 'Đã sao chép!' : 'Sao chép')
+        className: `absolute top-2 right-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:bg-green-600 ${copied ? 'bg-green-600' : ''}`,
+      }, copied ? 'Đã sao chép' : 'Sao chép')
     )
   );
 };
@@ -169,7 +165,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const VietKichBanApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string }): React.ReactElement => {
+const VietKichBanApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [duration, setDuration] = useState('');
   const [numMainCharacters, setNumMainCharacters] = useState('');
@@ -180,6 +176,7 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }: { gemi
   const [error, setError] = useState<string | null>(null);
   const [characterImages, setCharacterImages] = useState<{ [key: number]: { imageUrl?: string; isGenerating?: boolean; error?: string; } }>({});
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   const generateScript = useCallback(async (
     videoIdea: string,
@@ -253,39 +250,13 @@ ${characterInstruction}
 `;
     const systemPrompt = `${commonPrompt}\n\nGenerate a JSON object that strictly adheres to the following structure: { "characterList": [ ... ], "prompts": [ ... ] }`;
 
+    // --- FALLBACK LOGIC (Gemini -> OpenAI -> OpenRouter) ---
     let finalError: unknown;
 
-    // 1. Try OpenRouter
-    if (openRouterApiKey) {
+    // 1. Try Gemini
+    if (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey)) {
         try {
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openRouterApiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.0-flash-001',
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter API failed');
-            const data = await response.json();
-            const parsedResponse = JSON.parse(data.choices[0].message.content);
-            if (parsedResponse.characterList && parsedResponse.prompts) return parsedResponse;
-        } catch (e) {
-            console.warn("OpenRouter failed, trying Gemini...", e);
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini
-    if (geminiApiKey) {
-        try {
+            if (!geminiApiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key missing");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
             const schema = {
                 type: window.GenAIType.OBJECT,
@@ -322,14 +293,16 @@ ${characterInstruction}
             const jsonStr = response.text.trim();
             return JSON.parse(jsonStr) as GeneratedContent;
         } catch (e) {
-            console.warn("Gemini failed, trying OpenAI...", e);
+            console.warn("Gemini failed", e);
+            if (selectedAIModel === 'gemini') throw e;
             finalError = e;
         }
     }
 
-    // 3. Try OpenAI
-    if (openaiApiKey) {
+    // 2. Try OpenAI
+    if (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey)) {
         try {
+            if (!openaiApiKey && selectedAIModel === 'openai') throw new Error("OpenAI Key missing");
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -351,13 +324,44 @@ ${characterInstruction}
             return JSON.parse(jsonText) as GeneratedContent;
         } catch (e) {
             console.warn("OpenAI failed", e);
+            if (selectedAIModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 3. Try OpenRouter
+    if (selectedAIModel === 'openrouter' || (selectedAIModel === 'auto' && openRouterApiKey)) {
+        try {
+            if (!openRouterApiKey && selectedAIModel === 'openrouter') throw new Error("OpenRouter Key missing");
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openRouterApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.0-flash-001',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter API failed');
+            const data = await response.json();
+            const parsedResponse = JSON.parse(data.choices[0].message.content);
+            if (parsedResponse.characterList && parsedResponse.prompts) return parsedResponse;
+        } catch (e) {
+            console.warn("OpenRouter failed", e);
+            if (selectedAIModel === 'openrouter') throw e;
             finalError = e;
         }
     }
 
     throw finalError || new Error("Không thể tạo kịch bản. Vui lòng thử lại.");
 
-  }, [geminiApiKey, openaiApiKey, openRouterApiKey]);
+  }, [geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel]);
   
   const handleGenerateCharacterImage = useCallback(async (characterIndex: number, prompt: string, aspectRatio: '16:9' | '9:16') => {
     if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
@@ -376,36 +380,10 @@ ${characterInstruction}
     }
     const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792' };
 
+    // Image Generation Fallback: Gemini -> OpenAI -> OpenRouter
     let finalError = null;
 
-    // 1. Try OpenRouter (Image)
-    if (openRouterApiKey) {
-        try {
-            const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
-                body: JSON.stringify({
-                    model: 'black-forest-labs/flux-1-schnell',
-                    prompt: finalPrompt,
-                    n: 1,
-                    size: sizeMap[aspectRatio] || '1024x1024',
-                })
-            });
-            if (response.ok) {
-                const data = await response.json();
-                const imageUrl = data.data[0].url;
-                setCharacterImages(prev => ({
-                    ...prev,
-                    [characterIndex]: { isGenerating: false, imageUrl: imageUrl }
-                }));
-                return;
-            }
-        } catch (e) {
-            console.warn("OpenRouter Image Gen failed", e);
-        }
-    }
-
-    // 2. Try Gemini (Image)
+    // 1. Try Gemini (Image) - Priority 1
     if (geminiApiKey) {
         try {
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -431,14 +409,9 @@ ${characterInstruction}
             console.warn("Gemini Image Gen failed", e);
             finalError = e;
         }
-    } else {
-        // Fallback triggered, but Gemini key is missing
-        if (openRouterApiKey && !openaiApiKey) {
-             alert("OpenRouter tạo ảnh thất bại. Vui lòng nhập Gemini API Key để tiếp tục.");
-        }
     }
 
-    // 3. Try OpenAI (Image)
+    // 2. Try OpenAI (Image)
     if (openaiApiKey) {
         try {
             const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -469,6 +442,34 @@ ${characterInstruction}
         }
     }
 
+    // 3. Try OpenRouter (Image)
+    if (openRouterApiKey) {
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
+                body: JSON.stringify({
+                    model: 'black-forest-labs/flux-1-schnell',
+                    prompt: finalPrompt,
+                    n: 1,
+                    size: sizeMap[aspectRatio] || '1024x1024',
+                })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const imageUrl = data.data[0].url;
+                setCharacterImages(prev => ({
+                    ...prev,
+                    [characterIndex]: { isGenerating: false, imageUrl: imageUrl }
+                }));
+                return;
+            }
+        } catch (e) {
+            console.warn("OpenRouter Image Gen failed", e);
+            finalError = e;
+        }
+    }
+
     const errorMessage = "Không thể tạo ảnh. Vui lòng kiểm tra API Key.";
     setCharacterImages(prev => ({
         ...prev,
@@ -484,6 +485,7 @@ ${characterInstruction}
     setGeneratedContent(null);
     setCharacterImages({});
     setLightboxImage(null);
+    setCopiedAll(false);
 
     const durationNum = parseFloat(duration);
 
@@ -520,6 +522,15 @@ ${characterInstruction}
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleCopyAll = () => {
+      if (!generatedContent) return;
+      // Copy only the prompts separated by 2 empty lines
+      const allText = generatedContent.prompts.join('\n\n\n');
+      navigator.clipboard.writeText(allText).then(() => {
+          setCopiedAll(true);
+      });
   };
 
   return (
@@ -609,8 +620,13 @@ ${characterInstruction}
               ),
               generatedContent && (
                 React.createElement("div", null,
-                  React.createElement("div", { className: "flex justify-center mb-8" },
-                    React.createElement("button", { onClick: handleDownloadPrompts, className: "w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading }, "Tải xuống Prompts (.txt)")
+                  React.createElement("div", { className: "flex justify-center mb-8 gap-4" },
+                    React.createElement("button", { onClick: handleDownloadPrompts, className: "w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading }, "Tải xuống Prompts (.txt)"),
+                    React.createElement("button", { 
+                        onClick: handleCopyAll, 
+                        className: `w-full sm:w-auto font-bold py-3 px-6 rounded-md focus:outline-none transition-colors duration-200 ${copiedAll ? 'bg-green-600 text-white' : 'bg-cyan-600 hover:bg-cyan-700 text-white'}`,
+                        disabled: loading 
+                    }, copiedAll ? "Đã sao chép tất cả" : "Sao chép toàn bộ")
                   ),
                   React.createElement("div", { className: "bg-gray-800 rounded-lg shadow-lg p-6 mb-8 border border-gray-700" },
                     React.createElement("h3", { className: "text-xl font-bold text-blue-400 mb-4" }, "Danh sách nhân vật"),

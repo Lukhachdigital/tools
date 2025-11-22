@@ -50,7 +50,6 @@ const CopyButton: React.FC<{ textToCopy: string; label?: string; className?: str
   const handleCopy = () => {
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     });
   };
 
@@ -63,7 +62,7 @@ const CopyButton: React.FC<{ textToCopy: string; label?: string; className?: str
           : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
       } ${className || ''}`}
     >
-      {label ? (copied ? 'Đã chép!' : label) : (copied ? 'Đã chép!' : 'Chép')}
+      {label ? (copied ? 'Đã sao chép' : label) : (copied ? 'Đã sao chép' : 'Chép')}
     </button>
   );
 };
@@ -199,10 +198,9 @@ const responseSchema = {
 };
 
 const getSystemInstruction = (length: ArticleLength) => {
-    // Increased word count requirements by ~20%
     const lengthInstruction = length === 'short'
-    ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của phần `article` và phần `engagementCall` cộng lại PHẢI nằm trong khoảng 3840 đến 4800 ký tự. Yêu cầu này là BẮT BUỘC và phải được tuân thủ nghiêm ngặt.'
-    : 'TUYỆT ĐỐI QUAN TRỌNG: Bài viết (chỉ tính phần `article`) PHẢI có độ dài tổng cộng từ 15120 đến 18960 ký tự, được chia thành 4 phần riêng biệt và rõ ràng.';
+    ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 2000 đến 3000 ký tự (khoảng 400-600 từ). Hãy viết nội dung cô đọng, súc tích, tập trung vào các ý chính quan trọng nhất. Không được viết ngắn hơn 2000 ký tự và không được dài hơn 3000 ký tự. Đây là yêu cầu bắt buộc.'
+    : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 12000 ký tự (khoảng 2400 từ trở lên). Hãy viết cực kỳ chi tiết, mở rộng mọi khía cạnh, sử dụng nhiều ví dụ minh họa, câu chuyện kể và phân tích đa chiều. Chia bài viết thành nhiều phần lớn nhỏ rõ ràng. Nếu không đủ ý để đạt 12000 ký tự, hãy mở rộng thêm các góc nhìn liên quan. Đây là yêu cầu bắt buộc.';
 
     return `Bạn là một chuyên gia viết lách đa tài, có khả năng hóa thân vào nhiều vai trò khác nhau (nhà tâm lý, chuyên gia kinh tế, nhà giáo dục, thiền sư, v.v.) tùy thuộc vào lĩnh vực được yêu cầu.
 
@@ -240,31 +238,9 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     const userContent = getUserContent(topic, category);
     let finalError;
 
-    // 1. Try OpenRouter
-    if (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey)) {
-        try {
-            if (!openRouterKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
-            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openRouterKey}` },
-                body: JSON.stringify({
-                    model: "google/gemini-2.0-flash-001",
-                    messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
-                    response_format: { type: "json_object" },
-                    temperature: 0.8,
-                }),
-            });
-            if (!response.ok) throw new Error('OpenRouter failed');
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.warn("OpenRouter failed", e);
-            if (selectedModel === 'openrouter') throw e;
-            finalError = e;
-        }
-    }
+    // Priority: Gemini -> OpenAI -> OpenRouter
 
-    // 2. Try Gemini
+    // 1. Try Gemini
     if (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey)) {
         try {
             if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
@@ -287,7 +263,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         }
     }
 
-    // 3. Try OpenAI
+    // 2. Try OpenAI
     if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
         try {
             if (!openaiKey && selectedModel === 'openai') throw new Error("OpenAI Key chưa được cài đặt.");
@@ -307,6 +283,30 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         } catch (e) {
             console.warn("OpenAI failed", e);
             if (selectedModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 3. Try OpenRouter
+    if (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey)) {
+        try {
+            if (!openRouterKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
+            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openRouterKey}` },
+                body: JSON.stringify({
+                    model: "google/gemini-2.0-flash-001",
+                    messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
+                    response_format: { type: "json_object" },
+                    temperature: 0.8,
+                }),
+            });
+            if (!response.ok) throw new Error('OpenRouter failed');
+            const data = await response.json();
+            return JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.warn("OpenRouter failed", e);
+            if (selectedModel === 'openrouter') throw e;
             finalError = e;
         }
     }
@@ -333,6 +333,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState<boolean>(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
 
   const generatePromptFromContent = async (content: GeneratedContent, apiKey: string, provider: 'gemini' | 'openrouter') => {
@@ -340,16 +341,23 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       setImagePrompt('');
 
       const promptRequest = `Based on the following article content and title, create a detailed, cinematic, photorealistic image generation prompt (in English). 
-      **CRITICAL REQUIREMENT:** The prompt MUST strictly capture the character's EMOTIONS and FACIAL EXPRESSIONS described or implied in the text. The mood of the image must match the content perfectly.
+      
+      **CRITICAL INSTRUCTIONS FOR CHARACTER COMPOSITION:**
+      1.  **Analyze the Content:** Deeply analyze the article to determine the *implied* characters. 
+          - **Explicitly extract the number of characters and their gender.**
+          - If the topic is "Marriage" or "Love", the image MUST feature a **Man and a Woman** (or strictly follow the context if it specifies otherwise).
+          - If the topic is "Parenting", feature **Parent(s) and Child(ren)**.
+          - If the topic is "Loneliness", feature a **Single Person**.
+          - If the topic is "Business/Negotiation", feature **Multiple Professionals**.
+          - ALWAYS default to including both male and female figures if the topic involves relationships, unless specified otherwise.
+      2.  **Determine Emotions:** The facial expressions and body language MUST perfectly match the mood of the article (e.g., joyful, teary-eyed, angry, pensive, hopeful).
+      3.  **Output:** A concise but highly descriptive prompt focusing on the characters, their interaction, facial expressions, and the setting.
       
       Title: "${content.title}"
       Content Excerpt: "${content.article.substring(0, 2000)}..."
       
-      Requirements:
-      - Focus on the character's FACE and EMOTION (e.g., teary-eyed, joyful, pensive, determined).
-      - Describe the setting/environment concisely.
-      - Style: Cinematic, 8k, highly detailed, dramatic lighting.
-      - Output ONLY the prompt text. Do not include explanations.`;
+      Style: Cinematic, 8k, highly detailed, dramatic lighting.
+      Output ONLY the prompt text. Do not include explanations.`;
 
       try {
           if (provider === 'gemini') {
@@ -434,7 +442,14 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
               try {
                   const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                   const faceSwapPrompt = `Generate a photorealistic image based on this description: ${imagePrompt}.
-                   CRITICAL INSTRUCTION: Use the face from the provided image for the main character in this scene. Blend it naturally with the lighting and emotion described. The expression must match the mood of the description. Do NOT alter the face structure, only the expression.`;
+                   
+                   **CRITICAL INSTRUCTION FOR FACE MAPPING:**
+                   1.  **Identify Reference Gender:** STRICTLY analyze the gender of the person in the provided inline reference image. Is it Male or Female?
+                   2.  **Target Selection:** Find the character in the prompt description that MATCHES this identified gender.
+                   3.  **Apply Face:** Apply the face from the reference image ONLY to that specific matching character.
+                   4.  **Non-Matching Characters:** If there are other characters in the scene (e.g., opposite gender), generate a generic face for them. DO NOT apply the reference face to them.
+                   5.  **Context:** If the scene requires a Man and a Woman, and the reference is a Woman, apply her face to the Woman character. If the reference is a Man, apply his face to the Man character.
+                   6.  Blend the face naturally with the lighting and emotion described.`;
                    
                    const imageResponse = await ai.models.generateContent({
                       model: 'gemini-2.5-flash-image',
@@ -467,32 +482,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       // CASE 2: No Reference Image -> Try Providers based on selection
       // ======================================================
       else {
-          // 1. Try OpenRouter
-          if ((selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
-              try {
-                  const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
-                      body: JSON.stringify({
-                          model: 'black-forest-labs/flux-1-schnell',
-                          prompt: imagePrompt,
-                          n: 1,
-                          size: '1024x576', 
-                      })
-                  });
-                  if (response.ok) {
-                      const data = await response.json();
-                      setGeneratedImageUrl(data.data[0].url);
-                      setIsGeneratingImage(false);
-                      return;
-                  }
-              } catch (e) {
-                  console.warn("OpenRouter Image Gen failed", e);
-                  if (selectedAIModel === 'openrouter') finalError = e;
-              }
-          }
-
-          // 2. Try Gemini (Imagen)
+          // 1. Try Gemini (Imagen) - Priority 1
           if (!finalError && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
               try {
                   const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -516,7 +506,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
               }
           }
 
-          // 3. Try OpenAI
+          // 2. Try OpenAI - Priority 2
           if (!finalError && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
               try {
                   const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -540,6 +530,31 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                   }
               } catch (e) {
                   console.warn("OpenAI Image Gen failed", e);
+                  if (selectedAIModel === 'openai') finalError = e;
+              }
+          }
+
+          // 3. Try OpenRouter - Priority 3
+          if (!finalError && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
+              try {
+                  const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
+                      body: JSON.stringify({
+                          model: 'black-forest-labs/flux-1-schnell',
+                          prompt: imagePrompt,
+                          n: 1,
+                          size: '1024x576', 
+                      })
+                  });
+                  if (response.ok) {
+                      const data = await response.json();
+                      setGeneratedImageUrl(data.data[0].url);
+                      setIsGeneratingImage(false);
+                      return;
+                  }
+              } catch (e) {
+                  console.warn("OpenRouter Image Gen failed", e);
                   finalError = e;
               }
           }
@@ -557,7 +572,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
           onClick={(e) => { e.stopPropagation(); onSelect(option); }}
           className={`w-full text-center px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none ${selected === option ? 'bg-indigo-600 text-white shadow' : 'text-gray-300 hover:bg-gray-600'}`}
         >
-          {option}
+          {option === 'short' ? 'Short' : 'Long'}
         </button>
       ))}
     </div>
@@ -605,7 +620,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                       onSelect={(val) => setArticleLength(val as ArticleLength)} 
                    />
                    <p className="text-xs text-gray-500 mt-1">
-                     {articleLength === 'short' ? 'Khoảng 600-800 từ (phù hợp Facebook/Blog)' : 'Khoảng 2400+ từ (phù hợp Podcast/Youtube)'}
+                     {articleLength === 'short' ? 'Khoảng 2000-3000 từ (phù hợp Tiktok - Facebook Reels - Youtube Shorts)' : 'Khoảng 12000+ từ (phù hợp Podcast Youtube dài)'}
                    </p>
                 </div>
 
@@ -742,16 +757,32 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                             <h3 className="text-xl font-semibold text-indigo-400">Nội dung bài viết & Lời kêu gọi</h3>
                             <button
                                 onClick={() => {
-                                    const combinedText = generatedContent.article + "\n\n" + generatedContent.engagementCall;
-                                    navigator.clipboard.writeText(combinedText);
-                                    // Optional: Show a quick copied toast or change button text temporarily
+                                    // Correctly format with \n\n\n as requested for general consistency, though usually articles are \n\n. 
+                                    // User requested "Copy All" to have prompts separated by \n\n\n. This is an article, but I'll use \n\n\n to be safe/distinct.
+                                    const combinedText = generatedContent.article + "\n\n\n" + generatedContent.engagementCall;
+                                    navigator.clipboard.writeText(combinedText).then(() => {
+                                        setCopiedAll(true);
+                                    });
                                 }}
-                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md transition-colors shadow flex items-center gap-2"
+                                className={`px-4 py-2 font-bold rounded-md transition-colors shadow flex items-center gap-2 ${
+                                    copiedAll ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                }`}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                                Copy Toàn Bộ
+                                {copiedAll ? (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Đã sao chép toàn bộ
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                        Sao chép toàn bộ
+                                    </>
+                                )}
                             </button>
                         </div>
                         <div className="prose prose-invert max-w-none text-gray-300 whitespace-pre-wrap leading-relaxed text-justify">

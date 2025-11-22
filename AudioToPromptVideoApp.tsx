@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 
@@ -54,7 +55,7 @@ const ResultsDisplay: React.FC<{ data: ScriptResponse }> = ({ data }) => {
     };
 
     const handleCopyAll = () => {
-        const scriptContent = data.script.join('\n\n');
+        const scriptContent = data.script.join('\n\n\n');
         navigator.clipboard.writeText(scriptContent).then(() => {
             setCopiedAll(true);
             setTimeout(() => setCopiedAll(false), 2000);
