@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // =================================================================
@@ -468,7 +469,7 @@ const TrendImageGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey }
                       onSelect: setAspectRatio,
                       disabled: !!(characterImage1 || characterImage2)
                   }),
-                  React.createElement('p', { className: "text-xs text-center text-slate-400 mb-2" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
+                  React.createElement('p', { className: "text-base font-bold text-center text-yellow-400 mb-2 uppercase tracking-wide" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
                   React.createElement('div', { className: "flex gap-4" },
                       React.createElement(SingleImageUploader, { 
                           label: "Nhân vật 1",
