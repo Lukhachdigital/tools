@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // =================================================================
@@ -549,7 +550,7 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey })
                 }),
                 // Only warn if NO key supports multimodal (which is Gemini-only feature currently)
                 (!geminiApiKey) && React.createElement('p', { className: "text-xs text-center text-yellow-400 p-2 bg-yellow-900/50 rounded-md -my-2" }, "Tính năng upload ảnh và giữ khuôn mặt chỉ hỗ trợ model Gemini."),
-                React.createElement('p', { className: "text-sm text-center text-slate-400 -mb-2" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
+                React.createElement('p', { className: "text-base font-bold text-center text-yellow-400 mb-2 uppercase tracking-wide" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
                 React.createElement('div', { className: "grid grid-cols-2 gap-4" },
                   React.createElement(SingleImageUploader, { 
                       uploadedImage: characterImage, 
