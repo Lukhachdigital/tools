@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 
@@ -491,18 +492,18 @@ const generateAllContent = async (
 };
 
 const OptionGroup = ({ label, children }) => (
-    React.createElement('div', { className: "flex flex-col items-center gap-2" },
-        React.createElement('label', { className: "block text-sm font-medium text-slate-400" }, label),
-        React.createElement('div', { className: "flex items-center gap-3 flex-wrap justify-center" }, children)
+    React.createElement('div', { className: "flex flex-col items-center gap-1" },
+        label ? React.createElement('label', { className: "block text-[10px] uppercase font-bold text-slate-500" }, label) : null,
+        React.createElement('div', { className: "flex items-center gap-2 flex-wrap justify-center" }, children)
     )
 );
 
 const OptionButton = ({ selected, onClick, children }) => (
     React.createElement('button', {
         onClick: onClick,
-        className: `px-6 py-3 text-lg rounded-lg font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500 transform active:translate-y-0.5 ${selected
-            ? 'bg-blue-600 text-white border-b-4 border-blue-800 shadow-xl'
-            : 'bg-slate-700 text-slate-300 border-b-4 border-slate-800 hover:bg-slate-600 shadow-lg'
+        className: `px-3 py-1.5 text-xs sm:text-sm rounded-md font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-slate-900 focus:ring-blue-500 transform active:translate-y-0.5 ${selected
+            ? 'bg-blue-600 text-white border-b-2 border-blue-800 shadow-md'
+            : 'bg-slate-700 text-slate-300 border-b-2 border-slate-800 hover:bg-slate-600 shadow-sm'
             }`
     },
         children
@@ -575,13 +576,13 @@ const ControlPanel = ({
 
     return (
          React.createElement('div', { className: "w-full lg:w-1/3 flex-shrink-0 space-y-6" },
-            React.createElement('div', { className: "bg-slate-800/50 border border-slate-700 rounded-xl p-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-6" },
-                React.createElement(OptionGroup, { label: "Chế độ Tạo ảnh", children: [
+            React.createElement('div', { className: "bg-slate-800/50 border border-slate-700 rounded-xl p-3 flex flex-wrap items-end justify-center gap-x-4 gap-y-2" },
+                React.createElement(OptionGroup, { label: "", children: [
                     React.createElement(OptionButton, { key: 'swap', selected: faceSwapMode === true, onClick: () => setFaceSwapMode(true), children: "Face Swap (Giữ mặt)" }),
                     React.createElement(OptionButton, { key: 'auto', selected: faceSwapMode === false, onClick: () => setFaceSwapMode(false), children: "Auto Generate (Sáng tạo)" })
                 ]}),
                 React.createElement(OptionGroup, { label: "Loại Nội dung", children: [
-                    React.createElement(OptionButton, { key: 'product', selected: generationMode === 'product', onClick: () => setGenerationMode('product'), children: "Sản phẩm cầm tay" }),
+                    React.createElement(OptionButton, { key: 'product', selected: generationMode === 'product', onClick: () => setGenerationMode('product'), children: "Sản phẩm" }),
                     React.createElement(OptionButton, { key: 'fashion', selected: generationMode === 'fashion', onClick: () => setGenerationMode('fashion'), children: "Trang phục" })
                 ]}),
                 React.createElement(OptionGroup, { label: "Giọng đọc thoại", children: [
@@ -589,10 +590,10 @@ const ControlPanel = ({
                     React.createElement(OptionButton, { key: 'male', selected: voice === 'male', onClick: () => setVoice('male'), children: "Nam" })
                 ]}),
                 React.createElement(OptionGroup, { label: "Vùng miền", children: [
-                    React.createElement(OptionButton, { key: 'south', selected: region === 'south', onClick: () => setRegion('south'), children: "Miền Nam" }),
-                    React.createElement(OptionButton, { key: 'north', selected: region === 'north', onClick: () => setRegion('north'), children: "Miền Bắc" })
+                    React.createElement(OptionButton, { key: 'south', selected: region === 'south', onClick: () => setRegion('south'), children: "Nam" }),
+                    React.createElement(OptionButton, { key: 'north', selected: region === 'north', onClick: () => setRegion('north'), children: "Bắc" })
                 ]}),
-                React.createElement(OptionGroup, { label: "Số lượng kết quả", children: 
+                React.createElement(OptionGroup, { label: "Số lượng", children: 
                     [1, 2, 3, 4].map(num => (
                         React.createElement(OptionButton, { key: num, selected: numberOfResults === num, onClick: () => setNumberOfResults(num), children: num })
                     ))
@@ -612,6 +613,7 @@ const ControlPanel = ({
                 React.createElement('label', { htmlFor: "product-info", className: "block text-sm font-medium text-slate-400 mb-2" }, "Thông tin sản phẩm (để tạo lời thoại hay hơn)"),
                 React.createElement('textarea', productInfoTextareaProps)
             ),
+            React.createElement('p', { className: "text-xs text-center text-slate-400 italic mb-1" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
             React.createElement('div', { className: "flex flex-row gap-4" },
                 React.createElement(SingleImageUploader, { 
                     label: "Ảnh Người mẫu",
