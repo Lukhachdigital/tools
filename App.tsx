@@ -431,26 +431,29 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey, init
                 )
             ),
             React.createElement('div', { className: "p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar" },
+                // 1. Gemini (Top)
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
-                        React.createElement('label', { htmlFor: "openrouter-key", className: "block text-lg font-semibold text-slate-300" }, "OpenRouter API Key"),
-                        React.createElement('a', { href: APP_LINKS.OPENROUTER_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
-                    ),
-                    React.createElement('input', inputOpenRouterProps)
-                ),
-                React.createElement('div', {},
-                    React.createElement('div', { className: "flex justify-between items-center mb-2" },
-                        React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key (Ưu tiên tạo ảnh)"),
+                        React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key (Khuyến khích)"),
                         React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
                     React.createElement('input', inputGeminiProps)
                 ),
+                // 2. OpenAI (Middle)
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
                          React.createElement('label', { htmlFor: "openai-key", className: "block text-lg font-semibold text-slate-300" }, "OpenAI API Key"),
                          React.createElement('a', { href: APP_LINKS.OPENAI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
                     React.createElement('input', inputOpenAIProps)
+                ),
+                // 3. OpenRouter (Bottom)
+                React.createElement('div', {},
+                    React.createElement('div', { className: "flex justify-between items-center mb-2" },
+                        React.createElement('label', { htmlFor: "openrouter-key", className: "block text-lg font-semibold text-slate-300" }, "OpenRouter API Key"),
+                        React.createElement('a', { href: APP_LINKS.OPENROUTER_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
+                    ),
+                    React.createElement('input', inputOpenRouterProps)
                 ),
                 React.createElement('button', saveBtnProps, "Lưu Cài Đặt")
             )
