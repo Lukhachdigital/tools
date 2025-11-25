@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -13,6 +12,18 @@ interface GeneratedContent {
   characterList: Character[];
   prompts: string[];
 }
+
+// --- UTILS ---
+const cleanJsonString = (text: string) => {
+    if (!text) return "";
+    let cleaned = text.trim();
+    // Try to extract JSON from code blocks if present
+    const jsonBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (jsonBlockMatch) {
+        cleaned = jsonBlockMatch[1];
+    }
+    return cleaned.trim();
+};
 
 // --- COMPONENTS ---
 const Loader = (): React.ReactElement => {
@@ -317,7 +328,7 @@ ${characterInstruction}
                 responseSchema: schema,
               },
             });
-            const jsonStr = response.text.trim();
+            const jsonStr = cleanJsonString(response.text);
             return JSON.parse(jsonStr) as GeneratedContent;
         } catch (e) {
             console.warn("Gemini failed", e);
@@ -347,7 +358,7 @@ ${characterInstruction}
             });
             if (!response.ok) throw new Error('OpenAI failed');
             const data = await response.json();
-            const jsonText = data.choices[0].message.content;
+            const jsonText = cleanJsonString(data.choices[0].message.content);
             return JSON.parse(jsonText) as GeneratedContent;
         } catch (e) {
             console.warn("OpenAI failed", e);
@@ -377,7 +388,8 @@ ${characterInstruction}
             });
             if (!response.ok) throw new Error('OpenRouter API failed');
             const data = await response.json();
-            const parsedResponse = JSON.parse(data.choices[0].message.content);
+            const jsonText = cleanJsonString(data.choices[0].message.content);
+            const parsedResponse = JSON.parse(jsonText);
             if (parsedResponse.characterList && parsedResponse.prompts) return parsedResponse;
         } catch (e) {
             console.warn("OpenRouter failed", e);
