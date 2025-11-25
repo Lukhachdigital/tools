@@ -179,13 +179,19 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selected
   const [characterImages, setCharacterImages] = useState<{ [key: number]: { imageUrl?: string; isGenerating?: boolean; error?: string; } }>({});
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+  
+  // New States for Voice Options
+  const [hasVoice, setHasVoice] = useState(false);
+  const [voiceLanguage, setVoiceLanguage] = useState<'Vietnamese' | 'English'>('Vietnamese');
 
   const generateScript = useCallback(async (
     videoIdea: string,
     durationInMinutes: number,
     cinematicStyle: string,
     numMain: number | null,
-    numSupporting: number | null
+    numSupporting: number | null,
+    hasVoice: boolean,
+    voiceLanguage: string
   ): Promise<GeneratedContent> => {
     
     const numberOfScenes = Math.ceil((durationInMinutes * 60) / 8);
@@ -209,6 +215,24 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selected
       characterInstruction = `- Create a list of characters for the story. ${[mainCharInstruction, supCharInstruction].filter(Boolean).join(' ')}`;
     } else {
       characterInstruction = "- Create a list of all characters for the story, identifying main and supporting roles.";
+    }
+
+    // Voice Instruction Logic
+    let voicePromptInstruction = "";
+    if (hasVoice) {
+        voicePromptInstruction = `
+        6. **Dialogue/Voiceover**: The user has requested a script WITH DIALOGUE.
+           - You MUST include a dialogue line or voiceover for every prompt where appropriate.
+           - Format: End the visual description with " Audio: [Character Name/Voiceover]: '[The Dialogue]'."
+           - The spoken language inside the single quotes '' MUST BE **${voiceLanguage === 'Vietnamese' ? 'VIETNAMESE' : 'ENGLISH'}**.
+           - The rest of the prompt (visual description) MUST remain in ENGLISH.
+        `;
+    } else {
+        voicePromptInstruction = `
+        6. **Dialogue/Voiceover**: The user has requested NO DIALOGUE (Silent/Music only).
+           - Do NOT include any spoken words, dialogue lines, or "Audio:" tags specifying speech.
+           - The prompt must be purely visual.
+        `;
     }
 
 
@@ -241,8 +265,9 @@ ${characterInstruction}
     1.  **Character Naming:** Every single prompt MUST explicitly mention at least one character by the 'name' you created in Task 1. A maximum of THREE named characters can be mentioned in a single prompt. It is absolutely critical that the spelling of the names is 100% accurate. This is a non-negotiable rule.
     2.  **Content Focus:** Do NOT describe clothing or outfits. Focus exclusively on character actions, the setting/background, character emotions, and facial expressions.
     3.  **DETAILED & CONSISTENT SETTINGS:** Before you write the prompts, you must internally plan the key locations. If a specific location (e.g., "the ancient, vine-covered temple entrance," "the neon-lit cyberpunk cockpit") appears in multiple scenes, you MUST use a consistent and IDENTICAL detailed description for that background in each relevant prompt to ensure visual continuity. Be very specific about the elements that make up the setting.
-    4.  **Language:** All prompts MUST be in ENGLISH.
+    4.  **Language:** All visual descriptions MUST be in ENGLISH.
     5.  **Cinematic Style**: Each prompt must also incorporate descriptive words that reflect the chosen '${cinematicStyle}' style. For example, if the style is 'Viễn tưởng' (Sci-Fi), use terms like 'holographic glow', 'sleek metallic surfaces', 'cybernetic implants'.
+    ${voicePromptInstruction}
 `;
 
     const userPrompt = `
@@ -488,7 +513,7 @@ ${characterInstruction}
           const numMain = numMainCharacters ? parseInt(numMainCharacters) : null;
           const numSup = numSupportingCharacters ? parseInt(numSupportingCharacters) : null;
           
-          const result = await generateScript(videoIdea, durationNum, selectedCinematicStyle, numMain, numSup);
+          const result = await generateScript(videoIdea, durationNum, selectedCinematicStyle, numMain, numSup, hasVoice, voiceLanguage);
           setGeneratedContent(result);
       } catch (err: any) {
           setError(err.message);
@@ -523,7 +548,39 @@ ${characterInstruction}
         // Left Panel
         React.createElement("div", { className: "lg:w-1/3 space-y-6" },
             React.createElement("form", { onSubmit: handleSubmit, className: "bg-gray-800 p-6 rounded-lg border border-gray-700" },
-                React.createElement("h3", { className: "text-xl font-bold text-white mb-4" }, "Thiết lập Kịch bản"),
+                
+                React.createElement("div", { className: "flex flex-wrap items-center gap-3 mb-4" },
+                    React.createElement("h3", { className: "text-xl font-bold text-white whitespace-nowrap" }, "Thiết lập Kịch bản"),
+                    
+                    // Voice Toggle
+                    React.createElement("div", { className: "flex bg-gray-700 rounded p-1" },
+                        React.createElement("button", {
+                            type: "button",
+                            onClick: () => setHasVoice(false),
+                            className: `px-3 py-1 text-xs rounded transition font-semibold ${!hasVoice ? 'bg-red-600 text-white' : 'text-gray-300 hover:text-white'}`
+                        }, "Không thoại"),
+                        React.createElement("button", {
+                            type: "button",
+                            onClick: () => setHasVoice(true),
+                            className: `px-3 py-1 text-xs rounded transition font-semibold ${hasVoice ? 'bg-green-600 text-white' : 'text-gray-300 hover:text-white'}`
+                        }, "Có thoại")
+                    ),
+
+                    // Language Toggle
+                    React.createElement("div", { className: `flex bg-gray-700 rounded p-1 transition-opacity ${!hasVoice ? 'opacity-50 pointer-events-none' : 'opacity-100'}` },
+                        React.createElement("button", {
+                            type: "button",
+                            onClick: () => setVoiceLanguage('Vietnamese'),
+                            className: `px-3 py-1 text-xs rounded transition font-semibold ${voiceLanguage === 'Vietnamese' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'}`
+                        }, "Tiếng Việt"),
+                        React.createElement("button", {
+                            type: "button",
+                            onClick: () => setVoiceLanguage('English'),
+                            className: `px-3 py-1 text-xs rounded transition font-semibold ${voiceLanguage === 'English' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'}`
+                        }, "Tiếng Anh")
+                    )
+                ),
+
                 React.createElement("div", { className: "space-y-4" },
                     React.createElement("div", null,
                         React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Ý tưởng Video"),
