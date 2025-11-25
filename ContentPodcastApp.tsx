@@ -150,23 +150,24 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
               ref={fileInputRef} 
               className="hidden" 
               onChange={handleFileChange} 
-              accept="image/png, image/jpeg, image/webp",
+              accept="image/png, image/jpeg, image/webp"
               disabled={disabled}
             />
             {uploadedImage ? (
-              <>
+              <React.Fragment>
                 <img src={uploadedImage.dataUrl} alt="Uploaded preview" className="w-full h-full object-cover rounded-lg" />
                 <button
                     onClick={(e) => { e.stopPropagation(); setUploadedImage(null); }}
                     className="absolute top-1 right-1 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100"
                     disabled={disabled}
                     title="Xóa ảnh"
+                    type="button"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                 </button>
-              </>
+              </React.Fragment>
             ) : (
               <div className="text-center text-gray-400 p-2">
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto mb-2 text-gray-500 group-hover:text-gray-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -237,18 +238,33 @@ const getSystemInstruction = (length: ArticleLength, seed: number) => {
 Chỉ trả về JSON, không thêm bất kỳ lời giải thích nào.`;
 };
 
-const getUserContent = (topic: string, category: string, seed: number) => `
+const getUserContent = (topic: string, category: string, seed: number, approach: string) => `
 **LĨNH VỰC / GÓC NHÌN:** ${category}
 **CHỦ ĐỀ MỚI CẦN VIẾT:** "${topic}"
+**GÓC TIẾP CẬN BẮT BUỘC CHO LẦN NÀY:** "${approach}"
 **MÃ NGẪU NHIÊN (Để tránh trùng lặp):** ${seed}
 
-Hãy viết bài dựa trên lĩnh vực và chủ đề trên. Hãy nhớ rằng bài viết này phải KHÁC BIỆT và SÁNG TẠO hơn tất cả các bài trước đó về cùng chủ đề này.
+Hãy viết bài dựa trên lĩnh vực và chủ đề trên, TUÂN THỦ NGHIÊM NGẶT góc tiếp cận được chỉ định. Điều này giúp bài viết hoàn toàn khác biệt so với các lần trước.
 `;
 
 const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, openRouterKey: string, selectedModel: string): Promise<GeneratedContent> => {
     const seed = Date.now(); // Unique seed for every generation
+    
+    // Randomized creative approaches to force variety (Hidden from UI)
+    const approaches = [
+        "Kể một câu chuyện đầy cảm xúc hoặc trải nghiệm cá nhân liên quan đến chủ đề",
+        "Phân tích logic, khoa học, đi sâu vào nguyên nhân gốc rễ và giải pháp thực tế",
+        "Sử dụng giọng văn khiêu khích, đặt câu hỏi ngược để thách thức tư duy người đọc",
+        "Giọng văn tâm tình, nhẹ nhàng, chữa lành và đồng cảm sâu sắc",
+        "Phong cách thẳng thắn, bộc trực, 'tát nước vào mặt' để thức tỉnh (Tough Love)",
+        "Sử dụng phép ẩn dụ, hình tượng nghệ thuật để diễn giải vấn đề một cách bay bổng",
+        "Hài hước, châm biếm nhẹ nhàng nhưng thâm thúy",
+        "Tập trung vào các con số, dữ liệu hoặc các bước hành động cụ thể (Step-by-step)"
+    ];
+    const randomApproach = approaches[Math.floor(Math.random() * approaches.length)];
+
     const systemInstruction = getSystemInstruction(length, seed);
-    const userContent = getUserContent(topic, category, seed);
+    const userContent = getUserContent(topic, category, seed, randomApproach);
     let finalError;
 
     // High temperature for creativity/variance
@@ -512,8 +528,6 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       // ======================================================
       else {
           // 1. Try Gemini (Nano Banana) - Priority 1 (OpenRouter or Direct)
-          // User requested to use google/gemini-2.5-flash-image via OpenRouter specifically for image generation if possible
-          // But here we stick to direct Gemini if available, or OpenRouter for consistency with request.
           
           // Direct Gemini (Imagen)
           if (!finalError && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
@@ -567,7 +581,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
               }
           }
 
-          // 3. Try OpenRouter - Priority 3 (Using Nano Banana via Chat Completion as per previous updates)
+          // 3. Try OpenRouter - Priority 3 (Using Nano Banana via Chat Completion)
           if (!finalError && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
               try {
                   const systemPromptImage = "You are an expert image generation assistant. Generate high-quality images based on the user request.";
@@ -720,9 +734,9 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                 )}
 
                 {/* Split Layout for Image Upload & Result */}
-                <div className="flex flex-row gap-4 mt-4 items-start">
+                <div className="flex flex-col sm:flex-row gap-4 mt-4 items-start">
                     {/* 1/4 Width for Upload */}
-                    <div className="w-1/4 flex-shrink-0">
+                    <div className="w-full sm:w-1/4 flex-shrink-0">
                         <ImageUploader 
                             uploadedImage={referenceImage} 
                             setUploadedImage={setReferenceImage} 
@@ -732,7 +746,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                     </div>
                     
                     {/* 3/4 Width for Result */}
-                    <div className="w-3/4">
+                    <div className="w-full sm:w-3/4">
                         <div className={`w-full bg-black/30 border border-slate-700 rounded-lg relative overflow-hidden flex items-center justify-center group ${!generatedImageUrl ? 'min-h-[16rem]' : ''}`}>
                             {generatedImageUrl ? (
                                 <>
