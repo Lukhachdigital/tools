@@ -150,7 +150,7 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
               ref={fileInputRef} 
               className="hidden" 
               onChange={handleFileChange} 
-              accept="image/png, image/jpeg, image/webp"
+              accept="image/png, image/jpeg, image/webp",
               disabled={disabled}
             />
             {uploadedImage ? (
@@ -203,7 +203,7 @@ const responseSchema = {
   required: ["title", "article", "engagementCall"],
 };
 
-const getSystemInstruction = (length: ArticleLength) => {
+const getSystemInstruction = (length: ArticleLength, seed: number) => {
     // Đã giảm 40% số lượng ký tự so với bản cũ
     const lengthInstruction = length === 'short'
     ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1200 đến 1800 ký tự (khoảng 240-360 từ). Hãy viết nội dung cô đọng, súc tích, tập trung vào các ý chính quan trọng nhất. Không được viết ngắn hơn 1200 ký tự và không được dài hơn 1800 ký tự. Đây là yêu cầu bắt buộc.'
@@ -211,7 +211,11 @@ const getSystemInstruction = (length: ArticleLength) => {
 
     return `Bạn là một chuyên gia viết lách đa tài, có khả năng hóa thân vào nhiều vai trò khác nhau (nhà tâm lý, chuyên gia kinh tế, nhà giáo dục, thiền sư, v.v.) tùy thuộc vào lĩnh vực được yêu cầu.
 
-**NHIỆM VỤ:** Dựa vào **"CHỦ ĐỀ MỚI CẦN VIẾT"** và **"LĨNH VỰC / GÓC NHÌN"** do người dùng cung cấp, hãy sáng tạo một bài viết hoàn toàn mới.
+**NHIỆM VỤ CỐT LÕI (ĐỘC NHẤT & SÁNG TẠO):**
+Đây là lần tạo thứ: ${seed}. BẠN BẮT BUỘC PHẢI TẠO RA MỘT BÀI VIẾT HOÀN TOÀN MỚI, KHÁC BIỆT SO VỚI TẤT CẢ CÁC LẦN TRƯỚC.
+- Ngay cả khi tiêu đề giống hệt lần trước, bạn PHẢI thay đổi hoàn toàn cách tiếp cận, giọng văn, cấu trúc và các ví dụ minh họa.
+- Đừng lặp lại những lối mòn tư duy cũ. Hãy tìm một góc nhìn mới lạ, độc đáo hoặc trái ngược để phân tích vấn đề.
+- Sự sáng tạo và tính mới mẻ là ưu tiên hàng đầu.
 
 **YÊU CẦU VỀ VĂN PHONG & NỘI DUNG:**
 *   **Bám sát Lĩnh vực:** 
@@ -233,17 +237,22 @@ const getSystemInstruction = (length: ArticleLength) => {
 Chỉ trả về JSON, không thêm bất kỳ lời giải thích nào.`;
 };
 
-const getUserContent = (topic: string, category: string) => `
+const getUserContent = (topic: string, category: string, seed: number) => `
 **LĨNH VỰC / GÓC NHÌN:** ${category}
 **CHỦ ĐỀ MỚI CẦN VIẾT:** "${topic}"
+**MÃ NGẪU NHIÊN (Để tránh trùng lặp):** ${seed}
 
-Hãy viết bài dựa trên lĩnh vực và chủ đề trên.
+Hãy viết bài dựa trên lĩnh vực và chủ đề trên. Hãy nhớ rằng bài viết này phải KHÁC BIỆT và SÁNG TẠO hơn tất cả các bài trước đó về cùng chủ đề này.
 `;
 
 const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, openRouterKey: string, selectedModel: string): Promise<GeneratedContent> => {
-    const systemInstruction = getSystemInstruction(length);
-    const userContent = getUserContent(topic, category);
+    const seed = Date.now(); // Unique seed for every generation
+    const systemInstruction = getSystemInstruction(length, seed);
+    const userContent = getUserContent(topic, category, seed);
     let finalError;
+
+    // High temperature for creativity/variance
+    const CREATIVE_TEMP = 1.1;
 
     // Priority: Gemini -> OpenAI -> OpenRouter
 
@@ -259,7 +268,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
                     systemInstruction: systemInstruction,
                     responseMimeType: "application/json",
                     responseSchema: responseSchema,
-                    temperature: 0.8,
+                    temperature: CREATIVE_TEMP,
                 },
             });
             return JSON.parse(response.text.trim());
@@ -281,7 +290,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
                     model: "gpt-4o",
                     messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
                     response_format: { type: "json_object" },
-                    temperature: 0.8,
+                    temperature: CREATIVE_TEMP,
                 }),
             });
             if (!response.ok) throw new Error('OpenAI failed');
@@ -305,7 +314,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
                     model: "google/gemini-2.0-flash-001",
                     messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
                     response_format: { type: "json_object" },
-                    temperature: 0.8,
+                    temperature: CREATIVE_TEMP,
                 }),
             });
             if (!response.ok) throw new Error('OpenRouter failed');
@@ -502,7 +511,11 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       // CASE 2: No Reference Image -> Try Providers based on selection
       // ======================================================
       else {
-          // 1. Try Gemini (Imagen) - Priority 1
+          // 1. Try Gemini (Nano Banana) - Priority 1 (OpenRouter or Direct)
+          // User requested to use google/gemini-2.5-flash-image via OpenRouter specifically for image generation if possible
+          // But here we stick to direct Gemini if available, or OpenRouter for consistency with request.
+          
+          // Direct Gemini (Imagen)
           if (!finalError && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
               try {
                   const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -554,24 +567,31 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
               }
           }
 
-          // 3. Try OpenRouter - Priority 3
+          // 3. Try OpenRouter - Priority 3 (Using Nano Banana via Chat Completion as per previous updates)
           if (!finalError && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
               try {
-                  const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+                  const systemPromptImage = "You are an expert image generation assistant. Generate high-quality images based on the user request.";
+                  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
                       body: JSON.stringify({
-                          model: 'black-forest-labs/flux-1-schnell',
-                          prompt: imagePrompt,
-                          n: 1,
-                          size: '1024x576', 
+                          model: 'google/gemini-2.5-flash-image',
+                          messages: [
+                              { role: 'system', content: systemPromptImage },
+                              { role: 'user', content: imagePrompt }
+                          ]
                       })
                   });
+                  
                   if (response.ok) {
                       const data = await response.json();
-                      setGeneratedImageUrl(data.data[0].url);
-                      setIsGeneratingImage(false);
-                      return;
+                      const content = data.choices[0].message.content;
+                      const match = content.match(/!\[.*?\]\((https?:\/\/[^\)]+)\)/);
+                      if (match && match[1]) {
+                          setGeneratedImageUrl(match[1]);
+                          setIsGeneratingImage(false);
+                          return;
+                      }
                   }
               } catch (e) {
                   console.warn("OpenRouter Image Gen failed", e);
