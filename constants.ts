@@ -28,9 +28,9 @@ export const TUTORIAL_LINKS: Record<string, string> = {
     create_thumbnail: "https://www.youtube.com/watch?v=u23ANSFa3lA",
     tao_anh_trend: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
     create_video: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-    seo_youtube: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+    seo_youtube: "https://www.youtube.com/watch?v=NWU08JKzgeo",
     youtube_external: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
-    app_affiliate: "https://youtu.be/N_UfSbpBAjs?si=Sjc7QUzZ9lds3ZKg",
+    app_affiliate: "https://www.youtube.com/watch?v=N_UfSbpBAjs",
     content_podcast: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1"
 };
 
