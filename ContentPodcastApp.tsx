@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
@@ -35,7 +36,78 @@ const CATEGORIES = [
 ];
 
 // ==========================================
-// 2. SUB-COMPONENTS
+// 2. AUDIO HELPER FUNCTIONS
+// ==========================================
+
+// Processes raw PCM bytes from Gemini TTS into a playable AudioBuffer.
+async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
+  // Gemini TTS returns 16-bit PCM, so we need an Int16Array view.
+  const dataInt16 = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0; // Normalize to [-1.0, 1.0]
+    }
+  }
+  return buffer;
+}
+
+// Converts an AudioBuffer into a Blob with a proper WAV header.
+const audioBufferToWav = (buffer: AudioBuffer): Blob => {
+  const numOfChan = buffer.numberOfChannels;
+  const length = buffer.length * numOfChan * 2 + 44;
+  const bufferArray = new ArrayBuffer(length);
+  const view = new DataView(bufferArray);
+  const channels: Float32Array[] = [];
+  let i: number, sample: number;
+  let offset = 0;
+  let pos = 0;
+
+  const setUint16 = (data: number) => { view.setUint16(pos, data, true); pos += 2; };
+  const setUint32 = (data: number) => { view.setUint32(pos, data, true); pos += 4; };
+
+  setUint32(0x46464952); // "RIFF"
+  setUint32(length - 8); // file length - 8
+  setUint32(0x45564157); // "WAVE"
+  setUint32(0x20746d66); // "fmt "
+  setUint32(16); // chunk size
+  setUint16(1); // audio format 1 (PCM)
+  setUint16(numOfChan);
+  setUint32(buffer.sampleRate);
+  setUint32(buffer.sampleRate * 2 * numOfChan); // byte rate
+  setUint16(numOfChan * 2); // block align
+  setUint16(16); // bits per sample
+  setUint32(0x61746164); // "data"
+  setUint32(length - pos - 4);
+
+  for (i = 0; i < numOfChan; i++) {
+    channels.push(buffer.getChannelData(i));
+  }
+
+  while (pos < length) {
+    for (i = 0; i < numOfChan; i++) {
+      sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+      sample = (sample < 0 ? sample * 0x8000 : sample * 0x7fff) | 0; // scale to 16-bit signed int
+      view.setInt16(pos, sample, true);
+      pos += 2;
+    }
+    offset++;
+  }
+
+  return new Blob([view], { type: 'audio/wav' });
+};
+
+
+// ==========================================
+// 3. SUB-COMPONENTS
 // ==========================================
 
 const LoadingSpinner: React.FC = () => (
@@ -51,6 +123,7 @@ const CopyButton: React.FC<{ textToCopy: string; label?: string; className?: str
   const handleCopy = () => {
     navigator.clipboard.writeText(textToCopy).then(() => {
       setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     });
   };
 
@@ -182,7 +255,7 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
 };
 
 // ==========================================
-// 3. AI SERVICES (LOGIC)
+// 4. AI SERVICES (LOGIC)
 // ==========================================
 
 const responseSchema = {
@@ -204,13 +277,18 @@ const responseSchema = {
   required: ["title", "article", "engagementCall"],
 };
 
-const getSystemInstruction = (length: ArticleLength, seed: number) => {
-    // Đã giảm 40% số lượng ký tự so với bản cũ
+const getSystemInstruction = (length: ArticleLength, seed: number, category: string) => {
     const lengthInstruction = length === 'short'
     ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1200 đến 1800 ký tự (khoảng 240-360 từ). Hãy viết nội dung cô đọng, súc tích, tập trung vào các ý chính quan trọng nhất. Không được viết ngắn hơn 1200 ký tự và không được dài hơn 1800 ký tự. Đây là yêu cầu bắt buộc.'
     : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 7200 ký tự (khoảng 1440 từ trở lên). Hãy viết cực kỳ chi tiết, mở rộng mọi khía cạnh, sử dụng nhiều ví dụ minh họa, câu chuyện kể và phân tích đa chiều. Chia bài viết thành nhiều phần lớn nhỏ rõ ràng. Nếu không đủ ý để đạt 7200 ký tự, hãy mở rộng thêm các góc nhìn liên quan. Đây là yêu cầu bắt buộc.';
 
-    return `Bạn là một chuyên gia viết lách đa tài, có khả năng hóa thân vào nhiều vai trò khác nhau (nhà tâm lý, chuyên gia kinh tế, nhà giáo dục, thiền sư, v.v.) tùy thuộc vào lĩnh vực được yêu cầu.
+    const marriageInstruction = category === 'Hôn nhân' 
+        ? `
+**YÊU CẦU ĐẶC BIỆT CHO LĨNH VỰC "HÔN NHÂN":** Khi viết về chủ đề này, bạn BẮT BUỘC phải phân tích sâu sắc và toàn diện về mọi khía cạnh của đời sống vợ chồng, bao gồm: giao tiếp, tài chính, con cái, mối quan hệ với gia đình hai bên, và cả sự hòa hợp về mặt thể chất và tình cảm (bao gồm cả đời sống tình dục). Khi đề cập đến khía cạnh tình dục, hãy sử dụng ngôn ngữ tinh tế, văn minh, mang tính giáo dục và xây dựng, tập trung vào sự kết nối và thấu hiểu giữa hai người. TUYỆT ĐỐI không sử dụng từ ngữ thô tục hay mô tả chi tiết gây phản cảm, vi phạm chính sách.
+` 
+        : '';
+
+    return `Bạn là một chuyên gia viết lách đa tài, có khả năng hóa thân vào nhiều vai trò khác nhau (nhà tâm lý, chuyên gia kinh tế, nhà giáo dục, thiền sư, v.v.) tùy thuộc vào lĩnh vực được yêu cầu.${marriageInstruction}
 
 **NHIỆM VỤ CỐT LÕI (ĐỘC NHẤT & SÁNG TẠO):**
 Đây là lần tạo thứ: ${seed}. BẠN BẮT BUỘC PHẢI TẠO RA MỘT BÀI VIẾT HOÀN TOÀN MỚI, KHÁC BIỆT SO VỚI TẤT CẢ CÁC LẦN TRƯỚC.
@@ -247,10 +325,15 @@ const getUserContent = (topic: string, category: string, seed: number, approach:
 Hãy viết bài dựa trên lĩnh vực và chủ đề trên, TUÂN THỦ NGHIÊM NGẶT góc tiếp cận được chỉ định. Điều này giúp bài viết hoàn toàn khác biệt so với các lần trước.
 `;
 
+// Helper to auto-correct "im" to "Im"
+const postProcessText = (text: string): string => {
+    if (!text) return "";
+    return text.replace(/\b(im)\b/g, "Im");
+};
+
 const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, openRouterKey: string, selectedModel: string): Promise<GeneratedContent> => {
-    const seed = Date.now(); // Unique seed for every generation
+    const seed = Date.now(); 
     
-    // Randomized creative approaches to force variety (Hidden from UI)
     const approaches = [
         "Kể một câu chuyện đầy cảm xúc hoặc trải nghiệm cá nhân liên quan đến chủ đề",
         "Phân tích logic, khoa học, đi sâu vào nguyên nhân gốc rễ và giải pháp thực tế",
@@ -263,17 +346,13 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     ];
     const randomApproach = approaches[Math.floor(Math.random() * approaches.length)];
 
-    const systemInstruction = getSystemInstruction(length, seed);
+    const systemInstruction = getSystemInstruction(length, seed, category);
     const userContent = getUserContent(topic, category, seed, randomApproach);
     let finalError;
-
-    // High temperature for creativity/variance
     const CREATIVE_TEMP = 1.1;
+    let rawResult: GeneratedContent | null = null;
 
-    // Priority: Gemini -> OpenAI -> OpenRouter
-
-    // 1. Try Gemini
-    if (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey)) {
+    if (!rawResult && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
         try {
             if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
@@ -287,7 +366,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
                     temperature: CREATIVE_TEMP,
                 },
             });
-            return JSON.parse(response.text.trim());
+            rawResult = JSON.parse(response.text.trim());
         } catch (e) {
             console.warn("Gemini failed", e);
             if (selectedModel === 'gemini') throw e;
@@ -295,8 +374,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         }
     }
 
-    // 2. Try OpenAI
-    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
+    if (!rawResult && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
         try {
             if (!openaiKey && selectedModel === 'openai') throw new Error("OpenAI Key chưa được cài đặt.");
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -311,7 +389,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
             });
             if (!response.ok) throw new Error('OpenAI failed');
             const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
+            rawResult = JSON.parse(data.choices[0].message.content);
         } catch (e) {
             console.warn("OpenAI failed", e);
             if (selectedModel === 'openai') throw e;
@@ -319,8 +397,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         }
     }
 
-    // 3. Try OpenRouter
-    if (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey)) {
+    if (!rawResult && (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey))) {
         try {
             if (!openRouterKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
             const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -335,7 +412,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
             });
             if (!response.ok) throw new Error('OpenRouter failed');
             const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
+            rawResult = JSON.parse(data.choices[0].message.content);
         } catch (e) {
             console.warn("OpenRouter failed", e);
             if (selectedModel === 'openrouter') throw e;
@@ -343,14 +420,22 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         }
     }
 
+    if (rawResult) {
+        return {
+            title: rawResult.title,
+            article: postProcessText(rawResult.article),
+            engagementCall: postProcessText(rawResult.engagementCall)
+        };
+    }
+
     throw finalError || new Error("All providers failed or no API Key configured for selected model.");
 };
 
 // ==========================================
-// 4. MAIN APP COMPONENT
+// 5. MAIN APP COMPONENT
 // ==========================================
 
-const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }) => {
+const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterKey: string, selectedAIModel: string }) => {
   const [topic, setTopic] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Tình yêu');
   const [articleLength, setArticleLength] = useState<ArticleLength>('short');
@@ -358,7 +443,6 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Image Generation State
   const [referenceImage, setReferenceImage] = useState<UploadedImage | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imagePrompt, setImagePrompt] = useState<string>('');
@@ -366,6 +450,11 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState<boolean>(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const [audioFormat, setAudioFormat] = useState<'mp3' | 'wav'>('mp3');
 
 
   const generatePromptFromContent = async (content: GeneratedContent, apiKey: string, provider: 'gemini' | 'openrouter' | 'openai') => {
@@ -429,13 +518,103 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       }
   }
 
+  const handleGenerateAudio = async (voice: 'male' | 'female') => {
+      if (!generatedContent) return;
+      if (!geminiApiKey && !openaiApiKey) {
+          setAudioError("Vui lòng cài đặt Gemini Key hoặc OpenAI Key để sử dụng tính năng tạo Audio.");
+          return;
+      }
+
+      setIsGeneratingAudio(true);
+      setAudioError(null);
+      setAudioUrl(null);
+
+      const textToSpeak = generatedContent.article + ". " + generatedContent.engagementCall;
+      const safeText = textToSpeak.substring(0, 4096);
+
+      if (geminiApiKey) {
+          try {
+              const geminiVoiceName = voice === 'male' ? 'Puck' : 'Aoede';
+              const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+              const response = await ai.models.generateContent({
+                  model: 'gemini-2.5-flash-preview-tts',
+                  contents: [{ parts: [{ text: safeText }] }],
+                  config: {
+                      responseModalities: [window.GenAIModality.AUDIO],
+                      speechConfig: {
+                          voiceConfig: {
+                              prebuiltVoiceConfig: { voiceName: geminiVoiceName }
+                          }
+                      }
+                  }
+              });
+              
+              const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+              if (base64Audio) {
+                  const binaryString = window.atob(base64Audio);
+                  const len = binaryString.length;
+                  const bytes = new Uint8Array(len);
+                  for (let i = 0; i < len; i++) {
+                      bytes[i] = binaryString.charCodeAt(i);
+                  }
+                  
+                  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+                  const audioBuffer = await decodeAudioData(bytes, audioContext, 24000, 1);
+                  const blob = audioBufferToWav(audioBuffer);
+                  const url = URL.createObjectURL(blob);
+
+                  setAudioUrl(url);
+                  setAudioFormat('wav');
+                  setIsGeneratingAudio(false);
+                  return;
+              }
+          } catch (e) {
+              console.warn("Gemini TTS failed, falling back to OpenAI", e);
+          }
+      }
+
+      if (openaiApiKey) {
+          try {
+              const openAIVoice = voice === 'male' ? 'onyx' : 'shimmer';
+              const response = await fetch('https://api.openai.com/v1/audio/speech', {
+                  method: 'POST',
+                  headers: {
+                      'Authorization': `Bearer ${openaiApiKey}`,
+                      'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                      model: 'tts-1',
+                      input: safeText,
+                      voice: openAIVoice
+                  })
+              });
+
+              if (!response.ok) {
+                  const errData = await response.json();
+                  throw new Error(errData.error?.message || "Failed to generate audio");
+              }
+
+              const blob = await response.blob();
+              const url = URL.createObjectURL(blob);
+              setAudioUrl(url);
+              setAudioFormat('mp3');
+          } catch (err: any) {
+              setAudioError(err.message);
+          }
+      } else {
+          setAudioError("Gemini TTS thất bại và không có OpenAI Key để dự phòng.");
+      }
+      
+      setIsGeneratingAudio(false);
+  };
+
   const handleGenerateContent = async () => {
     if (!topic.trim()) {
       setError('Vui lòng nhập tiêu đề/chủ đề.');
       return;
     }
     
-    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+    if (!geminiApiKey && !openaiApiKey && !openRouterKey) {
         setError('Vui lòng nhập ít nhất một API Key trong phần cài đặt.');
         return;
     }
@@ -445,18 +624,19 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
     setGeneratedContent(null);
     setGeneratedImageUrl(null);
     setImagePrompt('');
+    setAudioUrl(null);
+    setAudioError(null);
 
     try {
-      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel);
+      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, openRouterKey, selectedAIModel);
       setGeneratedContent(result);
       
-      // Auto-generate prompt based on best available or selected
       if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
           generatePromptFromContent(result, geminiApiKey, 'gemini');
       } else if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
           generatePromptFromContent(result, openaiApiKey, 'openai');
-      } else if ((selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
-          generatePromptFromContent(result, openRouterApiKey, 'openrouter');
+      } else if ((selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterKey) {
+          generatePromptFromContent(result, openRouterKey, 'openrouter');
       }
 
     } catch (err) {
@@ -479,9 +659,6 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
 
       let finalError = null;
 
-      // ======================================================
-      // CASE 1: Reference Image Exists -> MUST Use Gemini
-      // ======================================================
       if (referenceImage) {
           if (geminiApiKey && (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
               try {
@@ -523,13 +700,8 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
           }
       } 
       
-      // ======================================================
-      // CASE 2: No Reference Image -> Try Providers based on selection
-      // ======================================================
       else {
-          // 1. Try Gemini (Nano Banana) - Priority 1 (OpenRouter or Direct)
           
-          // Direct Gemini (Imagen)
           if (!finalError && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
               try {
                   const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -553,7 +725,6 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
               }
           }
 
-          // 2. Try OpenAI - Priority 2
           if (!finalError && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
               try {
                   const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -581,13 +752,12 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
               }
           }
 
-          // 3. Try OpenRouter - Priority 3 (Using Nano Banana via Chat Completion)
-          if (!finalError && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
+          if (!finalError && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterKey) {
               try {
                   const systemPromptImage = "You are an expert image generation assistant. Generate high-quality images based on the user request.";
                   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
                       body: JSON.stringify({
                           model: 'google/gemini-2.5-flash-image',
                           messages: [
@@ -631,6 +801,17 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       ))}
     </div>
   );
+
+  const handleSaveGeneratedImage = () => {
+      if (generatedImageUrl) {
+          const link = document.createElement('a');
+          link.href = generatedImageUrl;
+          link.download = `podcast-image-${Date.now()}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+      }
+  };
 
   return (
     <div className="w-full h-full p-4 font-sans text-gray-200">
@@ -691,7 +872,6 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                   {isLoading ? 'Đang viết bài...' : 'Viết Bài Ngay'}
                 </button>
 
-                {/* Prompt Generation Box */}
                 {(generatedContent || imagePrompt) && (
                     <div className="animate-fade-in mt-4 bg-slate-900/50 p-4 rounded-lg border border-slate-600/50 relative">
                         <label className="block text-sm font-semibold text-pink-400 mb-2 flex justify-between items-center">
@@ -733,9 +913,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                     </div>
                 )}
 
-                {/* Split Layout for Image Upload & Result */}
                 <div className="flex flex-col sm:flex-row gap-4 mt-4 items-start">
-                    {/* 1/4 Width for Upload */}
                     <div className="w-full sm:w-1/4 flex-shrink-0">
                         <ImageUploader 
                             uploadedImage={referenceImage} 
@@ -745,28 +923,26 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                         />
                     </div>
                     
-                    {/* 3/4 Width for Result */}
                     <div className="w-full sm:w-3/4">
-                        <div className={`w-full bg-black/30 border border-slate-700 rounded-lg relative overflow-hidden flex items-center justify-center group ${!generatedImageUrl ? 'min-h-[16rem]' : ''}`}>
+                        <div className="w-full bg-black/30 border border-slate-700 rounded-lg relative overflow-hidden flex items-center justify-center group min-h-[16rem]">
                             {generatedImageUrl ? (
                                 <>
                                     <img 
                                         src={generatedImageUrl} 
                                         alt="Generated Result" 
-                                        className="w-full h-auto object-contain cursor-pointer hover:scale-[1.02] transition-transform duration-500"
+                                        className="w-full h-auto object-contain cursor-pointer"
                                         onClick={() => setLightboxImage(generatedImageUrl)}
                                     />
-                                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
-                                            onClick={() => setLightboxImage(generatedImageUrl)}
-                                            className="bg-black/60 p-2 rounded-full text-white hover:bg-black/80"
-                                            title="Phóng to"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                            </svg>
-                                        </button>
-                                    </div>
+                                    <button 
+                                        onClick={handleSaveGeneratedImage}
+                                        className="absolute top-2 right-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors shadow-lg flex items-center gap-2"
+                                        title="Tải ảnh"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Tải ảnh về
+                                    </button>
                                 </>
                             ) : (
                                 <div className="text-slate-500 text-center p-4 flex flex-col items-center justify-center h-full">
@@ -787,8 +963,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
           </div>
         </div>
         
-        {/* Right Panel: Text Result */}
-        <div className="mt-8 lg:mt-0 lg:h-[calc(100vh-100px)] lg:overflow-y-auto custom-scrollbar pr-2">
+        <div className="mt-8 lg:mt-0 w-full pr-2">
             {error && (
                 <div className="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg mb-6">
                     <strong>Lỗi:</strong> {error}
@@ -800,7 +975,19 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                     <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6">
                         <div className="flex justify-between items-start mb-4">
                             <h2 className="text-2xl font-bold text-white">{generatedContent.title}</h2>
-                            <CopyButton textToCopy={generatedContent.title} />
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(generatedContent.title);
+                                    }}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-md flex items-center gap-2"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    Chép
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -809,11 +996,10 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                             <h3 className="text-xl font-semibold text-indigo-400">Nội dung bài viết & Lời kêu gọi</h3>
                             <button
                                 onClick={() => {
-                                    // Correctly format with \n\n\n as requested for general consistency, though usually articles are \n\n. 
-                                    // User requested "Copy All" to have prompts separated by \n\n\n. This is an article, but I'll use \n\n\n to be safe/distinct.
-                                    const combinedText = generatedContent.article + "\n\n\n" + generatedContent.engagementCall;
+                                    const combinedText = generatedContent.article + "\n\n" + generatedContent.engagementCall;
                                     navigator.clipboard.writeText(combinedText).then(() => {
                                         setCopiedAll(true);
+                                        setTimeout(() => setCopiedAll(false), 10000);
                                     });
                                 }}
                                 className={`px-4 py-2 font-bold rounded-md transition-colors shadow flex items-center gap-2 ${
@@ -825,7 +1011,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
-                                        Đã sao chép toàn bộ
+                                        Đã sao chép
                                     </>
                                 ) : (
                                     <>
@@ -845,6 +1031,51 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                                 </p>
                             </div>
                         </div>
+                    </div>
+
+                    <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6">
+                        <h3 className="text-lg font-semibold text-indigo-400 mb-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                            Tạo Audio từ nội dung
+                        </h3>
+                        
+                        <div className="flex gap-4 mb-4">
+                            <button
+                                onClick={() => handleGenerateAudio('male')}
+                                disabled={isGeneratingAudio}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait"
+                            >
+                                {isGeneratingAudio ? 'Đang tạo...' : 'Giọng Nam'}
+                            </button>
+                            <button
+                                onClick={() => handleGenerateAudio('female')}
+                                disabled={isGeneratingAudio}
+                                className="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait"
+                            >
+                                {isGeneratingAudio ? 'Đang tạo...' : 'Giọng Nữ'}
+                            </button>
+                        </div>
+
+                        {audioError && (
+                            <div className="text-red-400 text-sm mb-4 p-2 bg-red-900/20 rounded">
+                                {audioError}
+                            </div>
+                        )}
+
+                        {audioUrl && (
+                            <div className="space-y-4 animate-fade-in">
+                                <audio controls src={audioUrl} className="w-full" />
+                                <a 
+                                    href={audioUrl} 
+                                    download={`podcast_audio_${Date.now()}.${audioFormat}`}
+                                    className="block w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                                >
+                                    Tải Audio về máy (.{audioFormat})
+                                </a>
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (
