@@ -104,11 +104,12 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
   4.  **Reference this sheet** for EVERY scene to ensure the descriptions are perfectly consistent.
 
   **CRITICAL RULES FOR JSON OUTPUT:**
-  1.  **Gender/Identity in Whisk Prompt:** For every scene, the 'whisk_prompt_vi' MUST start by identifying the character. Use their gender (e.g., "Một người đàn ông", "Một người phụ nữ") or a specific identity if they are not human (e.g., "Một con robot", "Một con rồng"). DO NOT describe age, face, or body shape. This is because the user provides a reference photo on Whisk.
-  2.  **Outfit & Accessory Consistency:** If a character wears the same outfit (e.g., "Outfit A") across multiple scenes, the description of their clothing and any accessories in the 'whisk_prompt_vi' for those scenes MUST be **IDENTICAL**. Use the exact same wording from your internal sheet.
-  3.  **Background Consistency:** If a location appears in two or more scenes, the 'whisk_prompt_vi' for those scenes MUST contain a detailed and **word-for-word identical** description of the background. This is crucial for visual continuity. For locations that appear only once, a detailed background is not mandatory.
-  4.  **Mandatory Context:** The 'scene' description must still clearly describe the overall context (bối cảnh).
-  5.  **Character Summary Accuracy:** The 'characterSummary' field MUST be 100% accurate for every scene.
+  1.  **Scene Count Accuracy (NON-NEGOTIABLE):** The user will specify the exact number of scenes required. The final JSON output MUST contain an array with PRECISELY that number of scene objects. Do not generate more or fewer scenes than requested. This is an absolute, non-negotiable rule.
+  2.  **Gender/Identity in Whisk Prompt:** For every scene, the 'whisk_prompt_vi' MUST start by identifying the character. Use their gender (e.g., "Một người đàn ông", "Một người phụ nữ") or a specific identity if they are not human (e.g., "Một con robot", "Một con rồng"). DO NOT describe age, face, or body shape. This is because the user provides a reference photo on Whisk.
+  3.  **Outfit & Accessory Consistency:** If a character wears the same outfit (e.g., "Outfit A") across multiple scenes, the description of their clothing and any accessories in the 'whisk_prompt_vi' for those scenes MUST be **IDENTICAL**. Use the exact same wording from your internal sheet.
+  4.  **Background Consistency:** If a location appears in two or more scenes, the 'whisk_prompt_vi' for those scenes MUST contain a detailed and **word-for-word identical** description of the background. This is crucial for visual continuity. For locations that appear only once, a detailed background is not mandatory.
+  5.  **Mandatory Context:** The 'scene' description must still clearly describe the overall context (bối cảnh).
+  6.  **Character Summary Accuracy:** The 'characterSummary' field MUST be 100% accurate for every scene.
   `;
     
     let finalError: unknown;
