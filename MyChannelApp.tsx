@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -45,8 +47,7 @@ const SceneCard = ({ scene, sceneNumber }: { scene: Scene; sceneNumber: number }
           React.createElement("p", { className: "text-gray-200 text-sm break-words pr-20" }, scene.whisk_prompt_vi),
           React.createElement("button", {
             onClick: () => copyToClipboard(scene.whisk_prompt_vi, setCopiedWhisk),
-            className: "absolute top-2 right-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:bg-green-600",
-            disabled: copiedWhisk
+            className: `absolute top-2 right-2 px-4 py-2 text-white text-sm rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${copiedWhisk ? 'bg-green-600' : 'bg-indigo-600 hover:bg-indigo-700'}`
           }, copiedWhisk ? 'Đã sao chép!' : 'Sao chép')
         )
       ),
@@ -56,8 +57,7 @@ const SceneCard = ({ scene, sceneNumber }: { scene: Scene; sceneNumber: number }
           React.createElement("p", { className: "text-gray-200 text-sm break-words pr-20" }, scene.motion_prompt),
           React.createElement("button", {
             onClick: () => copyToClipboard(scene.motion_prompt, setCopiedFlow),
-            className: "absolute top-2 right-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:bg-green-600",
-            disabled: copiedFlow
+            className: `absolute top-2 right-2 px-4 py-2 text-white text-sm rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${copiedFlow ? 'bg-green-600' : 'bg-indigo-600 hover:bg-indigo-700'}`
           }, copiedFlow ? 'Đã sao chép!' : 'Sao chép')
         )
       )
@@ -70,7 +70,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
+const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [totalDuration, setTotalDuration] = useState('');
   const [durationUnit, setDurationUnit] = useState('minutes');
@@ -78,6 +78,8 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
   const [generatedScenes, setGeneratedScenes] = useState<Scene[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedAllWhisk, setCopiedAllWhisk] = useState(false);
+  const [copiedAllFlow, setCopiedAllFlow] = useState(false);
 
   const generateScript = useCallback(async (
     videoIdea: string,
@@ -102,16 +104,17 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
   **CRITICAL RULES FOR JSON OUTPUT:**
   1.  **Gender/Identity in Whisk Prompt:** For every scene, the 'whisk_prompt_vi' MUST start by identifying the character. Use their gender (e.g., "Một người đàn ông", "Một người phụ nữ") or a specific identity if they are not human (e.g., "Một con robot", "Một con rồng"). DO NOT describe age, face, or body shape. This is because the user provides a reference photo on Whisk.
   2.  **Outfit & Accessory Consistency:** If a character wears the same outfit (e.g., "Outfit A") across multiple scenes, the description of their clothing and any accessories in the 'whisk_prompt_vi' for those scenes MUST be **IDENTICAL**. Use the exact same wording from your internal sheet.
-  3.  **Background Consistency:** If a scene takes place in a location that is used in other scenes (e.g., "Location X"), the description of the background in 'whisk_prompt_vi' MUST be detailed and **IDENTICAL** across all scenes in that location. If a background appears only once, a detailed description is not required.
+  3.  **Background Consistency:** If a location appears in two or more scenes, the 'whisk_prompt_vi' for those scenes MUST contain a detailed and **word-for-word identical** description of the background. This is crucial for visual continuity. For locations that appear only once, a detailed background is not mandatory.
   4.  **Mandatory Context:** The 'scene' description must still clearly describe the overall context (bối cảnh).
   5.  **Character Summary Accuracy:** The 'characterSummary' field MUST be 100% accurate for every scene.
   `;
     
-    try {
-        if (selectedAIModel === 'gemini') {
-            if (!geminiApiKey) {
-                throw new Error("API Key Gemini chưa được cấu hình.");
-            }
+    let finalError: unknown;
+
+    // 1. Try Gemini
+    if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
+        try {
+            if (!geminiApiKey && selectedAIModel === 'gemini') throw new Error("API Key Gemini chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
     
             const sceneSchema = {
@@ -159,10 +162,17 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
       
             const jsonStr = response.text.trim();
             return JSON.parse(jsonStr) as Scene[];
-        } else { // OpenAI
-            if (!openaiApiKey) {
-                throw new Error("API Key OpenAI chưa được cấu hình.");
-            }
+        } catch (e) {
+            console.warn("Gemini failed", e);
+            if (selectedAIModel === 'gemini') throw e;
+            finalError = e;
+        }
+    }
+
+    // 2. Try OpenAI
+    if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
+        try {
+            if (!openaiApiKey && selectedAIModel === 'openai') throw new Error("API Key OpenAI chưa được cấu hình.");
             const systemPrompt = `${commonPrompt}
             You must return a single JSON object with a key "scenes" which is an array of scene objects. Each scene object must contain the following keys: "character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt".`;
 
@@ -179,7 +189,7 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
                     'Authorization': `Bearer ${openaiApiKey}`
                 },
                 body: JSON.stringify({
-                    model: 'gpt-5.1',
+                    model: 'gpt-4o',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userPrompt }
@@ -197,23 +207,66 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
             const jsonText = data.choices[0].message.content;
             const parsedResponse = JSON.parse(jsonText);
             
-            if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) {
-              throw new Error("Invalid response format from OpenAI. Expected a 'scenes' array.");
-            }
-            
-            return parsedResponse.scenes;
+            if (parsedResponse.scenes) return parsedResponse.scenes;
+
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            if (selectedAIModel === 'openai') throw e;
+            finalError = e;
         }
-    } catch (error) {
-      console.error("Error generating script:", error);
-      throw new Error("Failed to generate script. Please try again.");
     }
-  }, [geminiApiKey, openaiApiKey, selectedAIModel]);
+
+    // 3. Try OpenRouter
+    if ((selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
+        try {
+            if (!openRouterApiKey && selectedAIModel === 'openrouter') throw new Error("API Key OpenRouter chưa được cấu hình.");
+
+            const systemPrompt = `${commonPrompt}
+            You must return a single JSON object with a key "scenes" which is an array of scene objects. Each scene object must contain the following keys: "character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt".`;
+
+            const userPrompt = `Video Idea: "${videoIdea}"
+            This video will be divided into ${numberOfScenes} scenes, each 8 seconds long.
+            The overall cinematic style for this video should be: ${cinematicStyle}.
+            whisk_prompt_vi style: "${styleSpecificWhiskInstruction}"
+            Generate a JSON object with a "scenes" array containing ${numberOfScenes} scene objects.`;
+
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openRouterApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'google/gemini-2.5-pro',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) throw new Error('OpenRouter API failed');
+            const data = await response.json();
+            const jsonText = data.choices[0].message.content;
+            const parsedResponse = JSON.parse(jsonText);
+            if (parsedResponse.scenes) return parsedResponse.scenes;
+        } catch (e) {
+            console.warn("OpenRouter failed", e);
+            if (selectedAIModel === 'openrouter') throw e;
+            finalError = e;
+        }
+    }
+
+    throw finalError || new Error("Không thể tạo kịch bản. Vui lòng kiểm tra API Key.");
+  }, [geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setGeneratedScenes([]);
+    setCopiedAllWhisk(false);
+    setCopiedAllFlow(false);
 
     let actualDurationInSeconds = 0;
     const durationNum = parseFloat(totalDuration);
@@ -250,7 +303,7 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
   }, [videoIdea, totalDuration, durationUnit, selectedCinematicStyle, generateScript]);
 
   const handleDownloadPrompts = (prompts: string[], filename: string) => {
-    const content = prompts.map((prompt, index) => `Cảnh ${index + 1}:\n${prompt}`).join('\n\n');
+    const content = prompts.join('\n\n\n');
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -270,6 +323,22 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
   const handleDownloadFlowPrompts = () => {
     const flowPrompts = generatedScenes.map(scene => scene.motion_prompt);
     handleDownloadPrompts(flowPrompts, 'flow_veo_prompts.txt');
+  };
+
+  const handleCopyAllWhisk = () => {
+    if (generatedScenes.length === 0) return;
+    const allWhiskPrompts = generatedScenes.map(scene => scene.whisk_prompt_vi).join('\n\n\n');
+    navigator.clipboard.writeText(allWhiskPrompts).then(() => {
+        setCopiedAllWhisk(true);
+    });
+  };
+
+  const handleCopyAllFlow = () => {
+      if (generatedScenes.length === 0) return;
+      const allFlowPrompts = generatedScenes.map(scene => scene.motion_prompt).join('\n\n\n');
+      navigator.clipboard.writeText(allFlowPrompts).then(() => {
+          setCopiedAllFlow(true);
+      });
   };
 
   return (
@@ -323,7 +392,7 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
             )
           ),
           // Right Column
-          React.createElement("div", { className: "md:w-3/5 lg:w-2/3 md:h-[calc(100vh-150px)] md:overflow-y-auto custom-scrollbar md:pr-4" },
+          React.createElement("div", { className: "md:w-3/5 lg:w-2/3" },
             loading && React.createElement(Loader, null),
             error && React.createElement("div", { className: "bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded relative mb-8", role: "alert" },
               React.createElement("strong", { className: "font-bold" }, "Lỗi!"),
@@ -331,9 +400,19 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
             ),
             generatedScenes.length > 0 && (
               React.createElement("div", null,
-                React.createElement("div", { className: "flex flex-col sm:flex-row justify-center gap-4 mb-8" },
-                  React.createElement("button", { onClick: handleDownloadWhiskPrompts, className: "flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading || generatedScenes.length === 0 }, "Tải xuống Prompt Whisk (.txt)"),
-                  React.createElement("button", { onClick: handleDownloadFlowPrompts, className: "flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading || generatedScenes.length === 0 }, "Tải xuống Prompt Flow VEO 3.1 (.txt)")
+                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8" },
+                  React.createElement("button", { onClick: handleDownloadWhiskPrompts, className: "bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading || generatedScenes.length === 0 }, "Tải Whisk (.txt)"),
+                  React.createElement("button", { onClick: handleDownloadFlowPrompts, className: "bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading || generatedScenes.length === 0 }, "Tải Flow VEO 3.1 (.txt)"),
+                  React.createElement("button", {
+                    onClick: handleCopyAllWhisk,
+                    className: `font-bold py-3 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-75 ${copiedAllWhisk ? 'bg-green-600 text-white focus:ring-green-500' : 'bg-cyan-600 hover:bg-cyan-700 text-white focus:ring-cyan-500'}`,
+                    disabled: loading || generatedScenes.length === 0
+                  }, copiedAllWhisk ? 'Đã sao chép Prompt Whisk' : 'Sao chép toàn bộ Prompt Whisk'),
+                  React.createElement("button", {
+                    onClick: handleCopyAllFlow,
+                    className: `font-bold py-3 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-75 ${copiedAllFlow ? 'bg-green-600 text-white focus:ring-green-500' : 'bg-cyan-600 hover:bg-cyan-700 text-white focus:ring-cyan-500'}`,
+                    disabled: loading || generatedScenes.length === 0
+                  }, copiedAllFlow ? 'Đã sao chép Prompt Flow' : 'Sao chép toàn bộ Prompt Flow')
                 ),
                 generatedScenes.map((scene, index) => React.createElement(SceneCard, { key: index, scene: scene, sceneNumber: index + 1 }))
               )
