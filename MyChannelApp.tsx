@@ -94,6 +94,8 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
     const commonPrompt = `
   You are an AI film scriptwriting tool that generates scene descriptions and prompts for image and video generation systems (Whisk and Flow VEO 3.1). Your main goal is to ensure visual consistency for characters and locations across multiple scenes.
 
+  **CREATIVITY MANDATE (ABSOLUTE REQUIREMENT):** For every single generation, even if the user provides the exact same video idea and cinematic style as before, you are REQUIRED to create a completely new and unique story, set of characters, outfits, and locations. DO NOT repeat ideas, narratives, or descriptions from previous generations. Your primary goal is to provide a fresh, creative, and surprising output every single time.
+
   **INTERNAL CONSISTENCY PLAN (DO NOT include in final JSON output):**
   Before generating the script, you MUST first create an internal "consistency sheet" for yourself.
   1.  **Character Sheet:** Define the main character(s).
