@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -232,7 +233,7 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selected
     let voicePromptInstruction = "";
     if (hasVoice) {
         voicePromptInstruction = `
-        6. **Dialogue/Voiceover**: The user has requested a script WITH DIALOGUE.
+        **Dialogue/Voiceover**: The user has requested a script WITH DIALOGUE.
            - You MUST include a dialogue line or voiceover for every prompt where appropriate.
            - Format: End the visual description with " Audio: [Character Name/Voiceover]: '[The Dialogue]'."
            - The spoken language inside the single quotes '' MUST BE **${voiceLanguage === 'Vietnamese' ? 'VIETNAMESE' : 'ENGLISH'}**.
@@ -240,7 +241,7 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selected
         `;
     } else {
         voicePromptInstruction = `
-        6. **Dialogue/Voiceover**: The user has requested NO DIALOGUE (Silent/Music only).
+        **Dialogue/Voiceover**: The user has requested NO DIALOGUE (Silent/Music only).
            - Do NOT include any spoken words, dialogue lines, or "Audio:" tags specifying speech.
            - The prompt must be purely visual.
         `;
@@ -272,13 +273,18 @@ ${characterInstruction}
 
 **Task 2: Prompt Generation for VEO 3.1**
 - You must generate exactly ${numberOfScenes} prompts, as each prompt corresponds to an 8-second video scene.
-- **CRITICAL VEO PROMPT RULES:**
-    1.  **Character Naming:** Every single prompt MUST explicitly mention at least one character by the 'name' you created in Task 1. A maximum of THREE named characters can be mentioned in a single prompt. It is absolutely critical that the spelling of the names is 100% accurate. This is a non-negotiable rule.
-    2.  **Content Focus:** Do NOT describe clothing or outfits. Focus exclusively on character actions, the setting/background, character emotions, and facial expressions.
-    3.  **DETAILED & CONSISTENT SETTINGS:** Before you write the prompts, you must internally plan the key locations. If a specific location (e.g., "the ancient, vine-covered temple entrance," "the neon-lit cyberpunk cockpit") appears in multiple scenes, you MUST use a consistent and IDENTICAL detailed description for that background in each relevant prompt to ensure visual continuity. Be very specific about the elements that make up the setting.
+- **CRITICAL VEO PROMPT RULES (THESE ARE ABSOLUTE AND NON-NEGOTIABLE):**
+    1.  **Character Presence & Naming:**
+        a. **Named Characters:** If a character from your 'characterList' is in the scene, you are REQUIRED to mention them by their exact 'name'. This is a mandatory rule.
+        b. **Unnamed Characters:** If a scene includes other people or creatures not on the 'characterList' (e.g., a crowd of soldiers, mysterious figures in the dark), you MUST describe them with specific visual details (e.g., "three soldiers in futuristic chrome armor", "a mysterious cloaked figure"). DO NOT use generic terms like 'they' or 'people'.
+        c. **No Characters:** If a scene is a landscape or object shot with NO characters, do not invent or mention any.
+    2.  **Setting & Background Consistency:**
+        a. **Detailed Background for ALL Prompts:** Every single prompt, without exception, MUST contain a detailed and evocative description of the setting (bối cảnh).
+        b. **Identical Descriptions for Recurring Locations:** Before writing, you must internally plan the key locations. If multiple scenes occur in the same location (e.g., "the ancient jungle temple"), the detailed description for that setting MUST be **word-for-word identical** in each of those prompts to ensure perfect visual continuity.
+    3.  **Content Focus:** Do NOT describe clothing or outfits. Focus exclusively on character actions, the detailed setting/background, character emotions, and facial expressions.
     4.  **Language:** All visual descriptions MUST be in ENGLISH.
-    5.  **Cinematic Style**: Each prompt must also incorporate descriptive words that reflect the chosen '${cinematicStyle}' style. For example, if the style is 'Viễn tưởng' (Sci-Fi), use terms like 'holographic glow', 'sleek metallic surfaces', 'cybernetic implants'.
-    ${voicePromptInstruction}
+    5.  **Cinematic Style**: Each prompt must incorporate descriptive words that reflect the chosen '${cinematicStyle}' style. For example, if the style is 'Viễn tưởng' (Sci-Fi), use terms like 'holographic glow', 'sleek metallic surfaces', 'cybernetic implants'.
+    6.  ${voicePromptInstruction}
 `;
 
     const userPrompt = `
