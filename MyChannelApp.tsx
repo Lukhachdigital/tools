@@ -9,6 +9,7 @@ interface Scene {
   scene: string;
   characterSummary: string;
   whisk_prompt_vi: string;
+  whisk_prompt_no_outfit: string; // New field
   motion_prompt: string;
 }
 
@@ -24,6 +25,7 @@ const Loader = (): React.ReactElement => {
 
 const SceneCard = ({ scene, sceneNumber }: { scene: Scene; sceneNumber: number }): React.ReactElement => {
   const [copiedWhisk, setCopiedWhisk] = useState(false);
+  const [copiedWhiskNoOutfit, setCopiedWhiskNoOutfit] = useState(false);
   const [copiedFlow, setCopiedFlow] = useState(false);
 
   const copyToClipboard = (text: string, setter: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -41,8 +43,10 @@ const SceneCard = ({ scene, sceneNumber }: { scene: Scene; sceneNumber: number }
         React.createElement("span", { className: "font-semibold" }, "Nhân vật chính: "),
         scene.characterSummary
       ),
+      
+      // Standard Whisk Prompt
       React.createElement("div", { className: "mt-4" },
-        React.createElement("p", { className: "font-bold text-lg text-gray-100 mb-2" }, "Prompt cho Whisk (Ảnh tĩnh, Tiếng Việt):"),
+        React.createElement("p", { className: "font-bold text-lg text-gray-100 mb-2" }, "Prompt cho Whisk (Đầy đủ):"),
         React.createElement("div", { className: "relative bg-gray-700 p-3 rounded-md border border-gray-600" },
           React.createElement("p", { className: "text-gray-200 text-sm break-words pr-20" }, scene.whisk_prompt_vi),
           React.createElement("button", {
@@ -51,6 +55,20 @@ const SceneCard = ({ scene, sceneNumber }: { scene: Scene; sceneNumber: number }
           }, copiedWhisk ? 'Đã sao chép!' : 'Sao chép')
         )
       ),
+
+      // Whisk Prompt No Outfit
+      React.createElement("div", { className: "mt-4" },
+        React.createElement("p", { className: "font-bold text-lg text-yellow-400 mb-2" }, "Prompt cho Whisk (Không mô tả trang phục):"),
+        React.createElement("div", { className: "relative bg-gray-700 p-3 rounded-md border border-gray-600" },
+          React.createElement("p", { className: "text-gray-200 text-sm break-words pr-20" }, scene.whisk_prompt_no_outfit),
+          React.createElement("button", {
+            onClick: () => copyToClipboard(scene.whisk_prompt_no_outfit, setCopiedWhiskNoOutfit),
+            className: `absolute top-2 right-2 px-4 py-2 text-white text-sm rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${copiedWhiskNoOutfit ? 'bg-green-600' : 'bg-indigo-600 hover:bg-indigo-700'}`
+          }, copiedWhiskNoOutfit ? 'Đã sao chép!' : 'Sao chép')
+        )
+      ),
+
+      // Flow Prompt
       React.createElement("div", { className: "mt-6" },
         React.createElement("p", { className: "font-bold text-lg text-gray-100 mb-2" }, "Prompt cho Flow VEO 3.1 (Chuyển động):"),
         React.createElement("div", { className: "relative bg-gray-700 p-3 rounded-md border border-gray-600" },
@@ -78,7 +96,10 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
   const [generatedScenes, setGeneratedScenes] = useState<Scene[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // States for "Copy All" buttons
   const [copiedAllWhisk, setCopiedAllWhisk] = useState(false);
+  const [copiedAllWhiskNoOutfit, setCopiedAllWhiskNoOutfit] = useState(false);
   const [copiedAllFlow, setCopiedAllFlow] = useState(false);
 
   const generateScript = useCallback(async (
@@ -123,14 +144,15 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
             const sceneSchema = {
               type: window.GenAIType.OBJECT,
               properties: {
-                character: { type: window.GenAIType.STRING, description: "Left empty, user will attach reference character in Whisk." },
+                character: { type: window.GenAIType.STRING, description: "Left empty, user will attach reference character in Whisk. Provide an empty string." },
                 style: { type: window.GenAIType.STRING, description: "Cinematic style, lighting, tone, depth of field, visual texture, camera." },
-                scene: { type: window.GenAIType.STRING, description: "Context, action, emotion, lighting, environment. NO specific character description. In Vietnamese." },
+                scene: { type: window.GenAIType.STRING, description: "In Vietnamese, describe the context (bối cảnh), action, emotion, lighting, and environment. DO NOT describe specific characters (faces, clothes, gender, identity)." },
                 characterSummary: { type: window.GenAIType.STRING, description: "Summarize the main characters in this scene, e.g., '1 Nam', '1 Nữ', '1 Thú', '1 Nam và 1 Nữ', '1 Nam và 1 Thú', 'Không có nhân vật chính'." },
-                whisk_prompt_vi: { type: window.GenAIType.STRING, description: "VIETNAMESE prompt for Whisk. Must start with character's gender/identity. Must have consistent descriptions for recurring outfits, accessories, and backgrounds. Must be cinematic and evocative." },
+                whisk_prompt_vi: { type: window.GenAIType.STRING, description: "VIETNAMESE prompt for Whisk. Must start with character's gender/identity. **MANDATORY**: Describe specifically what the character is doing (actions), their gestures, and their detailed facial expressions/emotions. Describe the outfit and background consistently." },
+                whisk_prompt_no_outfit: { type: window.GenAIType.STRING, description: "VIETNAMESE prompt for Whisk. Exactly like 'whisk_prompt_vi' (Action, Emotion, Context) but **STRICTLY EXCLUDE** all descriptions of clothing, outfits, or accessories worn by the character." },
                 motion_prompt: { type: window.GenAIType.STRING, description: "English prompt for Flow VEO 3.1. Describes camera movement, dynamic lighting, emotional rhythm, moving objects or environment. No faces, clothes, gender, identity." },
               },
-              required: ["character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt"],
+              required: ["character", "style", "scene", "characterSummary", "whisk_prompt_vi", "whisk_prompt_no_outfit", "motion_prompt"],
             };
     
             const fullSchema = { type: window.GenAIType.ARRAY, items: sceneSchema };
@@ -143,12 +165,13 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
               For each scene, generate the following structure as a JSON array, strictly following all consistency rules above:
         
               {
-                "character": "Leave empty — user will attach reference character in Whisk. Provide an empty string.",
-                "style": "Cinematic style, lighting, tone, depth of field, visual texture, camera.",
-                "scene": "In Vietnamese, describe the context (bối cảnh), action, emotion, lighting, and environment. DO NOT describe specific characters (faces, clothes, gender, identity).",
-                "characterSummary": "Summarize the main characters (e.g., '1 Nam', '1 Nữ', '1 Thú'). This MUST be accurate.",
-                "whisk_prompt_vi": "VIETNAMESE prompt for Whisk. ${styleSpecificWhiskInstruction} Must start with character's gender/identity. Must have consistent descriptions for recurring outfits, accessories, and backgrounds. Must be cinematic and evocative.",
-                "motion_prompt": "English prompt for Flow VEO 3.1. Describe camera movement, dynamic lighting, etc. DO NOT describe faces, clothes, gender, or identity."
+                "character": "Leave empty",
+                "style": "Cinematic style...",
+                "scene": "Context in Vietnamese...",
+                "characterSummary": "e.g., '1 Nam'...",
+                "whisk_prompt_vi": "VIETNAMESE prompt. ${styleSpecificWhiskInstruction} Start with gender/identity. Describe **DETAILED ACTION**, **GESTURES**, and **DETAILED EMOTIONS/FACIAL EXPRESSIONS**. Describe outfit and background consistently.",
+                "whisk_prompt_no_outfit": "VIETNAMESE prompt. Exactly like 'whisk_prompt_vi' (Action, Emotion, Context) but **REMOVE ALL DESCRIPTIONS OF CLOTHING/OUTFITS**.",
+                "motion_prompt": "English prompt for Flow VEO 3.1..."
               }
         
               Generate a JSON array with ${numberOfScenes} scene objects.
@@ -177,7 +200,11 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
         try {
             if (!openaiApiKey && selectedAIModel === 'openai') throw new Error("API Key OpenAI chưa được cấu hình.");
             const systemPrompt = `${commonPrompt}
-            You must return a single JSON object with a key "scenes" which is an array of scene objects. Each scene object must contain the following keys: "character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt".`;
+            You must return a single JSON object with a key "scenes" which is an array of scene objects. Each scene object must contain the following keys: "character", "style", "scene", "characterSummary", "whisk_prompt_vi", "whisk_prompt_no_outfit", "motion_prompt".
+            
+            Important for "whisk_prompt_vi": Describe actions and emotions in high detail.
+            Important for "whisk_prompt_no_outfit": Describe actions, emotions, and context, but DO NOT describe clothes.
+            `;
 
             const userPrompt = `Video Idea: "${videoIdea}"
             This video will be divided into ${numberOfScenes} scenes, each 8 seconds long.
@@ -225,7 +252,11 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
             if (!openRouterApiKey && selectedAIModel === 'openrouter') throw new Error("API Key OpenRouter chưa được cấu hình.");
 
             const systemPrompt = `${commonPrompt}
-            You must return a single JSON object with a key "scenes" which is an array of scene objects. Each scene object must contain the following keys: "character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt".`;
+            You must return a single JSON object with a key "scenes" which is an array of scene objects. Each scene object must contain the following keys: "character", "style", "scene", "characterSummary", "whisk_prompt_vi", "whisk_prompt_no_outfit", "motion_prompt".
+            
+            Important for "whisk_prompt_vi": Describe actions and emotions in high detail.
+            Important for "whisk_prompt_no_outfit": Describe actions, emotions, and context, but DO NOT describe clothes.
+            `;
 
             const userPrompt = `Video Idea: "${videoIdea}"
             This video will be divided into ${numberOfScenes} scenes, each 8 seconds long.
@@ -269,6 +300,7 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
     setError(null);
     setGeneratedScenes([]);
     setCopiedAllWhisk(false);
+    setCopiedAllWhiskNoOutfit(false);
     setCopiedAllFlow(false);
 
     let actualDurationInSeconds = 0;
@@ -323,6 +355,11 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
     handleDownloadPrompts(whiskPrompts, 'whisk_prompts_vi.txt');
   };
 
+  const handleDownloadWhiskNoOutfitPrompts = () => {
+    const whiskPrompts = generatedScenes.map(scene => scene.whisk_prompt_no_outfit);
+    handleDownloadPrompts(whiskPrompts, 'whisk_prompts_no_outfit.txt');
+  };
+
   const handleDownloadFlowPrompts = () => {
     const flowPrompts = generatedScenes.map(scene => scene.motion_prompt);
     handleDownloadPrompts(flowPrompts, 'flow_veo_prompts.txt');
@@ -333,6 +370,14 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
     const allWhiskPrompts = generatedScenes.map(scene => scene.whisk_prompt_vi).join('\n\n\n');
     navigator.clipboard.writeText(allWhiskPrompts).then(() => {
         setCopiedAllWhisk(true);
+    });
+  };
+
+  const handleCopyAllWhiskNoOutfit = () => {
+    if (generatedScenes.length === 0) return;
+    const allWhiskPrompts = generatedScenes.map(scene => scene.whisk_prompt_no_outfit).join('\n\n\n');
+    navigator.clipboard.writeText(allWhiskPrompts).then(() => {
+        setCopiedAllWhiskNoOutfit(true);
     });
   };
 
@@ -403,19 +448,56 @@ const MyChannelApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
             ),
             generatedScenes.length > 0 && (
               React.createElement("div", null,
-                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8" },
-                  React.createElement("button", { onClick: handleDownloadWhiskPrompts, className: "bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading || generatedScenes.length === 0 }, "Tải Whisk (.txt)"),
-                  React.createElement("button", { onClick: handleDownloadFlowPrompts, className: "bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-colors duration-200", disabled: loading || generatedScenes.length === 0 }, "Tải Flow VEO 3.1 (.txt)"),
-                  React.createElement("button", {
-                    onClick: handleCopyAllWhisk,
-                    className: `font-bold py-3 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-75 ${copiedAllWhisk ? 'bg-green-600 text-white focus:ring-green-500' : 'bg-cyan-600 hover:bg-cyan-700 text-white focus:ring-cyan-500'}`,
-                    disabled: loading || generatedScenes.length === 0
-                  }, copiedAllWhisk ? 'Đã sao chép Prompt Whisk' : 'Sao chép toàn bộ Prompt Whisk'),
-                  React.createElement("button", {
-                    onClick: handleCopyAllFlow,
-                    className: `font-bold py-3 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-75 ${copiedAllFlow ? 'bg-green-600 text-white focus:ring-green-500' : 'bg-cyan-600 hover:bg-cyan-700 text-white focus:ring-cyan-500'}`,
-                    disabled: loading || generatedScenes.length === 0
-                  }, copiedAllFlow ? 'Đã sao chép Prompt Flow' : 'Sao chép toàn bộ Prompt Flow')
+                // --- GLOBAL ACTIONS GROUPED BY TYPE ---
+                React.createElement("div", { className: "grid grid-cols-1 xl:grid-cols-3 gap-4 mb-8" },
+                    // Group 1: Whisk Full
+                    React.createElement("div", { className: "bg-slate-700/50 p-4 rounded-lg border border-slate-600 flex flex-col gap-3 shadow-md hover:border-slate-500 transition-colors" },
+                        React.createElement("h4", { className: "text-center font-bold text-gray-200 border-b border-gray-600 pb-2 mb-1" }, "Whisk (Đầy đủ)"),
+                        React.createElement("div", { className: "flex flex-col gap-2" },
+                            React.createElement("button", {
+                                onClick: handleCopyAllWhisk,
+                                className: `w-full font-semibold py-2 px-3 rounded text-sm transition-colors duration-200 focus:outline-none focus:ring-2 ${copiedAllWhisk ? 'bg-green-600 text-white' : 'bg-slate-600 hover:bg-slate-500 text-gray-200'}`,
+                                disabled: loading
+                            }, copiedAllWhisk ? "Đã sao chép" : "Sao chép toàn bộ"),
+                            React.createElement("button", {
+                                onClick: handleDownloadWhiskPrompts,
+                                className: "w-full bg-slate-600 hover:bg-slate-500 text-gray-200 font-semibold py-2 px-3 rounded text-sm transition-colors duration-200 focus:outline-none focus:ring-2",
+                                disabled: loading
+                            }, "Tải xuống (.txt)")
+                        )
+                    ),
+                    // Group 2: Whisk No Outfit
+                    React.createElement("div", { className: "bg-slate-700/50 p-4 rounded-lg border border-slate-600 flex flex-col gap-3 shadow-md hover:border-slate-500 transition-colors" },
+                        React.createElement("h4", { className: "text-center font-bold text-yellow-400 border-b border-gray-600 pb-2 mb-1" }, "Whisk (Không trang phục)"),
+                        React.createElement("div", { className: "flex flex-col gap-2" },
+                            React.createElement("button", {
+                                onClick: handleCopyAllWhiskNoOutfit,
+                                className: `w-full font-semibold py-2 px-3 rounded text-sm transition-colors duration-200 focus:outline-none focus:ring-2 ${copiedAllWhiskNoOutfit ? 'bg-green-600 text-white' : 'bg-slate-600 hover:bg-slate-500 text-gray-200'}`,
+                                disabled: loading
+                            }, copiedAllWhiskNoOutfit ? "Đã sao chép" : "Sao chép toàn bộ"),
+                            React.createElement("button", {
+                                onClick: handleDownloadWhiskNoOutfitPrompts,
+                                className: "w-full bg-slate-600 hover:bg-slate-500 text-gray-200 font-semibold py-2 px-3 rounded text-sm transition-colors duration-200 focus:outline-none focus:ring-2",
+                                disabled: loading
+                            }, "Tải xuống (.txt)")
+                        )
+                    ),
+                    // Group 3: Flow
+                    React.createElement("div", { className: "bg-slate-700/50 p-4 rounded-lg border border-slate-600 flex flex-col gap-3 shadow-md hover:border-slate-500 transition-colors" },
+                        React.createElement("h4", { className: "text-center font-bold text-indigo-400 border-b border-gray-600 pb-2 mb-1" }, "Flow VEO 3.1"),
+                        React.createElement("div", { className: "flex flex-col gap-2" },
+                            React.createElement("button", {
+                                onClick: handleCopyAllFlow,
+                                className: `w-full font-semibold py-2 px-3 rounded text-sm transition-colors duration-200 focus:outline-none focus:ring-2 ${copiedAllFlow ? 'bg-green-600 text-white' : 'bg-slate-600 hover:bg-slate-500 text-gray-200'}`,
+                                disabled: loading
+                            }, copiedAllFlow ? "Đã sao chép" : "Sao chép toàn bộ"),
+                            React.createElement("button", {
+                                onClick: handleDownloadFlowPrompts,
+                                className: "w-full bg-slate-600 hover:bg-slate-500 text-gray-200 font-semibold py-2 px-3 rounded text-sm transition-colors duration-200 focus:outline-none focus:ring-2",
+                                disabled: loading
+                            }, "Tải xuống (.txt)")
+                        )
+                    )
                 ),
                 generatedScenes.map((scene, index) => React.createElement(SceneCard, { key: index, scene: scene, sceneNumber: index + 1 }))
               )
