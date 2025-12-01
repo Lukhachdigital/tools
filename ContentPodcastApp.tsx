@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
@@ -223,7 +222,7 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
               ref={fileInputRef} 
               className="hidden" 
               onChange={handleFileChange} 
-              accept="image/png, image/jpeg, image/webp",
+              accept="image/png, image/jpeg, image/webp"
               disabled={disabled}
             />
             {uploadedImage ? (
