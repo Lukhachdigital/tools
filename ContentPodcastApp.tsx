@@ -223,7 +223,7 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
               ref={fileInputRef} 
               className="hidden" 
               onChange={handleFileChange} 
-              accept="image/png, image/jpeg, image/webp"
+              accept="image/png, image/jpeg, image/webp",
               disabled={disabled}
             />
             {uploadedImage ? (
@@ -282,13 +282,23 @@ const getSystemInstruction = (length: ArticleLength, seed: number, category: str
     ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1200 đến 1800 ký tự (khoảng 240-360 từ). Hãy viết nội dung cô đọng, súc tích, tập trung vào các ý chính quan trọng nhất. Không được viết ngắn hơn 1200 ký tự và không được dài hơn 1800 ký tự. Đây là yêu cầu bắt buộc.'
     : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 7200 ký tự (khoảng 1440 từ trở lên). Hãy viết cực kỳ chi tiết, mở rộng mọi khía cạnh, sử dụng nhiều ví dụ minh họa, câu chuyện kể và phân tích đa chiều. Chia bài viết thành nhiều phần lớn nhỏ rõ ràng. Nếu không đủ ý để đạt 7200 ký tự, hãy mở rộng thêm các góc nhìn liên quan. Đây là yêu cầu bắt buộc.';
 
-    const marriageInstruction = category === 'Hôn nhân' 
-        ? `
-**YÊU CẦU ĐẶC BIỆT CHO LĨNH VỰC "HÔN NHÂN":** Khi viết về chủ đề này, bạn BẮT BUỘC phải phân tích sâu sắc và toàn diện về mọi khía cạnh của đời sống vợ chồng, bao gồm: giao tiếp, tài chính, con cái, mối quan hệ với gia đình hai bên, và cả sự hòa hợp về mặt thể chất và tình cảm (bao gồm cả đời sống tình dục). Khi đề cập đến khía cạnh tình dục, hãy sử dụng ngôn ngữ tinh tế, văn minh, mang tính giáo dục và xây dựng, tập trung vào sự kết nối và thấu hiểu giữa hai người. TUYỆT ĐỐI không sử dụng từ ngữ thô tục hay mô tả chi tiết gây phản cảm, vi phạm chính sách.
-` 
-        : '';
+    if (category === 'Hôn nhân') {
+        return `Bạn hãy là 1 chuyên gia về tình yêu, hôn nhân gia đình, chuyên gia về tâm, sinh lý đàn ông và phụ nữ. Hãy viết cho tôi 1 bài viết với tính chất khách quan nhất, hay nhất và tâm lý nhất, và quan trọng là phải đúng với thực tế. Bài viết có thể xen lẫn về tính chất tình dục.
 
-    return `Bạn là một chuyên gia viết lách đa tài, có khả năng hóa thân vào nhiều vai trò khác nhau (nhà tâm lý, chuyên gia kinh tế, nhà giáo dục, thiền sư, v.v.) tùy thuộc vào lĩnh vực được yêu cầu.${marriageInstruction}
+**YÊU CẦU KỸ THUẬT VÀ ĐỊNH DẠNG (BẮT BUỘC):**
+1.  **Tiêu đề (title):** Viết lại chủ đề người dùng nhập thành tiêu đề hấp dẫn (viết hoa chữ cái đầu).
+2.  **Bài viết (article):**
+    *   ${lengthInstruction}
+    *   Nội dung phải bám sát vai trò chuyên gia đã nêu ở trên: sâu sắc, thực tế, tâm lý.
+    *   Không sử dụng icon/emoji trong bài viết chính.
+3.  **Lời kêu gọi (engagementCall):** Một đoạn ngắn khuyến khích tương tác.
+
+**MÃ NGẪU NHIÊN:** ${seed} (Để đảm bảo tính mới mẻ cho mỗi lần tạo).
+
+Chỉ trả về JSON hợp lệ theo schema, không thêm bất kỳ lời giải thích nào.`;
+    }
+
+    return `Bạn là một chuyên gia viết lách đa tài, có khả năng hóa thân vào nhiều vai trò khác nhau (nhà tâm lý, chuyên gia kinh tế, nhà giáo dục, thiền sư, v.v.) tùy thuộc vào lĩnh vực được yêu cầu.
 
 **NHIỆM VỤ CỐT LÕI (ĐỘC NHẤT & SÁNG TẠO):**
 Đây là lần tạo thứ: ${seed}. BẠN BẮT BUỘC PHẢI TẠO RA MỘT BÀI VIẾT HOÀN TOÀN MỚI, KHÁC BIỆT SO VỚI TẤT CẢ CÁC LẦN TRƯỚC.
@@ -300,7 +310,6 @@ const getSystemInstruction = (length: ArticleLength, seed: number, category: str
 *   **Bám sát Lĩnh vực:** 
     *   Nếu là "Kinh doanh": Dùng ngôn ngữ chuyên nghiệp, phân tích lợi ích, rủi ro, chiến lược.
     *   Nếu là "Phật pháp": Dùng ngôn ngữ từ bi, sâu sắc, hướng thiện, nhân quả.
-    *   Nếu là "Tình yêu/Hôn nhân": Dùng ngôn ngữ thấu cảm, tâm lý, nhẹ nhàng.
     *   Các lĩnh vực khác: Điều chỉnh giọng văn cho phù hợp nhất với đối tượng độc giả của lĩnh vực đó.
 *   **Cấu trúc:** Mở đầu nêu vấn đề, thân bài phân tích sâu sắc các khía cạnh thực tế, kết bài đúc kết thông điệp giá trị.
 *   **Tính thực tế:** Bài viết phải đưa ra được những góc nhìn hoặc lời khuyên có thể áp dụng được, tránh lý thuyết sáo rỗng.
@@ -316,7 +325,12 @@ const getSystemInstruction = (length: ArticleLength, seed: number, category: str
 Chỉ trả về JSON, không thêm bất kỳ lời giải thích nào.`;
 };
 
-const getUserContent = (topic: string, category: string, seed: number, approach: string) => `
+const getUserContent = (topic: string, category: string, seed: number, approach: string) => {
+    if (category === 'Hôn nhân') {
+        return `Chủ đề của tôi như sau: ${topic}`;
+    }
+
+    return `
 **LĨNH VỰC / GÓC NHÌN:** ${category}
 **CHỦ ĐỀ MỚI CẦN VIẾT:** "${topic}"
 **GÓC TIẾP CẬN BẮT BUỘC CHO LẦN NÀY:** "${approach}"
@@ -324,6 +338,7 @@ const getUserContent = (topic: string, category: string, seed: number, approach:
 
 Hãy viết bài dựa trên lĩnh vực và chủ đề trên, TUÂN THỦ NGHIÊM NGẶT góc tiếp cận được chỉ định. Điều này giúp bài viết hoàn toàn khác biệt so với các lần trước.
 `;
+}
 
 // Helper to auto-correct "im" to "Im"
 const postProcessText = (text: string): string => {
@@ -331,7 +346,8 @@ const postProcessText = (text: string): string => {
     return text.replace(/\b(im)\b/g, "Im");
 };
 
-const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, openRouterKey: string, selectedModel: string): Promise<GeneratedContent> => {
+// Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, openRouterApiKey: string, selectedModel: string): Promise<GeneratedContent> => {
     const seed = Date.now(); 
     
     const approaches = [
@@ -397,12 +413,15 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         }
     }
 
-    if (!rawResult && (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey))) {
+    // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+    if (!rawResult && (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterApiKey))) {
         try {
-            if (!openRouterKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
+            // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+            if (!openRouterApiKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
             const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openRouterKey}` },
+                // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openRouterApiKey}` },
                 body: JSON.stringify({
                     model: "google/gemini-2.0-flash-001",
                     messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
@@ -435,7 +454,8 @@ const generateContentWithFallback = async (topic: string, category: string, leng
 // 5. MAIN APP COMPONENT
 // ==========================================
 
-const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterKey: string, selectedAIModel: string }) => {
+// Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }) => {
   const [topic, setTopic] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Tình yêu');
   const [articleLength, setArticleLength] = useState<ArticleLength>('short');
@@ -614,7 +634,8 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterKey, selected
       return;
     }
     
-    if (!geminiApiKey && !openaiApiKey && !openRouterKey) {
+    // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
         setError('Vui lòng nhập ít nhất một API Key trong phần cài đặt.');
         return;
     }
@@ -628,15 +649,18 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterKey, selected
     setAudioError(null);
 
     try {
-      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, openRouterKey, selectedAIModel);
+      // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel);
       setGeneratedContent(result);
       
       if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
           generatePromptFromContent(result, geminiApiKey, 'gemini');
       } else if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
           generatePromptFromContent(result, openaiApiKey, 'openai');
-      } else if ((selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterKey) {
-          generatePromptFromContent(result, openRouterKey, 'openrouter');
+      // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+      } else if ((selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
+          // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+          generatePromptFromContent(result, openRouterApiKey, 'openrouter');
       }
 
     } catch (err) {
@@ -752,12 +776,15 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterKey, selected
               }
           }
 
-          if (!finalError && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterKey) {
+          // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+          if (!finalError && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
               try {
                   const systemPromptImage = "You are an expert image generation assistant. Generate high-quality images based on the user request.";
+                  // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
                   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
+                      // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
                       body: JSON.stringify({
                           model: 'google/gemini-2.5-flash-image',
                           messages: [
@@ -794,7 +821,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterKey, selected
         <button
           key={option}
           onClick={(e) => { e.stopPropagation(); onSelect(option); }}
-          className={`w-full text-center px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none ${selected === option ? 'bg-indigo-600 text-white shadow' : 'text-gray-300 hover:bg-gray-600'}`}
+          className={`w-full text-center px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 ${selected === option ? 'bg-indigo-600 text-white shadow' : 'text-gray-300 hover:bg-gray-600'}`}
         >
           {option === 'short' ? 'Short' : 'Long'}
         </button>
