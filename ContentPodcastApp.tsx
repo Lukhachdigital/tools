@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
@@ -109,7 +110,7 @@ const audioBufferToWav = (buffer: AudioBuffer): Blob => {
 // ==========================================
 
 const LoadingSpinner: React.FC = () => (
-  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg", fill="none", viewBox="0 0 24 24">
     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
   </svg>
@@ -291,40 +292,42 @@ const responseSchema = {
 };
 
 const getSystemInstruction = (length: ArticleLength, seed: number, category: string) => {
-    // Length increased by 10%
+    // Length remains the same
     const lengthInstruction = length === 'short'
     ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1500 đến 2200 ký tự. Hãy viết nội dung cô đọng nhưng giàu cảm xúc.'
     : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 8800 ký tự. Hãy viết cực kỳ sâu sắc, khai thác mọi ngóc ngách của cảm xúc.';
 
-    return `Bạn là một dòng chảy cảm xúc, một sự chiêm nghiệm sâu sắc về cuộc đời.
+    return `Bạn là một chuyên gia sáng tạo nội dung Podcast và Video hàng đầu.
+NHIỆM VỤ: Viết một bài chia sẻ sâu sắc về chủ đề được cung cấp.
 
-**QUY TẮC BẤT DI BẤT DỊCH (VI PHẠM LÀ THẤT BẠI):**
-1.  **KHÔNG XƯNG HÔ:** Tuyệt đối KHÔNG sử dụng các đại từ nhân xưng như "tôi", "mình", "ta", "anh", "chị", "bạn", "chúng ta". Hãy viết theo lối "phi nhân xưng" (impersonal), nói về "con người", "đời", "lòng người", hoặc viết câu trống chủ ngữ.
-2.  **KHÔNG KỂ CHUYỆN CỤ THỂ:** Không sáng tác ra các nhân vật cụ thể hay câu chuyện cụ thể (ví dụ: "Ngày xửa ngày xưa...", "Có cô gái nọ...", "Hôm qua..."). Hãy nói về bản chất, cảm giác, và trạng thái tâm lý chung. Tránh lối viết kể lể sự việc.
-3.  **KHÔNG GIÁO ĐIỀU/PHÂN TÍCH:** Không khuyên răn kiểu chuyên gia (nên làm gì, bước 1, bước 2). Không phân tích khô khan (thứ nhất, thứ hai). Không dùng giọng điệu dạy đời.
-4.  **VĂN PHONG:** Tự nhiên, chân thực, "đời", giàu hình ảnh và sự rung cảm. Như một tiếng thở dài, một nụ cười nhẹ, hoặc một nỗi đau âm ỉ.
+PHONG CÁCH VIẾT:
+1.  **Sâu sắc & Cảm xúc:** Đi sâu vào tâm lý, nỗi đau hoặc niềm hạnh phúc của con người.
+2.  **Kể chuyện (Storytelling):** Sử dụng các ví dụ, câu chuyện nhỏ hoặc phép ẩn dụ để làm rõ vấn đề.
+3.  **Gần gũi:** Sử dụng ngôn ngữ tự nhiên, như đang tâm sự với người nghe. Có thể xưng hô (Tôi - Bạn) hoặc nói chung, miễn sao phù hợp nhất với mạch cảm xúc.
+4.  **Cấu trúc:**
+    - Mở đầu: Hook hấp dẫn, đánh vào vấn đề ngay lập tức.
+    - Thân bài: Phân tích, chia sẻ góc nhìn, câu chuyện.
+    - Kết bài: Đúc kết thông điệp, tạo dư âm.
 
-**NHIỆM VỤ:** Viết một bài chiêm nghiệm về chủ đề được cung cấp.
-**MÃ NGẪU NHIÊN:** ${seed} (Đảm bảo nội dung mới lạ hoàn toàn, không lặp lại).
+MÃ NGẪU NHIÊN: ${seed} (Đảm bảo nội dung mới lạ hoàn toàn).
 
-**YÊU CẦU KỸ THUẬT:**
-1.  **Tiêu đề (title):** Viết hoa chữ cái đầu mỗi từ.
+YÊU CẦU KỸ THUẬT:
+1.  **Tiêu đề (title):** Viết hoa chữ cái đầu mỗi từ, giật tít thu hút.
 2.  **Bài viết (article):** 
     *   ${lengthInstruction}
-    *   Không dùng icon/emoji trong bài viết chính.
-3.  **Lời kêu gọi (engagementCall):** Một câu ngắn gọn, gợi mở sự đồng cảm để người đọc tự muốn chia sẻ (cũng không xưng hô).
+    *   Trình bày rõ ràng, tách đoạn hợp lý. Không dùng icon/emoji trong bài viết chính.
+3.  **Lời kêu gọi (engagementCall):** Một câu kêu gọi hành động (CTA) khéo léo để tăng tương tác (Like, Share, Comment).
 
 Chỉ trả về JSON hợp lệ.`;
 };
 
-const getUserContent = (topic: string, category: string, seed: number, approach: string) => {
+const getUserContent = (topic: string, category: string, seed: number) => {
     return `
 **LĨNH VỰC:** ${category}
 **CHỦ ĐỀ:** "${topic}"
-**GÓC TIẾP CẬN CẢM XÚC:** "${approach}"
 **MÃ NGẪU NHIÊN:** ${seed}
 
-Hãy viết bài dựa trên chủ đề này, tuân thủ tuyệt đối các quy tắc: KHÔNG XƯNG HÔ, KHÔNG KỂ CHUYỆN CỤ THỂ, KHÔNG PHÂN TÍCH.
+Hãy viết một bài Podcast thật hay, sâu sắc và chạm đến cảm xúc người nghe dựa trên chủ đề này.
 `;
 }
 
@@ -337,21 +340,10 @@ const postProcessText = (text: string): string => {
 const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, selectedModel: string): Promise<GeneratedContent> => {
     const seed = Date.now(); 
     
-    // Các góc tiếp cận phù hợp với phong cách "Chiêm nghiệm/Không kể chuyện/Không phân tích"
-    const approaches = [
-        "Giọng văn tâm tình, nhẹ nhàng, chữa lành và đồng cảm sâu sắc",
-        "Phong cách thẳng thắn, bộc trực, xoáy sâu vào tâm lý con người",
-        "Sử dụng phép ẩn dụ, hình tượng nghệ thuật để diễn giải nỗi lòng",
-        "Trầm lắng, suy tư, mang màu sắc triết lý đời thường",
-        "Day dứt, khắc khoải, chạm vào những nỗi đau thầm kín",
-        "Bình thản, an nhiên, nhìn đời với con mắt bao dung"
-    ];
-    const randomApproach = approaches[Math.floor(Math.random() * approaches.length)];
-
     const systemInstruction = getSystemInstruction(length, seed, category);
-    const userContent = getUserContent(topic, category, seed, randomApproach);
+    const userContent = getUserContent(topic, category, seed);
     let finalError;
-    const CREATIVE_TEMP = 1.1; // High temperature for creativity
+    const CREATIVE_TEMP = 1.0; 
     let rawResult: GeneratedContent | null = null;
     
     // Priority: OpenAI -> Gemini for Text
