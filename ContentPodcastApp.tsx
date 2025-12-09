@@ -302,8 +302,8 @@ NHIỆM VỤ: Viết một bài chia sẻ sâu sắc về chủ đề được c
 
 PHONG CÁCH VIẾT:
 1.  **Sâu sắc & Cảm xúc:** Đi sâu vào tâm lý, nỗi đau hoặc niềm hạnh phúc của con người.
-2.  **Kể chuyện (Storytelling):** Sử dụng các ví dụ, câu chuyện nhỏ hoặc phép ẩn dụ để làm rõ vấn đề.
-3.  **Gần gũi:** Sử dụng ngôn ngữ tự nhiên, như đang tâm sự với người nghe. Có thể xưng hô (Tôi - Bạn) hoặc nói chung, miễn sao phù hợp nhất với mạch cảm xúc.
+2.  **Kể chuyện (Storytelling):** Sử dụng các ví dụ, câu chuyện nhỏ hoặc phép ẩn dụ để làm rõ vấn đề, nhưng không lấy 1 người cụ thể nào để ví dụ.
+3.  **Gần gũi:** Sử dụng ngôn ngữ tự nhiên, như đang tâm sự với người nghe. Có thể xưng hô (Chúng ta - Bạn) hoặc nói chung, miễn sao phù hợp nhất với mạch cảm xúc.
 4.  **Cấu trúc:**
     - Mở đầu: Hook hấp dẫn, đánh vào vấn đề ngay lập tức.
     - Thân bài: Phân tích, chia sẻ góc nhìn, câu chuyện.
@@ -315,7 +315,7 @@ YÊU CẦU KỸ THUẬT:
 1.  **Tiêu đề (title):** Viết hoa chữ cái đầu mỗi từ, giật tít thu hút.
 2.  **Bài viết (article):** 
     *   ${lengthInstruction}
-    *   Trình bày rõ ràng, tách đoạn hợp lý. Không dùng icon/emoji trong bài viết chính.
+    *   Trình bày rõ ràng, tách đoạn hợp lý. Không dùng icon/emoji trong bài viết chính. chỉ được phép xuống dòng, không cách nhau dòng trống nào.
 3.  **Lời kêu gọi (engagementCall):** Một câu kêu gọi hành động (CTA) khéo léo để tăng tương tác (Like, Share, Comment).
 
 Chỉ trả về JSON hợp lệ.`;
