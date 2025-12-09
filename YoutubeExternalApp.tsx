@@ -20,6 +20,7 @@ const ResultCard = ({ language, text }) => {
     const handleCopy = () => {
         navigator.clipboard.writeText(text).then(() => {
             setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
         }).catch(err => {
             console.error("Failed to copy text: ", err);
         });
@@ -35,7 +36,7 @@ const ResultCard = ({ language, text }) => {
 };
 
 
-const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }): React.ReactElement => {
+const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
     const [text, setText] = useState('');
     const [selectedLanguages, setSelectedLanguages] = useState(['English']);
     const [results, setResults] = useState([]);
@@ -63,7 +64,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, sele
     };
 
     const handleTranslate = async () => {
-        if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+        if (!geminiApiKey && !openaiApiKey) {
             setError('Vui lòng cài đặt ít nhất một API Key.');
             return;
         }
@@ -100,29 +101,13 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, sele
         try {
             const translationPromises = selectedLanguages.map(async (lang) => {
                 const userPrompt = `Dịch đoạn văn bản sau đây sang ngôn ngữ ${lang}.\n${commonPrompt}`;
-                let translatedText = null;
-                let langError = null;
+                let translatedText: string | null = null;
+                let langError: unknown = null;
 
-                // Fallback Chain: Gemini -> OpenAI -> OpenRouter
-
-                // 1. Try Gemini (Use Lite model for efficiency)
-                if (!translatedText && (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey))) {
+                // 1. Try OpenAI (Priority)
+                if (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey)) {
                     try {
-                        const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-                        const response = await ai.models.generateContent({
-                            model: 'gemini-2.5-flash',
-                            contents: userPrompt,
-                        });
-                        translatedText = response.text;
-                    } catch (e) {
-                        console.warn(`Gemini failed for ${lang}`, e);
-                        if (selectedAIModel === 'gemini') langError = e;
-                    }
-                }
-
-                // 2. Try OpenAI
-                if (!translatedText && (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey))) {
-                    try {
+                        if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
                         const response = await fetch('https://api.openai.com/v1/chat/completions', {
                             method: 'POST',
                             headers: {
@@ -138,39 +123,35 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, sele
                         if (response.ok) {
                             const data = await response.json();
                             translatedText = data.choices[0].message.content;
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
                         }
                     } catch (e) {
                         console.warn(`OpenAI failed for ${lang}`, e);
-                        if (selectedAIModel === 'openai') langError = e;
+                        if (selectedAIModel === 'openai') throw e;
+                        langError = e;
                     }
                 }
 
-                // 3. Try OpenRouter
-                if (!translatedText && (selectedAIModel === 'openrouter' || (selectedAIModel === 'auto' && openRouterApiKey))) {
+                // 2. Try Gemini (Fallback)
+                if (!translatedText && (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey))) {
                     try {
-                        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${openRouterApiKey}`
-                            },
-                            body: JSON.stringify({
-                                model: 'google/gemini-2.5-pro',
-                                messages: [{ role: 'user', content: userPrompt }]
-                            })
+                        if (!geminiApiKey) throw new Error("Gemini API Key chưa được cấu hình.");
+                        const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+                        const response = await ai.models.generateContent({
+                            model: 'gemini-2.5-flash',
+                            contents: userPrompt,
                         });
-                        if (response.ok) {
-                            const data = await response.json();
-                            translatedText = data.choices[0].message.content;
-                        }
+                        translatedText = response.text;
                     } catch (e) {
-                        console.warn(`OpenRouter failed for ${lang}`, e);
-                        if (selectedAIModel === 'openrouter') langError = e;
+                        console.warn(`Gemini failed for ${lang}`, e);
+                        langError = e;
                     }
                 }
 
                 if (!translatedText) {
-                    throw langError || new Error(`Không thể dịch sang ${lang}`);
+                    throw langError || new Error(`Không thể dịch sang ${lang}. Tất cả các API đều thất bại.`);
                 }
 
                 return { language: lang, translation: translatedText };
@@ -192,6 +173,7 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, sele
         const allText = results.map(res => res.translation).join('\n\n\n');
         navigator.clipboard.writeText(allText).then(() => {
             setCopiedAll(true);
+            setTimeout(() => setCopiedAll(false), 2000);
         });
     };
     

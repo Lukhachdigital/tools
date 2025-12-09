@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -179,7 +177,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const VietKichBanApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }): React.ReactElement => {
+const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [duration, setDuration] = useState('');
   const [numMainCharacters, setNumMainCharacters] = useState('');
@@ -294,59 +292,13 @@ ${characterInstruction}
 `;
     const systemPrompt = `${commonPrompt}\n\nGenerate a JSON object that strictly adheres to the following structure: { "characterList": [ ... ], "prompts": [ ... ] }`;
 
-    // --- FALLBACK LOGIC (Gemini -> OpenAI -> OpenRouter) ---
     let finalError: unknown;
 
-    // 1. Try Gemini
-    if (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey)) {
-        try {
-            if (!geminiApiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key missing");
-            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-            const schema = {
-                type: window.GenAIType.OBJECT,
-                properties: {
-                    characterList: {
-                        type: window.GenAIType.ARRAY,
-                        items: {
-                            type: window.GenAIType.OBJECT,
-                            properties: {
-                                name: { type: window.GenAIType.STRING },
-                                role: { type: window.GenAIType.STRING },
-                                description: { type: window.GenAIType.STRING },
-                                whiskPrompt: { type: window.GenAIType.STRING }
-                            },
-                            required: ["name", "role", "description", "whiskPrompt"]
-                        }
-                    },
-                    prompts: {
-                        type: window.GenAIType.ARRAY,
-                        items: { type: window.GenAIType.STRING },
-                    }
-                },
-                required: ["characterList", "prompts"]
-            };
+    // Priority: OpenAI -> Gemini for TEXT Generation
 
-            const response = await ai.models.generateContent({
-              model: "gemini-3-pro-preview",
-              contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}\n\nGenerate a JSON object that strictly adheres to the provided schema.`,
-              config: {
-                responseMimeType: "application/json",
-                responseSchema: schema,
-              },
-            });
-            const jsonStr = cleanJsonString(response.text);
-            return JSON.parse(jsonStr) as GeneratedContent;
-        } catch (e) {
-            console.warn("Gemini failed", e);
-            if (selectedAIModel === 'gemini') throw e;
-            finalError = e;
-        }
-    }
-
-    // 2. Try OpenAI
-    if (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey)) {
+    // 1. Try OpenAI
+    if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
         try {
-            if (!openaiApiKey && selectedAIModel === 'openai') throw new Error("OpenAI Key missing");
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -373,43 +325,59 @@ ${characterInstruction}
         }
     }
 
-    // 3. Try OpenRouter
-    if (selectedAIModel === 'openrouter' || (selectedAIModel === 'auto' && openRouterApiKey)) {
-        try {
-            if (!openRouterApiKey && selectedAIModel === 'openrouter') throw new Error("OpenRouter Key missing");
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openRouterApiKey}`
+    // 2. Try Gemini
+    if (!finalError || (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
+        if (!geminiApiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key missing");
+        if (geminiApiKey) {
+            try {
+                const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+                const schema = {
+                    type: window.GenAIType.OBJECT,
+                    properties: {
+                        characterList: {
+                            type: window.GenAIType.ARRAY,
+                            items: {
+                                type: window.GenAIType.OBJECT,
+                                properties: {
+                                    name: { type: window.GenAIType.STRING },
+                                    role: { type: window.GenAIType.STRING },
+                                    description: { type: window.GenAIType.STRING },
+                                    whiskPrompt: { type: window.GenAIType.STRING }
+                                },
+                                required: ["name", "role", "description", "whiskPrompt"]
+                            }
+                        },
+                        prompts: {
+                            type: window.GenAIType.ARRAY,
+                            items: { type: window.GenAIType.STRING },
+                        }
+                    },
+                    required: ["characterList", "prompts"]
+                };
+
+                const response = await ai.models.generateContent({
+                model: "gemini-3-pro-preview",
+                contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}\n\nGenerate a JSON object that strictly adheres to the provided schema.`,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: schema,
                 },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.5-pro',
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter API failed');
-            const data = await response.json();
-            const jsonText = cleanJsonString(data.choices[0].message.content);
-            const parsedResponse = JSON.parse(jsonText);
-            if (parsedResponse.characterList && parsedResponse.prompts) return parsedResponse;
-        } catch (e) {
-            console.warn("OpenRouter failed", e);
-            if (selectedAIModel === 'openrouter') throw e;
-            finalError = e;
+                });
+                const jsonStr = cleanJsonString(response.text);
+                return JSON.parse(jsonStr) as GeneratedContent;
+            } catch (e) {
+                console.warn("Gemini failed", e);
+                finalError = e;
+            }
         }
     }
 
     throw finalError || new Error("Không thể tạo kịch bản. Vui lòng thử lại.");
 
-  }, [geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel]);
+  }, [geminiApiKey, openaiApiKey, selectedAIModel]);
   
   const handleGenerateCharacterImage = useCallback(async (characterIndex: number, prompt: string, aspectRatio: '16:9' | '9:16') => {
-    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+    if (!geminiApiKey && !openaiApiKey) {
         setError("Vui lòng cài đặt ít nhất một API Key.");
         return;
     }
@@ -423,12 +391,13 @@ ${characterInstruction}
     if (selectedCinematicStyle !== 'Hoạt hình') {
         finalPrompt = `ultra photorealistic, realistic photograph, cinematic shot. ${prompt}. The final image must be absolutely realistic, not animated, not 3D, not a cartoon, not fantasy.`;
     }
-    const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792' };
     
     try {
         let imageUrl = '';
         
-        // Try Gemini (Nano Banana Image) - Priority 1 for best quality
+        // Priority: Gemini -> OpenAI for IMAGE Generation
+
+        // 1. Try Gemini (Nano Banana Image)
         if (geminiApiKey && !imageUrl && (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
              try {
                 const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -444,7 +413,7 @@ ${characterInstruction}
                 if (imagePart && imagePart.inlineData) {
                     imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
                 } else {
-                    // Fallback to Imagen if Nano Banana returns no image (rare but possible)
+                    // Fallback to Imagen if Nano Banana returns no image
                      const responseImagen = await ai.models.generateImages({
                         model: 'imagen-4.0-generate-001',
                         prompt: finalPrompt,
@@ -461,27 +430,7 @@ ${characterInstruction}
              } catch(e) { console.warn("Gemini Image Gen failed", e); }
         }
 
-        // Try OpenRouter (Flux) - Priority 2
-        if (openRouterApiKey && !imageUrl && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto')) {
-             try {
-                const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
-                    body: JSON.stringify({
-                        model: 'black-forest-labs/flux-1-schnell',
-                        prompt: finalPrompt,
-                        n: 1,
-                        size: sizeMap[aspectRatio],
-                    })
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    imageUrl = data.data[0].url;
-                }
-             } catch (e) { console.warn("OpenRouter Image Gen failed", e); }
-        }
-
-        // Try OpenAI (DALL-E 3) - Priority 3
+        // 2. Try OpenAI (DALL-E 3)
         if (openaiApiKey && !imageUrl && (selectedAIModel === 'openai' || selectedAIModel === 'auto')) {
              try {
                 const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -491,7 +440,7 @@ ${characterInstruction}
                         model: 'dall-e-3',
                         prompt: finalPrompt,
                         n: 1,
-                        size: '1024x1024', // DALL-E 3 supports 1024x1024, 1024x1792, 1792x1024
+                        size: '1024x1024', 
                         response_format: 'b64_json',
                         quality: 'hd',
                         style: 'vivid'
@@ -517,7 +466,7 @@ ${characterInstruction}
             [characterIndex]: { isGenerating: false, error: err.message || "Lỗi tạo ảnh" }
         }));
     }
-  }, [geminiApiKey, openaiApiKey, openRouterApiKey, selectedCinematicStyle, selectedAIModel]);
+  }, [geminiApiKey, openaiApiKey, selectedCinematicStyle, selectedAIModel]);
 
   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();

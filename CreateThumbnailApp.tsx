@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // =================================================================
@@ -300,7 +299,7 @@ const ResultsPanel = ({ results, onImageClick }: ResultsPanelProps) => {
 // =================================================================
 // TAB: THUMBNAIL GENERATOR
 // =================================================================
-const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
+const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [prompts, setPrompts] = useState('');
   const [creativeNotes, setCreativeNotes] = useState('');
   const [results, setResults] = useState([]);
@@ -314,7 +313,7 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey })
   const generateThumbnail = async (userTextPrompt, index) => {
      setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'generating' } : res));
 
-     const finalDallePrompt = `
+     const finalPromptForAI = `
         **MISSION: Create ONE viral-quality thumbnail (VISUALS ONLY).**
         **[DESIGN & STYLE REQUIREMENTS]**
         *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${userTextPrompt}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
@@ -326,38 +325,11 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey })
     `;
     
     const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792', '1:1': '1024x1024' };
+    let finalError: unknown = null;
+    let generatedImage = false;
 
-    let finalError = null;
-
-    // 1. Try OpenRouter (if no image upload involved)
-    if (openRouterApiKey && !characterImage && !accessoryImage) {
-        try {
-            const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
-              body: JSON.stringify({
-                model: 'black-forest-labs/flux-1-schnell', 
-                prompt: finalDallePrompt,
-                n: 1,
-                size: sizeMap[aspectRatio] || '1024x1024',
-              })
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                const imageUrl = data.data[0].url; 
-                setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
-                return;
-            } else {
-                console.warn("OpenRouter Image Generation failed, falling back...");
-            }
-        } catch (e) {
-            console.warn("OpenRouter Image Generation error:", e);
-        }
-    }
-
-    // 2. Try Gemini (Preferred for Images or fallback)
-    if (geminiApiKey) {
+    // 1. Try Gemini (Priority for Images)
+    if ( (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
         try {
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
             
@@ -380,34 +352,19 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey })
               if (accessoryImage) {
                 parts.push({ inlineData: { mimeType: accessoryImage.mimeType, data: accessoryImage.base64 }});
               }
-              const apiContents = { parts };
               const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
-                  contents: apiContents,
-                  config: { responseModalities: [window.GenAIModality.IMAGE] },
+                  contents: { parts },
               });
               let base64ImageBytes = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
               if (!base64ImageBytes) throw new Error('Image composition succeeded, but no image data was returned.');
               const imageUrl = `data:${response.candidates[0].content.parts[0].inlineData.mimeType};base64,${base64ImageBytes}`;
               setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res));
-              return;
+              generatedImage = true;
             } else {
-              const creativeGuidanceForImagen = creativeNotes.trim()
-                  ? `**User's Creative Guidance (High Priority):** ${creativeNotes}`
-                  : '';
-              const finalImagenPrompt = `
-                    **MISSION: Create ONE viral-quality thumbnail (VISUALS ONLY).**
-                    **[DESIGN & STYLE REQUIREMENTS]**
-                    *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${userTextPrompt}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
-                    *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles for maximum clickability.
-                    *   **USER GUIDANCE:** ${creativeGuidanceForImagen}
-                    *   **COMPOSITION:** Create a dynamic and engaging composition. AVOID boring, centered layouts.
-                    ---
-                    **FINAL GOAL:** A visually stunning thumbnail that represents the theme perfectly, with absolutely NO TEXT.
-                  `;
               const response = await ai.models.generateImages({
                   model: 'imagen-4.0-generate-001',
-                  prompt: finalImagenPrompt,
+                  prompt: finalPromptForAI,
                   config: {
                     numberOfImages: 1,
                     outputMimeType: 'image/png',
@@ -422,27 +379,20 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey })
               setResults(prev => prev.map((res, idx) => 
                   idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
               ));
-              return;
+              generatedImage = true;
             }
         } catch (e) {
             console.warn("Gemini Image Generation failed:", e);
+            if (selectedAIModel === 'gemini') throw e;
             finalError = e;
-        }
-    } else {
-        // Specific requirement: If user uses OpenRouter fail and Gemini Key is missing -> Alert
-        if (openRouterApiKey && !openaiApiKey) {
-             // Assuming fallback chain: OpenRouter -> Gemini -> OpenAI
-             // If we reached here, OpenRouter failed/skipped.
-             // Alert user to enter Gemini key.
-             alert("OpenRouter tạo ảnh thất bại. Vui lòng nhập Gemini API Key để tiếp tục.");
         }
     }
 
-    // 3. Try OpenAI
-    if (openaiApiKey) {
+    // 2. Try OpenAI (Fallback)
+    if (!generatedImage && (selectedAIModel === 'openai' || (selectedAIModel === 'auto')) && openaiApiKey) {
         try {
             if (characterImage || accessoryImage) {
-                throw new Error("Tính năng giữ lại khuôn mặt và chỉnh sửa ảnh chỉ được hỗ trợ bởi Gemini. Vui lòng chọn model Gemini để sử dụng.");
+                throw new Error("Tính năng giữ lại khuôn mặt và chỉnh sửa ảnh chỉ được hỗ trợ bởi Gemini. Vui lòng chọn model Gemini hoặc Auto.");
             }
             
             const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -450,7 +400,7 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey })
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
               body: JSON.stringify({
                 model: 'dall-e-3',
-                prompt: finalDallePrompt,
+                prompt: finalPromptForAI,
                 n: 1,
                 size: sizeMap[aspectRatio] || '1024x1024',
                 response_format: 'b64_json',
@@ -467,22 +417,24 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey })
             setResults(prev => prev.map((res, idx) => 
                 idx === index ? { ...res, status: 'done', imageUrl: imageUrl } : res
             ));
-            return;
+            generatedImage = true;
         } catch(e) {
             console.warn("OpenAI Image Generation failed:", e);
             finalError = e;
         }
     }
 
-    const errorMessage = parseAndEnhanceErrorMessage(finalError || new Error("Tất cả các API đều thất bại hoặc chưa được cấu hình."));
-    setResults(prev => prev.map((res, idx) => 
-        idx === index ? { ...res, status: 'error', error: errorMessage } : res
-    ));
+    if (!generatedImage) {
+      const errorMessage = parseAndEnhanceErrorMessage(finalError || new Error("Tất cả các API đều thất bại hoặc chưa được cấu hình."));
+      setResults(prev => prev.map((res, idx) => 
+          idx === index ? { ...res, status: 'error', error: errorMessage } : res
+      ));
+    }
   };
 
   const handleGenerateClick = async () => {
-    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
-      alert('Vui lòng cài đặt ít nhất một API Key (OpenRouter, Gemini, hoặc OpenAI).');
+    if (!geminiApiKey && !openaiApiKey) {
+      alert('Vui lòng cài đặt ít nhất một API Key (Gemini hoặc OpenAI).');
       return;
     }
     const promptList = prompts.split('\n').filter(p => p.trim() !== '');
@@ -600,11 +552,11 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, openRouterApiKey })
   );
 };
 
-const CreateThumbnailApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey }) => {
+const CreateThumbnailApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   return (
     React.createElement('div', { className: "min-h-screen w-full p-4" },
       React.createElement('main', { className: "text-gray-300 space-y-6 h-full" },
-          React.createElement(ThumbnailGeneratorTab, { geminiApiKey, openaiApiKey, openRouterApiKey })
+          React.createElement(ThumbnailGeneratorTab, { geminiApiKey, openaiApiKey, selectedAIModel })
       )
     )
   );

@@ -6,7 +6,7 @@ export interface ScriptParams {
   dialogueLanguage: 'Vietnamese' | 'English' | 'Không thoại';
   subtitles: boolean;
   apiKey: string;
-  apiType: 'gemini' | 'gpt' | 'openrouter';
+  apiType: 'gemini' | 'gpt';
 }
 
 export interface ScriptResponse {

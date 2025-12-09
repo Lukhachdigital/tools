@@ -1,4 +1,3 @@
-
 import type { ScriptParams, ScriptResponse } from '../types/veo31';
 import { GoogleGenAI, Type } from '@google/genai';
 
@@ -62,29 +61,8 @@ ${params.topic}
     3. Chi tiết: Mô tả cực kỳ chi tiết về hình ảnh, ánh sáng, và chuyển động camera.
     `;
 
-    if (params.apiType === 'gemini') {
-        if (!params.apiKey) throw new Error("API Key Gemini chưa được cấu hình.");
-        const ai = new GoogleGenAI({ apiKey: params.apiKey });
-        const response = await ai.models.generateContent({
-            model: "gemini-3-pro-preview",
-            contents: commonPrompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        script: {
-                            type: Type.ARRAY,
-                            items: { type: Type.STRING }
-                        }
-                    },
-                    required: ['script']
-                },
-            },
-        });
-        const jsonStr = response.text.trim();
-        return JSON.parse(jsonStr) as ScriptResponse;
-    } else if (params.apiType === 'gpt') {
+    // Priority 1: OpenAI (GPT) for Text Generation
+    if (params.apiType === 'gpt') {
         if (!params.apiKey) throw new Error("API Key OpenAI chưa được cấu hình.");
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -109,31 +87,31 @@ ${params.topic}
         const data = await response.json();
         const jsonText = data.choices[0].message.content;
         return JSON.parse(jsonText) as ScriptResponse;
-    } else if (params.apiType === 'openrouter') {
-        if (!params.apiKey) throw new Error("API Key OpenRouter chưa được cấu hình.");
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${params.apiKey}`
+    } 
+    
+    // Priority 2: Gemini
+    if (params.apiType === 'gemini') {
+        if (!params.apiKey) throw new Error("API Key Gemini chưa được cấu hình.");
+        const ai = new GoogleGenAI({ apiKey: params.apiKey });
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: commonPrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        script: {
+                            type: Type.ARRAY,
+                            items: { type: Type.STRING }
+                        }
+                    },
+                    required: ['script']
+                },
             },
-            body: JSON.stringify({
-                model: 'google/gemini-2.5-pro',
-                messages: [
-                    { role: 'system', content: commonPrompt + "\n\nReturn STRICTLY JSON format." },
-                ],
-                response_format: { type: 'json_object' }
-            })
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const jsonText = data.choices[0].message.content;
-        return JSON.parse(jsonText) as ScriptResponse;
+        const jsonStr = response.text.trim();
+        return JSON.parse(jsonStr) as ScriptResponse;
     }
 
     throw new Error("Loại API không hợp lệ.");

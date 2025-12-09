@@ -27,6 +27,7 @@ const SceneCard = ({ scene, sceneNumber }: { scene: Scene; sceneNumber: number }
   const copyToClipboard = (text: string, setter: React.Dispatch<React.SetStateAction<boolean>>) => {
     navigator.clipboard.writeText(text).then(() => {
       setter(true);
+      setTimeout(() => setter(false), 2000);
     }).catch(err => {
       console.error("Failed to copy text: ", err);
     });
@@ -68,7 +69,7 @@ const cinematicStyles = [
 ];
 
 // --- APP COMPONENT ---
-const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }): React.ReactElement => {
+const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
   const [totalDuration, setTotalDuration] = useState('');
   const [durationUnit, setDurationUnit] = useState('minutes');
@@ -95,6 +96,8 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
   You are an AI film scriptwriting tool that generates scene descriptions and prompts for image and video generation systems (Whisk and Flow VEO 3.1).
   Your task is to take a video idea and a total duration, divide it into 8-second scenes, and for each scene, generate a structured output. Each scene description should immediately present a high-climax visual or a pivotal moment. The narrative should focus on impactful, visually striking events directly.
 
+  **CREATIVITY MANDATE:** For every new request, you MUST generate a completely new story, unique characters, and a fresh sequence of prompts. Repetitive or formulaic responses are not acceptable.
+
   **CRITICAL RULES TO FOLLOW:**
   1.  **Mandatory Context:** For EVERY scene without exception, the 'scene' description and the 'whisk_prompt_vi' MUST clearly and detailedly describe the context (bối cảnh). This rule is absolute.
   2.  **Perfect Character Accuracy:** The 'characterSummary' field MUST be 100% accurate for every scene. Adhere strictly to the character counting rules. Inaccuracy is not acceptable.
@@ -112,50 +115,13 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
     whisk_prompt_vi description: "${whiskPromptDescription}"
     Generate a JSON object with a "scenes" array containing ${numberOfScenes} scene objects.`;
 
-    // --- FALLBACK LOGIC (Gemini -> OpenAI -> OpenRouter) ---
     let finalError: unknown;
+    let scenes: Scene[] | null = null;
 
-    // 1. Try Gemini
-    if (model === 'gemini' || (model === 'auto' && geminiApiKey)) {
-        try {
-            if (!geminiApiKey && model === 'gemini') throw new Error("Gemini Key missing");
-            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-            const sceneSchema = {
-              type: window.GenAIType.OBJECT,
-              properties: {
-                character: { type: window.GenAIType.STRING, description: "Left empty, user will attach reference character in Whisk." },
-                style: { type: window.GenAIType.STRING, description: "Cinematic style, lighting, tone, depth of field, visual texture, camera." },
-                scene: { type: window.GenAIType.STRING, description: "Context, action, emotion, lighting, environment. NO specific character description. In Vietnamese." },
-                characterSummary: { type: window.GenAIType.STRING, description: "Summarize the main characters in this scene." },
-                whisk_prompt_vi: { type: window.GenAIType.STRING, description: "Vietnamese prompt for static image generation on Whisk." },
-                motion_prompt: { type: window.GenAIType.STRING, description: "English prompt for Flow VEO 3.1." },
-              },
-              required: ["character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt"],
-            };
-            const fullSchema = { type: window.GenAIType.ARRAY, items: sceneSchema };
-            const geminiPrompt = `${systemPrompt}\n\n${userPrompt}`;
-            
-            const response = await ai.models.generateContent({
-              model: "gemini-3-pro-preview",
-              contents: geminiPrompt,
-              config: {
-                responseMimeType: "application/json",
-                responseSchema: fullSchema,
-              },
-            });
-            const jsonStr = response.text.trim();
-            return JSON.parse(jsonStr) as Scene[];
-        } catch (e) {
-            console.warn("Gemini failed", e);
-            if (model === 'gemini') throw e;
-            finalError = e;
-        }
-    }
-
-    // 2. Try OpenAI
+    // 1. Try OpenAI (Priority)
     if (model === 'openai' || (model === 'auto' && openaiApiKey)) {
         try {
-            if (!openaiApiKey && model === 'openai') throw new Error("OpenAI Key missing");
+            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -178,48 +144,64 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
             const data = await response.json();
             const jsonText = data.choices[0].message.content;
             const parsedResponse = JSON.parse(jsonText);
-            if (parsedResponse.scenes) return parsedResponse.scenes;
+            if (parsedResponse.scenes) scenes = parsedResponse.scenes;
         } catch (e) {
             console.warn("OpenAI failed", e);
-            if (model === 'openai') throw e;
-            finalError = e;
+            if (model === 'openai') throw e; // If user explicitly selected OpenAI, throw the error
+            finalError = e; // Otherwise, store error and attempt fallback
         }
     }
 
-    // 3. Try OpenRouter
-    if (model === 'openrouter' || (model === 'auto' && openRouterApiKey)) {
+    // 2. Try Gemini (Fallback)
+    if (!scenes && (model === 'gemini' || (model === 'auto' && geminiApiKey))) {
         try {
-            if (!openRouterApiKey && model === 'openrouter') throw new Error("OpenRouter Key missing");
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openRouterApiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.5-pro', // Use a reliable model on OpenRouter
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
+            if (!geminiApiKey) throw new Error("Gemini API Key chưa được cấu hình.");
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+            const sceneSchema = {
+              type: window.GenAIType.OBJECT,
+              properties: {
+                character: { type: window.GenAIType.STRING, description: "Left empty, user will attach reference character in Whisk." },
+                style: { type: window.GenAIType.STRING, description: "Cinematic style, lighting, tone, depth of field, visual texture, camera." },
+                scene: { type: window.GenAIType.STRING, description: "Context, action, emotion, lighting, environment. NO specific character description. In Vietnamese." },
+                characterSummary: { type: window.GenAIType.STRING, description: "Summarize the main characters in this scene." },
+                whisk_prompt_vi: { type: window.GenAIType.STRING, description: "Vietnamese prompt for static image generation on Whisk." },
+                motion_prompt: { type: window.GenAIType.STRING, description: "English prompt for Flow VEO 3.1." },
+              },
+              required: ["character", "style", "scene", "characterSummary", "whisk_prompt_vi", "motion_prompt"],
+            };
+            
+            const response = await ai.models.generateContent({
+              model: "gemini-3-pro-preview",
+              contents: `${systemPrompt}\n\n${userPrompt}`,
+              config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: window.GenAIType.OBJECT,
+                    properties: {
+                        scenes: {
+                            type: window.GenAIType.ARRAY,
+                            items: sceneSchema
+                        }
+                    }
+                }
+              },
             });
-            if (!response.ok) throw new Error('OpenRouter API failed');
-            const data = await response.json();
-            const jsonText = data.choices[0].message.content;
-            const parsedResponse = JSON.parse(jsonText);
-            if (parsedResponse.scenes) return parsedResponse.scenes;
+            const jsonStr = response.text.trim();
+            const parsedResponse = JSON.parse(jsonStr);
+            if (parsedResponse.scenes) scenes = parsedResponse.scenes;
         } catch (e) {
-            console.warn("OpenRouter failed", e);
-            if (model === 'openrouter') throw e;
-            finalError = e;
+            console.warn("Gemini failed", e);
+            finalError = e; // Store final error
         }
     }
 
-    throw finalError || new Error("Không thể tạo kịch bản. Vui lòng kiểm tra API Key.");
+    if (scenes) {
+        return scenes;
+    }
 
-  }, [geminiApiKey, openaiApiKey, openRouterApiKey]);
+    throw finalError || new Error("Không thể tạo kịch bản. Vui lòng kiểm tra API Key và thử lại.");
+
+  }, [geminiApiKey, openaiApiKey]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -286,19 +268,13 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
   };
 
   const handleCopyAll = () => {
-      // Copy format: All prompts content separated by 2 empty lines (3 newlines characters)
-      // We'll alternate Whisk then Flow for each scene, or just all Whisk then all Flow?
-      // The user said "Result prompts", let's combine scene by scene for usefulness.
-      // Scene 1 Whisk
-      // Scene 1 Flow
-      // Scene 2 Whisk ...
-      
       const allContent = generatedScenes.map(scene => 
           `${scene.whisk_prompt_vi}\n\n\n${scene.motion_prompt}`
       ).join('\n\n\n');
       
       navigator.clipboard.writeText(allContent).then(() => {
           setCopiedAll(true);
+          setTimeout(() => setCopiedAll(false), 2000);
       });
   };
 

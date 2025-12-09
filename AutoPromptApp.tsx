@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -89,7 +87,7 @@ const ResultPartCard = ({ part }: { part: Part }): React.ReactElement => {
 };
 
 // --- APP COMPONENT ---
-const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }) => {
+const AutoPromptApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }) => {
     const [topic, setTopic] = useState('');
     const [duration, setDuration] = useState('');
     const [parts, setParts] = useState<Part[]>([]);
@@ -97,7 +95,7 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
     const [error, setError] = useState<string | null>(null);
 
     const generateContent = useCallback(async () => {
-        if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+        if (!geminiApiKey && !openaiApiKey) {
             setError("Vui lòng cài đặt ít nhất một API Key.");
             return;
         }
@@ -113,6 +111,9 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
         const systemPrompt = `You are an expert AI video scriptwriter and prompt engineer for VEO 3.1.
         Your task is to create a video script based on a topic and duration.
         The script must be divided into parts (scenes/sections).
+
+        **CREATIVITY MANDATE:** For every new request, you MUST generate a completely new story, unique characters, and a fresh sequence of prompts. Repetitive or formulaic responses are not acceptable.
+
         For each part, you must provide:
         1. 'voiceContent': The voiceover text in VIETNAMESE. It must be engaging, natural, and fit the video rhythm.
         2. 'prompts': An array of video generation prompts in ENGLISH for VEO 3.1 to visualize the voiceover content.
@@ -137,8 +138,39 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
         let generatedData: GeneratedContent | null = null;
         let finalError: any = null;
 
-        if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
+        // 1. Try OpenAI
+        if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
             try {
+                if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        response_format: { type: 'json_object' }
+                    })
+                });
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                generatedData = JSON.parse(data.choices[0].message.content);
+            } catch (e) {
+                console.error("OpenAI failed", e);
+                if (selectedAIModel === 'openai') finalError = e;
+                else finalError = e; // Store for fallback
+            }
+        }
+
+        // 2. Try Gemini
+        if (!generatedData && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
+            try {
+                if (!geminiApiKey) throw new Error("Gemini API Key chưa được cấu hình.");
                 const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                 const result = await ai.models.generateContent({
                     model: 'gemini-3-pro-preview',
@@ -167,50 +199,6 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
                 generatedData = JSON.parse(result.text);
             } catch (e) {
                 console.error("Gemini failed", e);
-                if (selectedAIModel === 'gemini') finalError = e;
-            }
-        }
-
-        if (!generatedData && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
-            try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
-                    body: JSON.stringify({
-                        model: 'gpt-4o',
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userPrompt }
-                        ],
-                        response_format: { type: 'json_object' }
-                    })
-                });
-                const data = await response.json();
-                generatedData = JSON.parse(data.choices[0].message.content);
-            } catch (e) {
-                console.error("OpenAI failed", e);
-                if (selectedAIModel === 'openai') finalError = e;
-            }
-        }
-
-        if (!generatedData && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
-             try {
-                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
-                    body: JSON.stringify({
-                        model: 'google/gemini-2.5-pro',
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userPrompt }
-                        ],
-                        response_format: { type: 'json_object' }
-                    })
-                });
-                const data = await response.json();
-                generatedData = JSON.parse(data.choices[0].message.content);
-            } catch (e) {
-                console.error("OpenRouter failed", e);
                 finalError = e;
             }
         }
@@ -218,11 +206,11 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
         if (generatedData) {
             setParts(generatedData.parts);
         } else {
-            setError("Không thể tạo nội dung. " + (finalError?.message || ""));
+            setError("Không thể tạo nội dung. " + (finalError?.message || "Tất cả API đều thất bại."));
         }
         setLoading(false);
 
-    }, [topic, duration, geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel]);
+    }, [topic, duration, geminiApiKey, openaiApiKey, selectedAIModel]);
 
     return (
         React.createElement("div", { className: "w-full h-full p-4" },

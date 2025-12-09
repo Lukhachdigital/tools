@@ -133,7 +133,7 @@ const getApiErrorMessage = (error) => {
 };
 
 
-const PromptJsonApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }) => {
+const PromptJsonApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [idea, setIdea] = useState('');
   const [duration, setDuration] = useState('');
   const [results, setResults] = useState<Scene[]>([]);
@@ -143,6 +143,8 @@ const PromptJsonApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
   const [copiedAll, setCopiedAll] = useState(false);
 
   const systemInstruction = `You are an expert scriptwriter and AI prompt engineer. Your task is to transform a user's simple idea into a detailed script. For each scene, you must generate a highly structured, detailed JSON prompt object designed to guide another AI in creating a consistent video clip.
+
+**CREATIVITY MANDATE:** For every new request, you MUST generate a completely new story, unique characters, and a fresh sequence of prompts. Repetitive or formulaic responses are not acceptable.
 
 **INTERNAL MONOLOGUE & CONSISTENCY PLAN (CRITICAL):**
 Before generating the JSON output, you MUST first create an internal plan. This plan will NOT be part of the final output.
@@ -200,7 +202,7 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
       return;
     }
 
-    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+    if (!geminiApiKey && !openaiApiKey) {
         setError("Vui lòng cài đặt ít nhất một API Key.");
         return;
     }
@@ -221,13 +223,51 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
 
     const openAISystemInstruction = `${systemInstruction}\n\n**OUTPUT FORMAT (CRITICAL):**\nYour final output must be a single, valid JSON object with one key: "scenes". The value of "scenes" should be an array of objects, where each object represents a scene. Each scene object must contain 'scene', 'description', and 'prompt' keys.`;
 
-    // --- FALLBACK LOGIC (Gemini -> OpenAI -> OpenRouter) ---
-    let finalError = null;
+    let finalError: unknown;
+    let generatedScenes: Scene[] | null = null;
 
-    // 1. Try Gemini
-    if (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey)) {
+    // 1. Try OpenAI (Priority)
+    if (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey)) {
         try {
-            if (!geminiApiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key missing");
+            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: openAISystemInstruction },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            const parsedResponse = JSON.parse(data.choices[0].message.content);
+            if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) throw new Error("Phản hồi JSON không hợp lệ từ OpenAI");
+            generatedScenes = parsedResponse.scenes;
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            if (selectedAIModel === 'openai') { // If user explicitly chose OpenAI, fail here
+                 setError(getApiErrorMessage(e));
+                 setIsGenerating(false);
+                 return;
+            }
+            finalError = e; // Store error and try fallback
+        }
+    }
+
+    // 2. Try Gemini (Fallback)
+    if (!generatedScenes && (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey))) {
+        try {
+            if (!geminiApiKey) throw new Error("Gemini API Key chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
             const response = await ai.models.generateContent({
                 model: 'gemini-3-pro-preview',
@@ -268,89 +308,25 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
                     },
                 },
             });
-            const parsedResults = JSON.parse(response.text.trim());
-            setResults(parsedResults);
-            setIsGenerating(false);
-            return;
+            generatedScenes = JSON.parse(response.text.trim());
         } catch (e) {
             console.warn("Gemini failed", e);
-            if (selectedAIModel === 'gemini') finalError = e;
-            else finalError = e; // Store if auto mode to continue
+            finalError = e; // Store final error
         }
     }
-
-    // 2. Try OpenAI
-    if (!results.length && (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey))) {
-        try {
-            if (!openaiApiKey && selectedAIModel === 'openai') throw new Error("OpenAI Key missing");
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openaiApiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o',
-                    messages: [
-                        { role: 'system', content: openAISystemInstruction },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenAI API failed');
-            const data = await response.json();
-            const parsedResponse = JSON.parse(data.choices[0].message.content);
-            if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) throw new Error("Invalid JSON");
-            setResults(parsedResponse.scenes);
-            setIsGenerating(false);
-            return;
-        } catch (e) {
-            console.warn("OpenAI failed", e);
-            if (selectedAIModel === 'openai') finalError = e;
-            else finalError = e;
-        }
+    
+    if (generatedScenes) {
+        setResults(generatedScenes);
+    } else {
+        setError(getApiErrorMessage(finalError || new Error("Tất cả các nhà cung cấp API đều thất bại hoặc chưa được cấu hình.")));
     }
-
-    // 3. Try OpenRouter
-    if (!results.length && (selectedAIModel === 'openrouter' || (selectedAIModel === 'auto' && openRouterApiKey))) {
-        try {
-            if (!openRouterApiKey && selectedAIModel === 'openrouter') throw new Error("OpenRouter Key missing");
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openRouterApiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.5-pro',
-                    messages: [
-                        { role: 'system', content: openAISystemInstruction },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter API failed');
-            const data = await response.json();
-            const parsedResponse = JSON.parse(data.choices[0].message.content);
-            if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) throw new Error("Invalid JSON structure");
-            setResults(parsedResponse.scenes);
-            setIsGenerating(false);
-            return;
-        } catch (e) {
-            console.warn("OpenRouter failed", e);
-            finalError = e;
-        }
-    }
-
-    setError(getApiErrorMessage(finalError || new Error("All providers failed")));
     setIsGenerating(false);
   };
 
   const handleCopyPrompt = (promptText, sceneNumber) => {
     navigator.clipboard.writeText(promptText).then(() => {
         setCopiedScene(sceneNumber);
+        setTimeout(() => setCopiedScene(null), 2000);
     }).catch(err => {
         setError(`Could not copy text: ${err}`);
     });
@@ -388,10 +364,10 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
   };
 
   const handleCopyAll = () => {
-      // Copy pure text content of prompts separated by 2 empty lines
       const allContent = results.map(scene => JSON.stringify(scene.prompt, null, 2)).join('\n\n\n');
       navigator.clipboard.writeText(allContent).then(() => {
           setCopiedAll(true);
+          setTimeout(() => setCopiedAll(false), 2000);
       });
   };
 
@@ -450,9 +426,9 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
                 React.createElement(Button, { onClick: handleDownloadScript, variant: "secondary", className: "text-xs py-1", children: "Download Kịch bản" }),
                 React.createElement(Button, { 
                     onClick: handleCopyAll, 
-                    variant: copiedAll ? "active" : "primary", 
-                    className: `text-xs py-1 ${copiedAll ? 'bg-green-600' : 'bg-cyan-600'}`,
-                    children: copiedAll ? "Đã sao chép tất cả" : "Sao chép toàn bộ"
+                    variant: "secondary", 
+                    className: `text-xs py-1 ${copiedAll ? 'bg-green-600 hover:bg-green-700' : 'bg-cyan-600 hover:bg-cyan-700'}`,
+                    children: copiedAll ? "Đã sao chép" : "Sao chép toàn bộ"
                 })
               )
             )

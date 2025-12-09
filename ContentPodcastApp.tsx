@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
@@ -126,16 +125,31 @@ const CopyButton: React.FC<{ textToCopy: string; label?: string; className?: str
     });
   };
 
+  const baseClasses = "px-4 py-2 font-bold rounded-lg transition-colors shadow-md flex items-center gap-2 text-sm";
+  const stateClasses = copied 
+    ? "bg-green-600 hover:bg-green-700 text-white" 
+    : (className || "bg-gray-700 hover:bg-gray-600 text-gray-300");
+
   return (
     <button
       onClick={handleCopy}
-      className={`px-3 py-1 text-sm rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 ${
-        copied
-          ? 'bg-green-600 text-white'
-          : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-      } ${className || ''}`}
+      className={`${baseClasses} ${stateClasses}`}
     >
-      {label ? (copied ? 'Đã sao chép' : label) : (copied ? 'Đã sao chép' : 'Chép')}
+      {copied ? (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Đã sao chép
+          </>
+      ) : (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            {label || 'Chép'}
+          </>
+      )}
     </button>
   );
 };
@@ -277,65 +291,40 @@ const responseSchema = {
 };
 
 const getSystemInstruction = (length: ArticleLength, seed: number, category: string) => {
+    // Length increased by 10%
     const lengthInstruction = length === 'short'
-    ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1200 đến 1800 ký tự (khoảng 240-360 từ). Hãy viết nội dung cô đọng, súc tích, tập trung vào các ý chính quan trọng nhất. Không được viết ngắn hơn 1200 ký tự và không được dài hơn 1800 ký tự. Đây là yêu cầu bắt buộc.'
-    : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 7200 ký tự (khoảng 1440 từ trở lên). Hãy viết cực kỳ chi tiết, mở rộng mọi khía cạnh, sử dụng nhiều ví dụ minh họa, câu chuyện kể và phân tích đa chiều. Chia bài viết thành nhiều phần lớn nhỏ rõ ràng. Nếu không đủ ý để đạt 7200 ký tự, hãy mở rộng thêm các góc nhìn liên quan. Đây là yêu cầu bắt buộc.';
+    ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1500 đến 2200 ký tự. Hãy viết nội dung cô đọng nhưng giàu cảm xúc.'
+    : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 8800 ký tự. Hãy viết cực kỳ sâu sắc, khai thác mọi ngóc ngách của cảm xúc.';
 
-    if (category === 'Hôn nhân') {
-        return `Bạn hãy là 1 chuyên gia về tình yêu, hôn nhân gia đình, chuyên gia về tâm, sinh lý đàn ông và phụ nữ. Hãy viết cho tôi 1 bài viết với tính chất khách quan nhất, hay nhất và tâm lý nhất, và quan trọng là phải đúng với thực tế. Bài viết có thể xen lẫn về tính chất tình dục.
+    return `Bạn là một dòng chảy cảm xúc, một sự chiêm nghiệm sâu sắc về cuộc đời.
 
-**YÊU CẦU KỸ THUẬT VÀ ĐỊNH DẠNG (BẮT BUỘC):**
-1.  **Tiêu đề (title):** Viết lại chủ đề người dùng nhập thành tiêu đề hấp dẫn (viết hoa chữ cái đầu).
-2.  **Bài viết (article):**
-    *   ${lengthInstruction}
-    *   Nội dung phải bám sát vai trò chuyên gia đã nêu ở trên: sâu sắc, thực tế, tâm lý.
-    *   Không sử dụng icon/emoji trong bài viết chính.
-3.  **Lời kêu gọi (engagementCall):** Một đoạn ngắn khuyến khích tương tác.
+**QUY TẮC BẤT DI BẤT DỊCH (VI PHẠM LÀ THẤT BẠI):**
+1.  **KHÔNG XƯNG HÔ:** Tuyệt đối KHÔNG sử dụng các đại từ nhân xưng như "tôi", "mình", "ta", "anh", "chị", "bạn", "chúng ta". Hãy viết theo lối "phi nhân xưng" (impersonal), nói về "con người", "đời", "lòng người", hoặc viết câu trống chủ ngữ.
+2.  **KHÔNG KỂ CHUYỆN CỤ THỂ:** Không sáng tác ra các nhân vật cụ thể hay câu chuyện cụ thể (ví dụ: "Ngày xửa ngày xưa...", "Có cô gái nọ...", "Hôm qua..."). Hãy nói về bản chất, cảm giác, và trạng thái tâm lý chung. Tránh lối viết kể lể sự việc.
+3.  **KHÔNG GIÁO ĐIỀU/PHÂN TÍCH:** Không khuyên răn kiểu chuyên gia (nên làm gì, bước 1, bước 2). Không phân tích khô khan (thứ nhất, thứ hai). Không dùng giọng điệu dạy đời.
+4.  **VĂN PHONG:** Tự nhiên, chân thực, "đời", giàu hình ảnh và sự rung cảm. Như một tiếng thở dài, một nụ cười nhẹ, hoặc một nỗi đau âm ỉ.
 
-**MÃ NGẪU NHIÊN:** ${seed} (Để đảm bảo tính mới mẻ cho mỗi lần tạo).
-
-Chỉ trả về JSON hợp lệ theo schema, không thêm bất kỳ lời giải thích nào.`;
-    }
-
-    return `Bạn là một chuyên gia viết lách đa tài, có khả năng hóa thân vào nhiều vai trò khác nhau (nhà tâm lý, chuyên gia kinh tế, nhà giáo dục, thiền sư, v.v.) tùy thuộc vào lĩnh vực được yêu cầu.
-
-**NHIỆM VỤ CỐT LÕI (ĐỘC NHẤT & SÁNG TẠO):**
-Đây là lần tạo thứ: ${seed}. BẠN BẮT BUỘC PHẢI TẠO RA MỘT BÀI VIẾT HOÀN TOÀN MỚI, KHÁC BIỆT SO VỚI TẤT CẢ CÁC LẦN TRƯỚC.
-- Ngay cả khi tiêu đề giống hệt lần trước, bạn PHẢI thay đổi hoàn toàn cách tiếp cận, giọng văn, cấu trúc và các ví dụ minh họa.
-- Đừng lặp lại những lối mòn tư duy cũ. Hãy tìm một góc nhìn mới lạ, độc đáo hoặc trái ngược để phân tích vấn đề.
-- Sự sáng tạo và tính mới mẻ là ưu tiên hàng đầu.
-
-**YÊU CẦU VỀ VĂN PHONG & NỘI DUNG:**
-*   **Bám sát Lĩnh vực:** 
-    *   Nếu là "Kinh doanh": Dùng ngôn ngữ chuyên nghiệp, phân tích lợi ích, rủi ro, chiến lược.
-    *   Nếu là "Phật pháp": Dùng ngôn ngữ từ bi, sâu sắc, hướng thiện, nhân quả.
-    *   Các lĩnh vực khác: Điều chỉnh giọng văn cho phù hợp nhất với đối tượng độc giả của lĩnh vực đó.
-*   **Cấu trúc:** Mở đầu nêu vấn đề, thân bài phân tích sâu sắc các khía cạnh thực tế, kết bài đúc kết thông điệp giá trị.
-*   **Tính thực tế:** Bài viết phải đưa ra được những góc nhìn hoặc lời khuyên có thể áp dụng được, tránh lý thuyết sáo rỗng.
+**NHIỆM VỤ:** Viết một bài chiêm nghiệm về chủ đề được cung cấp.
+**MÃ NGẪU NHIÊN:** ${seed} (Đảm bảo nội dung mới lạ hoàn toàn, không lặp lại).
 
 **YÊU CẦU KỸ THUẬT:**
-1.  **Tiêu đề (title):** Lấy chủ đề gốc do người dùng cung cấp, viết hoa chữ cái đầu.
+1.  **Tiêu đề (title):** Viết hoa chữ cái đầu mỗi từ.
 2.  **Bài viết (article):** 
-    *   **BẮT BUỘC:** Câu đầu tiên của bài viết phải là một câu "Hook" (câu dẫn) cực kỳ thu hút, gây sốc nhẹ, tạo sự tò mò hoặc đánh trúng nỗi đau/mong muốn của người đọc ngay lập tức. Không được chào hỏi rườm rà, đi thẳng vào vấn đề.
     *   ${lengthInstruction}
-    *   Không sử dụng icon/emoji trong bài viết chính.
-3.  **Lời kêu gọi (engagementCall):** Một đoạn ngắn khuyến khích tương tác (like, share, comment) phù hợp với giọng văn của bài viết.
+    *   Không dùng icon/emoji trong bài viết chính.
+3.  **Lời kêu gọi (engagementCall):** Một câu ngắn gọn, gợi mở sự đồng cảm để người đọc tự muốn chia sẻ (cũng không xưng hô).
 
-Chỉ trả về JSON, không thêm bất kỳ lời giải thích nào.`;
+Chỉ trả về JSON hợp lệ.`;
 };
 
 const getUserContent = (topic: string, category: string, seed: number, approach: string) => {
-    if (category === 'Hôn nhân') {
-        return `Chủ đề của tôi như sau: ${topic}`;
-    }
-
     return `
-**LĨNH VỰC / GÓC NHÌN:** ${category}
-**CHỦ ĐỀ MỚI CẦN VIẾT:** "${topic}"
-**GÓC TIẾP CẬN BẮT BUỘC CHO LẦN NÀY:** "${approach}"
-**MÃ NGẪU NHIÊN (Để tránh trùng lặp):** ${seed}
+**LĨNH VỰC:** ${category}
+**CHỦ ĐỀ:** "${topic}"
+**GÓC TIẾP CẬN CẢM XÚC:** "${approach}"
+**MÃ NGẪU NHIÊN:** ${seed}
 
-Hãy viết bài dựa trên lĩnh vực và chủ đề trên, TUÂN THỦ NGHIÊM NGẶT góc tiếp cận được chỉ định. Điều này giúp bài viết hoàn toàn khác biệt so với các lần trước.
+Hãy viết bài dựa trên chủ đề này, tuân thủ tuyệt đối các quy tắc: KHÔNG XƯNG HÔ, KHÔNG KỂ CHUYỆN CỤ THỂ, KHÔNG PHÂN TÍCH.
 `;
 }
 
@@ -345,31 +334,59 @@ const postProcessText = (text: string): string => {
     return text.replace(/\b(im)\b/g, "Im");
 };
 
-// Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, openRouterApiKey: string, selectedModel: string): Promise<GeneratedContent> => {
+const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, selectedModel: string): Promise<GeneratedContent> => {
     const seed = Date.now(); 
     
+    // Các góc tiếp cận phù hợp với phong cách "Chiêm nghiệm/Không kể chuyện/Không phân tích"
     const approaches = [
-        "Kể một câu chuyện đầy cảm xúc hoặc trải nghiệm cá nhân liên quan đến chủ đề",
-        "Phân tích logic, khoa học, đi sâu vào nguyên nhân gốc rễ và giải pháp thực tế",
-        "Sử dụng giọng văn khiêu khích, đặt câu hỏi ngược để thách thức tư duy người đọc",
         "Giọng văn tâm tình, nhẹ nhàng, chữa lành và đồng cảm sâu sắc",
-        "Phong cách thẳng thắn, bộc trực, 'tát nước vào mặt' để thức tỉnh (Tough Love)",
-        "Sử dụng phép ẩn dụ, hình tượng nghệ thuật để diễn giải vấn đề một cách bay bổng",
-        "Hài hước, châm biếm nhẹ nhàng nhưng thâm thúy",
-        "Tập trung vào các con số, dữ liệu hoặc các bước hành động cụ thể (Step-by-step)"
+        "Phong cách thẳng thắn, bộc trực, xoáy sâu vào tâm lý con người",
+        "Sử dụng phép ẩn dụ, hình tượng nghệ thuật để diễn giải nỗi lòng",
+        "Trầm lắng, suy tư, mang màu sắc triết lý đời thường",
+        "Day dứt, khắc khoải, chạm vào những nỗi đau thầm kín",
+        "Bình thản, an nhiên, nhìn đời với con mắt bao dung"
     ];
     const randomApproach = approaches[Math.floor(Math.random() * approaches.length)];
 
     const systemInstruction = getSystemInstruction(length, seed, category);
     const userContent = getUserContent(topic, category, seed, randomApproach);
     let finalError;
-    const CREATIVE_TEMP = 1.1;
+    const CREATIVE_TEMP = 1.1; // High temperature for creativity
     let rawResult: GeneratedContent | null = null;
+    
+    // Priority: OpenAI -> Gemini for Text
 
+    // 1. Try OpenAI
+    if (!rawResult && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
+        try {
+            if (!openaiKey) throw new Error("OpenAI Key chưa được cài đặt.");
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: "gpt-4o",
+                    messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
+                    response_format: { type: "json_object" },
+                    temperature: CREATIVE_TEMP,
+                }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            rawResult = JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            if (selectedModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 2. Try Gemini
     if (!rawResult && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
         try {
-            if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
+            if (!geminiKey) throw new Error("Gemini Key chưa được cài đặt.");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
                 model: "gemini-3-pro-preview",
@@ -384,56 +401,6 @@ const generateContentWithFallback = async (topic: string, category: string, leng
             rawResult = JSON.parse(response.text.trim());
         } catch (e) {
             console.warn("Gemini failed", e);
-            if (selectedModel === 'gemini') throw e;
-            finalError = e;
-        }
-    }
-
-    if (!rawResult && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
-        try {
-            if (!openaiKey && selectedModel === 'openai') throw new Error("OpenAI Key chưa được cài đặt.");
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
-                body: JSON.stringify({
-                    model: "gpt-4o",
-                    messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
-                    response_format: { type: "json_object" },
-                    temperature: CREATIVE_TEMP,
-                }),
-            });
-            if (!response.ok) throw new Error('OpenAI failed');
-            const data = await response.json();
-            rawResult = JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.warn("OpenAI failed", e);
-            if (selectedModel === 'openai') throw e;
-            finalError = e;
-        }
-    }
-
-    // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-    if (!rawResult && (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterApiKey))) {
-        try {
-            // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-            if (!openRouterApiKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
-            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openRouterApiKey}` },
-                body: JSON.stringify({
-                    model: "google/gemini-2.0-flash-001",
-                    messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
-                    response_format: { type: "json_object" },
-                    temperature: CREATIVE_TEMP,
-                }),
-            });
-            if (!response.ok) throw new Error('OpenRouter failed');
-            const data = await response.json();
-            rawResult = JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.warn("OpenRouter failed", e);
-            if (selectedModel === 'openrouter') throw e;
             finalError = e;
         }
     }
@@ -453,8 +420,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
 // 5. MAIN APP COMPONENT
 // ==========================================
 
-// Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, openRouterApiKey: string, selectedAIModel: string }) => {
+const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }) => {
   const [topic, setTopic] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Tình yêu');
   const [articleLength, setArticleLength] = useState<ArticleLength>('short');
@@ -468,7 +434,6 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
   const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState<boolean>(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [copiedAll, setCopiedAll] = useState(false);
 
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -476,7 +441,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
   const [audioFormat, setAudioFormat] = useState<'mp3' | 'wav'>('mp3');
 
 
-  const generatePromptFromContent = async (content: GeneratedContent, apiKey: string, provider: 'gemini' | 'openrouter' | 'openai') => {
+  const generatePromptFromContent = async (content: GeneratedContent) => {
       setIsGeneratingPrompt(true);
       setImagePrompt('');
 
@@ -499,18 +464,27 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       Style: Cinematic, 8k, highly detailed, dramatic lighting.
       Output ONLY the prompt text. Do not include explanations.`;
 
+      let providerKey = '';
+      let provider: 'openai' | 'gemini' = 'openai';
+
+      if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
+          provider = 'openai';
+          providerKey = openaiApiKey;
+      } else if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
+          provider = 'gemini';
+          providerKey = geminiApiKey;
+      }
+
+      if (!providerKey) {
+          setIsGeneratingPrompt(false);
+          return;
+      }
+
       try {
-          if (provider === 'gemini') {
-              const ai = new window.GoogleGenAI({ apiKey });
-              const response = await ai.models.generateContent({
-                  model: 'gemini-2.5-flash',
-                  contents: promptRequest
-              });
-              setImagePrompt(response.text.trim());
-          } else if (provider === 'openai') {
+          if (provider === 'openai') {
               const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${providerKey}` },
                 body: JSON.stringify({
                     model: "gpt-4o",
                     messages: [{ role: "user", content: promptRequest }],
@@ -518,17 +492,13 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
             });
             const data = await response.json();
             setImagePrompt(data.choices[0].message.content.trim());
-          } else {
-              const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-                body: JSON.stringify({
-                    model: "google/gemini-2.0-flash-001",
-                    messages: [{ role: "user", content: promptRequest }],
-                }),
-            });
-            const data = await response.json();
-            setImagePrompt(data.choices[0].message.content.trim());
+          } else { // Gemini
+              const ai = new window.GoogleGenAI({ apiKey: providerKey });
+              const response = await ai.models.generateContent({
+                  model: 'gemini-2.5-flash',
+                  contents: promptRequest
+              });
+              setImagePrompt(response.text.trim());
           }
       } catch (err) {
           console.error("Error generating visual prompt:", err);
@@ -551,6 +521,8 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       const textToSpeak = generatedContent.article + ". " + generatedContent.engagementCall;
       const safeText = textToSpeak.substring(0, 4096);
 
+      // Priority: Gemini TTS > OpenAI TTS (as per typical multimodal priority, or user pref? Stick to Gemini first for TTS as it's often free-er/faster in this context, or follow text rule? Let's stick to Gemini First for Audio as default behavior in this specific app section unless specified otherwise, but Text generation was OpenAI > Gemini. Let's keep Gemini > OpenAI for Audio to balance usage or follow Text rule? The prompt said "Text apps: OpenAI > Gemini". This is Audio. Let's stick to Gemini first for Audio as it's 'media'.)
+      
       if (geminiApiKey) {
           try {
               const geminiVoiceName = voice === 'male' ? 'Puck' : 'Aoede';
@@ -633,8 +605,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       return;
     }
     
-    // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+    if (!geminiApiKey && !openaiApiKey) {
         setError('Vui lòng nhập ít nhất một API Key trong phần cài đặt.');
         return;
     }
@@ -648,20 +619,9 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
     setAudioError(null);
 
     try {
-      // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel);
+      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, selectedAIModel);
       setGeneratedContent(result);
-      
-      if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
-          generatePromptFromContent(result, geminiApiKey, 'gemini');
-      } else if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
-          generatePromptFromContent(result, openaiApiKey, 'openai');
-      // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-      } else if ((selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
-          // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-          generatePromptFromContent(result, openRouterApiKey, 'openrouter');
-      }
-
+      await generatePromptFromContent(result);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Đã xảy ra lỗi không xác định';
       setError(`Đã xảy ra lỗi khi tạo nội dung: ${errorMsg}`);
@@ -680,138 +640,105 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
       setError(null);
       setGeneratedImageUrl(null);
 
-      let finalError = null;
+      let finalError: unknown = null;
+      let generatedSuccess = false;
 
-      if (referenceImage) {
-          if (geminiApiKey && (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
-              try {
-                  const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-                  const faceSwapPrompt = `Generate a photorealistic image based on this description: ${imagePrompt}.
-                   
+      // Priority: Gemini -> OpenAI for IMAGE Generation
+
+      // 1. Try Gemini
+      if (!generatedSuccess && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
+          try {
+              const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+              let model: 'gemini-2.5-flash-image' | 'imagen-4.0-generate-001' = 'imagen-4.0-generate-001';
+              let requestBody: any;
+              
+              if (referenceImage) {
+                   model = 'gemini-2.5-flash-image';
+                   const faceSwapPrompt = `Generate a photorealistic image based on this description: ${imagePrompt}.
                    **CRITICAL INSTRUCTION FOR FACE MAPPING:**
                    1.  **Identify Reference Gender:** STRICTLY analyze the gender of the person in the provided inline reference image. Is it Male or Female?
                    2.  **Target Selection:** Find the character in the prompt description that MATCHES this identified gender.
                    3.  **Apply Face:** Apply the face from the reference image ONLY to that specific matching character.
-                   4.  **Non-Matching Characters:** If there are other characters in the scene (e.g., opposite gender), generate a generic face for them. DO NOT apply the reference face to them.
-                   5.  **Context:** If the scene requires a Man and a Woman, and the reference is a Woman, apply her face to the Woman character. If the reference is a Man, apply his face to the Man character.
-                   6.  Blend the face naturally with the lighting and emotion described.`;
-                   
-                   const imageResponse = await ai.models.generateContent({
-                      model: 'gemini-2.5-flash-image',
-                      contents: {
-                          parts: [
-                              { text: faceSwapPrompt },
-                              { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }
-                          ]
-                      },
+                   4.  **Non-Matching Characters:** If there are other characters in the scene, generate a generic face for them.
+                   5.  Blend the face naturally with the lighting and emotion described.`;
+                   requestBody = {
+                      model,
+                      contents: { parts: [{ text: faceSwapPrompt }, { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }] },
                       config: { responseModalities: [window.GenAIModality.IMAGE] }
-                   });
-                   const imagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-                   if (imagePart && imagePart.inlineData) {
-                      setGeneratedImageUrl(`data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`);
-                      setIsGeneratingImage(false);
-                      return;
-                   }
-              } catch (e) {
-                  console.warn("Gemini Face Swap failed", e);
-                  finalError = e;
-              }
-          } else {
-              setError("Cần có Gemini API Key (và chọn model Gemini hoặc Auto) để sử dụng tính năng ảnh mẫu khuôn mặt.");
-              setIsGeneratingImage(false);
-              return;
-          }
-      } 
-      
-      else {
-          
-          if (!finalError && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
-              try {
-                  const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-                  const imageResponse = await ai.models.generateImages({
-                      model: 'imagen-4.0-generate-001',
+                   };
+              } else {
+                  requestBody = {
+                      model,
                       prompt: imagePrompt,
-                      config: {
-                          numberOfImages: 1,
-                          outputMimeType: 'image/png',
-                          aspectRatio: '16:9'
-                      }
-                  });
+                      config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '16:9' }
+                  };
+              }
+
+              let imageUrl = '';
+              if (model === 'gemini-2.5-flash-image') {
+                  const imageResponse = await ai.models.generateContent(requestBody);
+                  const imagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                  if (imagePart?.inlineData) {
+                      imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+                  }
+              } else {
+                  const imageResponse = await ai.models.generateImages(requestBody);
                   if (imageResponse.generatedImages?.[0]?.image?.imageBytes) {
-                      setGeneratedImageUrl(`data:image/png;base64,${imageResponse.generatedImages[0].image.imageBytes}`);
-                      setIsGeneratingImage(false);
-                      return;
+                      imageUrl = `data:image/png;base64,${imageResponse.generatedImages[0].image.imageBytes}`;
                   }
-              } catch (e) {
-                  console.warn("Gemini Imagen failed", e);
-                  if (selectedAIModel === 'gemini') finalError = e;
               }
-          }
+              
+              if (imageUrl) {
+                  setGeneratedImageUrl(imageUrl);
+                  generatedSuccess = true;
+              } else {
+                  throw new Error("Gemini không trả về hình ảnh.");
+              }
 
-          if (!finalError && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
-              try {
-                  const response = await fetch('https://api.openai.com/v1/images/generations', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
-                      body: JSON.stringify({
-                          model: 'dall-e-3',
-                          prompt: imagePrompt,
-                          n: 1,
-                          size: '1024x1024',
-                          response_format: 'b64_json',
-                          quality: 'hd',
-                          style: 'vivid'
-                      })
-                  });
-                  if (response.ok) {
-                      const data = await response.json();
-                      setGeneratedImageUrl(`data:image/png;base64,${data.data[0].b64_json}`);
-                      setIsGeneratingImage(false);
-                      return;
-                  }
-              } catch (e) {
-                  console.warn("OpenAI Image Gen failed", e);
-                  if (selectedAIModel === 'openai') finalError = e;
-              }
+          } catch (e) {
+              console.warn("Gemini Image Gen failed", e);
+              if (selectedAIModel === 'gemini') finalError = e;
+              else finalError = e;
           }
+      }
 
-          // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-          if (!finalError && (selectedAIModel === 'openrouter' || selectedAIModel === 'auto') && openRouterApiKey) {
-              try {
-                  const systemPromptImage = "You are an expert image generation assistant. Generate high-quality images based on the user request.";
-                  // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-                  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                      method: 'POST',
-                      // Fix: Renamed openRouterKey to openRouterApiKey for consistency.
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterApiKey}` },
-                      body: JSON.stringify({
-                          model: 'google/gemini-2.5-flash-image',
-                          messages: [
-                              { role: 'system', content: systemPromptImage },
-                              { role: 'user', content: imagePrompt }
-                          ]
-                      })
-                  });
-                  
-                  if (response.ok) {
-                      const data = await response.json();
-                      const content = data.choices[0].message.content;
-                      const match = content.match(/!\[.*?\]\((https?:\/\/[^\)]+)\)/);
-                      if (match && match[1]) {
-                          setGeneratedImageUrl(match[1]);
-                          setIsGeneratingImage(false);
-                          return;
-                      }
-                  }
-              } catch (e) {
-                  console.warn("OpenRouter Image Gen failed", e);
-                  finalError = e;
+      // 2. Try OpenAI
+      if (!generatedSuccess && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
+          try {
+              if (referenceImage) {
+                  throw new Error("Tính năng ảnh mẫu khuôn mặt chỉ được hỗ trợ bởi Gemini.");
               }
+              const response = await fetch('https://api.openai.com/v1/images/generations', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+                  body: JSON.stringify({
+                      model: 'dall-e-3',
+                      prompt: imagePrompt,
+                      n: 1,
+                      size: '1792x1024',
+                      response_format: 'b64_json',
+                      quality: 'hd',
+                      style: 'vivid'
+                  })
+              });
+              if (response.ok) {
+                  const data = await response.json();
+                  setGeneratedImageUrl(`data:image/png;base64,${data.data[0].b64_json}`);
+                  generatedSuccess = true;
+              } else {
+                  const errorData = await response.json();
+                  throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+              }
+          } catch (e) {
+              console.warn("OpenAI Image Gen failed", e);
+              finalError = e;
           }
       }
 
       setIsGeneratingImage(false);
-      setError(`Lỗi khi tạo ảnh: ${finalError instanceof Error ? finalError.message : 'Tất cả các API đều thất bại hoặc chưa được cấu hình.'}`);
+      if (!generatedSuccess) {
+          setError(`Lỗi khi tạo ảnh: ${finalError instanceof Error ? finalError.message : 'Tất cả các API đều thất bại hoặc chưa được cấu hình.'}`);
+      }
   };
 
   const ToggleButton: React.FC<{ options: string[], selected: string, onSelect: (value: any) => void }> = ({ options, selected, onSelect }) => (
@@ -881,7 +808,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                       onSelect={(val) => setArticleLength(val as ArticleLength)} 
                    />
                    <p className="text-xs text-gray-500 mt-1">
-                     {articleLength === 'short' ? 'Khoảng 1200-1800 ký tự (phù hợp Tiktok - Facebook Reels - Youtube Shorts)' : 'Khoảng 7200+ ký tự (phù hợp Podcast Youtube dài)'}
+                     {articleLength === 'short' ? 'Khoảng 1500-2200 ký tự (phù hợp Tiktok - Facebook Reels - Youtube Shorts)' : 'Khoảng 8800+ ký tự (phù hợp Podcast Youtube dài)'}
                    </p>
                 </div>
 
@@ -1002,17 +929,10 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                         <div className="flex justify-between items-start mb-4">
                             <h2 className="text-2xl font-bold text-white">{generatedContent.title}</h2>
                             <div className="flex items-center gap-2">
-                                <button 
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(generatedContent.title);
-                                    }}
-                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-md flex items-center gap-2"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    </svg>
-                                    Chép
-                                </button>
+                                <CopyButton 
+                                    textToCopy={generatedContent.title}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                />
                             </div>
                         </div>
                     </div>
@@ -1020,34 +940,11 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selec
                     <div className="bg-gray-800/50 border border-slate-700 rounded-xl shadow-lg p-6">
                         <div className="flex justify-between items-center mb-4 border-b border-slate-600 pb-4">
                             <h3 className="text-xl font-semibold text-indigo-400">Nội dung bài viết & Lời kêu gọi</h3>
-                            <button
-                                onClick={() => {
-                                    const combinedText = generatedContent.article + "\n\n" + generatedContent.engagementCall;
-                                    navigator.clipboard.writeText(combinedText).then(() => {
-                                        setCopiedAll(true);
-                                        setTimeout(() => setCopiedAll(false), 10000);
-                                    });
-                                }}
-                                className={`px-4 py-2 font-bold rounded-md transition-colors shadow flex items-center gap-2 ${
-                                    copiedAll ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'
-                                }`}
-                            >
-                                {copiedAll ? (
-                                    <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Đã sao chép
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                        </svg>
-                                        Sao chép toàn bộ
-                                    </>
-                                )}
-                            </button>
+                            <CopyButton
+                                textToCopy={generatedContent.article + "\n\n" + generatedContent.engagementCall}
+                                label="Sao chép toàn bộ"
+                                className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                            />
                         </div>
                         <div className="prose prose-invert max-w-none text-gray-300 whitespace-pre-wrap leading-relaxed text-justify">
                             {generatedContent.article}

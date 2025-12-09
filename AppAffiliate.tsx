@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 
@@ -198,7 +197,7 @@ const GeneratedContent: React.FC<{ image: string | null | undefined; promptSets:
 };
 
 const generateTextAndPromptSet = async (
-    geminiKey, openaiKey, openRouterKey,
+    geminiKey, openaiKey,
     productImageBase64,
     generatedImageBase64,
     voice,
@@ -231,33 +230,10 @@ const generateTextAndPromptSet = async (
 
     let finalError;
 
-    // 1. Try Gemini
-    if ((selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiKey))) {
-        if (!geminiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
-        try {
-            const ai = new GoogleGenAI({ apiKey: geminiKey });
-            const textAndPromptGenResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: {
-                    parts: [
-                        { text: prompt },
-                        { inlineData: { data: productImageBase64, mimeType: 'image/jpeg' } },
-                        { inlineData: { data: generatedImageBase64, mimeType: 'image/jpeg' } }
-                    ]
-                },
-                config: { responseMimeType: 'application/json' }
-            });
-            return JSON.parse(textAndPromptGenResponse.text);
-        } catch (e) {
-            console.warn("Gemini failed", e);
-            if (selectedAIModel === 'gemini') throw e;
-            finalError = e;
-        }
-    }
-
-    // 2. Try OpenAI
-    if ((selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiKey))) {
-        if (!openaiKey && selectedAIModel === 'openai') throw new Error("OpenAI Key chưa được cài đặt.");
+    // Priority: OpenAI -> Gemini for TEXT Generation tasks (as per general rule, although Gemini Multimodal is strong here, following stricter priority)
+    
+    // 1. Try OpenAI
+    if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiKey) {
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -287,35 +263,28 @@ const generateTextAndPromptSet = async (
         }
     }
 
-    // 3. Try OpenRouter
-    if ((selectedAIModel === 'openrouter' || (selectedAIModel === 'auto' && openRouterKey))) {
-        if (!openRouterKey && selectedAIModel === 'openrouter') throw new Error("OpenRouter Key chưa được cài đặt.");
-        try {
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openRouterKey}`
-                },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.5-flash-001',
-                    messages: [
-                        { role: 'user', content: [
-                            { type: 'text', text: prompt },
-                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${productImageBase64}` } },
-                            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${generatedImageBase64}` } }
-                        ]}
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter API failed');
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.warn("OpenRouter failed", e);
-            if (selectedAIModel === 'openrouter') throw e;
-            finalError = e;
+    // 2. Try Gemini
+    if (!finalError || (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
+        if (!geminiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
+        if (geminiKey) {
+            try {
+                const ai = new GoogleGenAI({ apiKey: geminiKey });
+                const textAndPromptGenResponse = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: {
+                        parts: [
+                            { text: prompt },
+                            { inlineData: { data: productImageBase64, mimeType: 'image/jpeg' } },
+                            { inlineData: { data: generatedImageBase64, mimeType: 'image/jpeg' } }
+                        ]
+                    },
+                    config: { responseMimeType: 'application/json' }
+                });
+                return JSON.parse(textAndPromptGenResponse.text);
+            } catch (e) {
+                console.warn("Gemini failed", e);
+                finalError = e;
+            }
         }
     }
 
@@ -323,7 +292,7 @@ const generateTextAndPromptSet = async (
 }
 
 const generateSingleResult = async (
-    geminiKey, openaiKey, openRouterKey,
+    geminiKey, openaiKey,
     modelImageBase64,
     productImageBase64,
     voice,
@@ -399,13 +368,11 @@ ${checklistInstruction}
     let generatedImageBase64: string | null = null;
     let finalError = null;
 
-    // This feature (image composition) is Gemini-specific. Check model selection.
-    if (selectedAIModel !== 'gemini' && selectedAIModel !== 'auto') {
-        throw new Error(`Tính năng tạo ảnh ghép (Face Swap & Product) hiện chỉ hỗ trợ model Gemini. Vui lòng chọn model 'Gemini' hoặc 'Tự động' trong Menu để sử dụng tính năng này.`);
-    }
-
-    // Try Gemini (Primary for this app due to multimodal capabilities)
-    if (geminiKey) {
+    // This feature (image composition) is heavily reliant on Gemini's multimodal capabilities.
+    // However, adhering to the instruction: Image Priority: Gemini > OpenAI.
+    
+    // 1. Try Gemini (Primary for Images)
+    if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiKey) {
         try {
             const ai = new GoogleGenAI({ apiKey: geminiKey });
             const imageResponse = await ai.models.generateContent({
@@ -428,19 +395,32 @@ ${checklistInstruction}
             }
         } catch (e) {
             console.warn("Gemini Image Gen failed", e);
-            finalError = e;
+            if (selectedAIModel === 'gemini') finalError = e; // Fail if explicitly selected
+            else finalError = e; // Store to try fallback
         }
+    }
+
+    // 2. Try OpenAI (Fallback for Images - Note: DALL-E doesn't support inline image editing nicely like Gemini here, but we keep the structure)
+    if (!generatedImageBase64 && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiKey) {
+         try {
+             // DALL-E 3 doesn't support image-to-image with multi-input composition effectively via standard API in the same way.
+             // We can only try text-to-image or throw a specific error for this advanced feature.
+             throw new Error("Tính năng ghép mặt/sản phẩm nâng cao này yêu cầu Gemini (Multimodal). OpenAI DALL-E không hỗ trợ đầy đủ tính năng này.");
+         } catch(e) {
+             console.warn("OpenAI fallback failed/not supported", e);
+             finalError = e;
+         }
     }
 
     // If Gemini failed or key is missing, alert if we couldn't generate image
     if (!generatedImageBase64) {
-        throw finalError || new Error("Không thể tạo ảnh từ Gemini. Vui lòng kiểm tra API Key và thử lại.");
+        throw finalError || new Error("Không thể tạo ảnh. Vui lòng kiểm tra API Key và thử lại.");
     }
 
     const imageUrl = `data:image/jpeg;base64,${generatedImageBase64}`;
 
     const promptSet = await generateTextAndPromptSet(
-        geminiKey, openaiKey, openRouterKey,
+        geminiKey, openaiKey,
         productImageBase64,
         generatedImageBase64,
         voice,
@@ -458,7 +438,7 @@ ${checklistInstruction}
 };
 
 const generateAllContent = async (
-    geminiKey, openaiKey, openRouterKey,
+    geminiKey, openaiKey,
     modelImageBase64,
     productImageBase64,
     voice,
@@ -473,7 +453,7 @@ const generateAllContent = async (
 ) => {
     const generationPromises = Array.from({ length: numberOfResults }, (_, i) =>
         generateSingleResult(
-            geminiKey, openaiKey, openRouterKey,
+            geminiKey, openaiKey,
             modelImageBase64,
             productImageBase64,
             voice,
@@ -491,22 +471,22 @@ const generateAllContent = async (
     return Promise.all(generationPromises);
 };
 
-const OptionButton = ({ selected, onClick, children, className = '' }) => (
-    React.createElement('button', {
-        onClick: onClick,
-        className: `px-3 py-2 text-sm rounded-md font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-slate-900 focus:ring-blue-500 transform active:translate-y-0.5 ${selected
-            ? 'bg-blue-600 text-white border-b-2 border-blue-800 shadow-md'
-            : 'bg-slate-700 text-slate-300 border-b-2 border-slate-800 hover:bg-slate-600 shadow-sm'
-            } ${className}`
-    },
-        children
+const OptionGroup = ({ label, children }) => (
+    React.createElement('div', { className: "flex flex-col items-center gap-2" },
+        React.createElement('label', { className: "block text-sm font-medium text-slate-400" }, label),
+        React.createElement('div', { className: "flex items-center gap-3 flex-wrap justify-center" }, children)
     )
 );
 
-const OptionGroup = ({ label, children, fullWidth = false }) => (
-    React.createElement('div', { className: `flex flex-col gap-1 ${fullWidth ? 'w-full' : 'items-center'}` },
-        label ? React.createElement('label', { className: "block text-[10px] uppercase font-bold text-slate-500" }, label) : null,
-        React.createElement('div', { className: `flex gap-2 ${fullWidth ? 'w-full' : 'items-center flex-wrap justify-center'}` }, children)
+const OptionButton = ({ selected, onClick, children }) => (
+    React.createElement('button', {
+        onClick: onClick,
+        className: `px-6 py-3 text-lg rounded-lg font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500 transform active:translate-y-0.5 ${selected
+            ? 'bg-blue-600 text-white border-b-4 border-blue-800 shadow-xl'
+            : 'bg-slate-700 text-slate-300 border-b-4 border-slate-800 hover:bg-slate-600 shadow-lg'
+            }`
+    },
+        children
     )
 );
 
@@ -576,31 +556,26 @@ const ControlPanel = ({
 
     return (
          React.createElement('div', { className: "w-full lg:w-1/3 flex-shrink-0 space-y-6" },
-            React.createElement('div', { className: "bg-slate-800/50 border border-slate-700 rounded-xl p-4 space-y-4" },
-                // Row 1: Mode & Content Type (Grid 2 cols)
-                React.createElement('div', { className: "grid grid-cols-2 gap-4" },
-                    React.createElement(OptionGroup, { label: "", fullWidth: true, children: [
-                        React.createElement(OptionButton, { className: "flex-1", key: 'swap', selected: faceSwapMode === true, onClick: () => setFaceSwapMode(true), children: "Face Swap" }),
-                        React.createElement(OptionButton, { className: "flex-1", key: 'auto', selected: faceSwapMode === false, onClick: () => setFaceSwapMode(false), children: "Auto" })
-                    ]}),
-                    React.createElement(OptionGroup, { label: "", fullWidth: true, children: [
-                        React.createElement(OptionButton, { className: "flex-1", key: 'product', selected: generationMode === 'product', onClick: () => setGenerationMode('product'), children: "Sản phẩm" }),
-                        React.createElement(OptionButton, { className: "flex-1", key: 'fashion', selected: generationMode === 'fashion', onClick: () => setGenerationMode('fashion'), children: "Trang phục" })
-                    ]})
-                ),
-                // Row 2: Voice & Region (Merged)
-                React.createElement('div', { className: "w-full" },
-                    React.createElement('div', { className: "grid grid-cols-4 gap-2" },
-                        React.createElement(OptionButton, { className: "px-1 text-xs", key: 'female', selected: voice === 'female', onClick: () => setVoice('female'), children: "Giọng Nữ" }),
-                        React.createElement(OptionButton, { className: "px-1 text-xs", key: 'male', selected: voice === 'male', onClick: () => setVoice('male'), children: "Giọng Nam" }),
-                        React.createElement(OptionButton, { className: "px-1 text-xs", key: 'south', selected: region === 'south', onClick: () => setRegion('south'), children: "Miền Nam" }),
-                        React.createElement(OptionButton, { className: "px-1 text-xs", key: 'north', selected: region === 'north', onClick: () => setRegion('north'), children: "Miền Bắc" })
-                    )
-                ),
-                // Row 4: Quantity
-                React.createElement(OptionGroup, { label: "Số lượng", fullWidth: true, children: 
+            React.createElement('div', { className: "bg-slate-800/50 border border-slate-700 rounded-xl p-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-6" },
+                React.createElement(OptionGroup, { label: "Chế độ Tạo ảnh", children: [
+                    React.createElement(OptionButton, { key: 'swap', selected: faceSwapMode === true, onClick: () => setFaceSwapMode(true), children: "Face Swap (Giữ mặt)" }),
+                    React.createElement(OptionButton, { key: 'auto', selected: faceSwapMode === false, onClick: () => setFaceSwapMode(false), children: "Auto Generate (Sáng tạo)" })
+                ]}),
+                React.createElement(OptionGroup, { label: "Loại Nội dung", children: [
+                    React.createElement(OptionButton, { key: 'product', selected: generationMode === 'product', onClick: () => setGenerationMode('product'), children: "Sản phẩm cầm tay" }),
+                    React.createElement(OptionButton, { key: 'fashion', selected: generationMode === 'fashion', onClick: () => setGenerationMode('fashion'), children: "Trang phục" })
+                ]}),
+                React.createElement(OptionGroup, { label: "Giọng đọc thoại", children: [
+                    React.createElement(OptionButton, { key: 'female', selected: voice === 'female', onClick: () => setVoice('female'), children: "Nữ" }),
+                    React.createElement(OptionButton, { key: 'male', selected: voice === 'male', onClick: () => setVoice('male'), children: "Nam" })
+                ]}),
+                React.createElement(OptionGroup, { label: "Vùng miền", children: [
+                    React.createElement(OptionButton, { key: 'south', selected: region === 'south', onClick: () => setRegion('south'), children: "Miền Nam" }),
+                    React.createElement(OptionButton, { key: 'north', selected: region === 'north', onClick: () => setRegion('north'), children: "Miền Bắc" })
+                ]}),
+                React.createElement(OptionGroup, { label: "Số lượng kết quả", children: 
                     [1, 2, 3, 4].map(num => (
-                        React.createElement(OptionButton, { className: "flex-1", key: num, selected: numberOfResults === num, onClick: () => setNumberOfResults(num), children: num })
+                        React.createElement(OptionButton, { key: num, selected: numberOfResults === num, onClick: () => setNumberOfResults(num), children: num })
                     ))
                 })
             ),
@@ -618,7 +593,6 @@ const ControlPanel = ({
                 React.createElement('label', { htmlFor: "product-info", className: "block text-sm font-medium text-slate-400 mb-2" }, "Thông tin sản phẩm (để tạo lời thoại hay hơn)"),
                 React.createElement('textarea', productInfoTextareaProps)
             ),
-            React.createElement('p', { className: "text-base font-bold text-center text-yellow-400 mb-2 uppercase tracking-wide" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
             React.createElement('div', { className: "flex flex-row gap-4" },
                 React.createElement(SingleImageUploader, { 
                     label: "Ảnh Người mẫu",
@@ -652,7 +626,7 @@ const ControlPanel = ({
     );
 };
 
-const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }) => {
+const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [generationMode, setGenerationMode] = useState('product');
   const [voice, setVoice] = useState('female');
   const [region, setRegion] = useState('south');
@@ -669,7 +643,7 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
   const [faceSwapMode, setFaceSwapMode] = useState(true);
 
   const handleGenerateContent = async () => {
-    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+    if (!geminiApiKey && !openaiApiKey) {
         alert("Vui lòng cài đặt ít nhất một API Key.");
         return;
     }
@@ -684,7 +658,7 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAI
 
     try {
         const generatedResults = await generateAllContent(
-            geminiApiKey, openaiApiKey, openRouterApiKey,
+            geminiApiKey, openaiApiKey,
             modelImage.base64,
             productImage.base64,
             voice,

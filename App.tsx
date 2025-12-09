@@ -16,6 +16,7 @@ import AIPromptVEO31App from './AIPromptVEO31App';
 import AudioChoppingApp from './AudioChoppingApp';
 import AudioToPromptVideoApp from './AudioToPromptVideoApp';
 import ContentPodcastApp from './ContentPodcastApp';
+import FoodReviewApp from './FoodReviewApp';
 
 // Import Constants Links
 import { APP_LINKS, SOCIAL_LINKS, TUTORIAL_LINKS, FALLBACK_TUTORIAL } from './constants';
@@ -214,6 +215,21 @@ const IconContentPodcast = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
+const IconFoodReview = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" }),
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M21 12a9 9 0 11-18 0 9 9 0 0118 0z" })
+    );
+};
+
 const IconConsistentFlow = (props: React.SVGProps<SVGSVGElement>) => {
     const svgProps: React.SVGProps<SVGSVGElement> = {
         ...iconProps,
@@ -353,13 +369,12 @@ const IconTutorial = (props: React.SVGProps<SVGSVGElement>) => {
     );
 };
 
-const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey, initialOpenRouterKey }) => {
+const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey }) => {
     const [geminiKey, setGeminiKey] = useState(initialGeminiKey || '');
     const [openAIKey, setOpenAIKey] = useState(initialOpenAIKey || '');
-    const [openRouterKey, setOpenRouterKey] = useState(initialOpenRouterKey || '');
 
     const handleSave = () => {
-        onSave({ gemini: geminiKey, openai: openAIKey, openrouter: openRouterKey });
+        onSave({ gemini: geminiKey, openai: openAIKey });
         onClose();
     };
 
@@ -399,15 +414,6 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey, init
         placeholder: "Nhập OpenAI API Key của bạn..."
     };
 
-    const inputOpenRouterProps: React.InputHTMLAttributes<HTMLInputElement> = {
-        id: "openrouter-key",
-        type: "password",
-        value: openRouterKey,
-        onChange: (e) => setOpenRouterKey(e.target.value),
-        className: "w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500",
-        placeholder: "Nhập OpenRouter API Key của bạn..."
-    };
-
     const saveBtnProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
         onClick: handleSave,
         className: "w-full mt-4 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-4 rounded-lg transition-all duration-300"
@@ -431,29 +437,19 @@ const ApiKeyModal = ({ onClose, onSave, initialGeminiKey, initialOpenAIKey, init
                 )
             ),
             React.createElement('div', { className: "p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar" },
-                // 1. Gemini (Top)
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
-                        React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key (Khuyến khích)"),
-                        React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
-                    ),
-                    React.createElement('input', inputGeminiProps)
-                ),
-                // 2. OpenAI (Middle)
-                React.createElement('div', {},
-                    React.createElement('div', { className: "flex justify-between items-center mb-2" },
-                         React.createElement('label', { htmlFor: "openai-key", className: "block text-lg font-semibold text-slate-300" }, "OpenAI API Key"),
+                        React.createElement('label', { htmlFor: "openai-key", className: "block text-lg font-semibold text-slate-300" }, "OpenAI API Key (Ưu tiên cho Text)"),
                          React.createElement('a', { href: APP_LINKS.OPENAI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
                     React.createElement('input', inputOpenAIProps)
                 ),
-                // 3. OpenRouter (Bottom)
                 React.createElement('div', {},
                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
-                        React.createElement('label', { htmlFor: "openrouter-key", className: "block text-lg font-semibold text-slate-300" }, "OpenRouter API Key"),
-                        React.createElement('a', { href: APP_LINKS.OPENROUTER_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
+                        React.createElement('label', { htmlFor: "gemini-key", className: "block text-lg font-semibold text-slate-300" }, "Gemini API Key (Ưu tiên cho Hình ảnh)"),
+                        React.createElement('a', { href: APP_LINKS.GEMINI_API_KEY_GET, target: "_blank", rel: "noopener noreferrer", className: "text-sm text-cyan-400 hover:text-cyan-300 underline" }, "Lấy API Key")
                     ),
-                    React.createElement('input', inputOpenRouterProps)
+                    React.createElement('input', inputGeminiProps)
                 ),
                 React.createElement('button', saveBtnProps, "Lưu Cài Đặt")
             )
@@ -506,12 +502,10 @@ const App = () => {
     const [currentView, setCurrentView] = useState('dashboard');
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
-    const [openRouterApiKey, setOpenRouterApiKey] = useState('');
-    const [selectedAIModel, setSelectedAIModel] = useState('auto'); // 'auto', 'gemini', 'openai', 'openrouter'
+    const [selectedAIModel, setSelectedAIModel] = useState('auto'); // 'auto', 'gemini', 'openai'
 
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
-    const OPENROUTER_API_KEY = 'OPENROUTER_API_KEY';
 
     const allTools = [
         { id: 'dashboard', text: 'Bảng điều khiển', title: 'AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng', icon: React.createElement(IconDashboard), description: 'Tổng quan các công cụ sáng tạo' },
@@ -530,6 +524,7 @@ const App = () => {
         { id: 'seo_youtube', text: 'SEO Youtube', title: 'Công cụ SEO Youtube đỉnh cao', icon: React.createElement(IconSeoYoutube), description: 'Tối ưu Tiêu đề, Mô tả, và Tags cho video YouTube của bạn.' },
         { id: 'youtube_external', text: 'Youtube ngoại', title: 'Công cụ tối ưu Youtube view ngoại', icon: React.createElement(IconYoutubeExternal), description: 'Dịch nội dung sang nhiều ngôn ngữ chuẩn ngữ pháp để tiếp cận khán giả toàn cầu.' },
         { id: 'content_podcast', text: 'Content Podcast', title: 'AI Sáng Tạo Nội Dung Đa Lĩnh Vực', icon: React.createElement(IconContentPodcast), description: 'Sáng tạo nội dung bài viết sâu sắc, đa lĩnh vực với AI.' },
+        { id: 'food_review', text: 'Food Review', title: 'FoodReview AI Studio', icon: React.createElement(IconFoodReview), description: 'Tạo kịch bản, hình ảnh, và nội dung review món ăn chuyên nghiệp.' },
     ];
     
     const orderedIds = [
@@ -548,7 +543,8 @@ const App = () => {
         'app_affiliate', 
         'seo_youtube', 
         'youtube_external',
-        'content_podcast'
+        'content_podcast',
+        'food_review'
     ];
 
     const sidebarTools = orderedIds.map(id => allTools.find(tool => tool.id === id)).filter(Boolean);
@@ -567,19 +563,15 @@ const App = () => {
         if (savedGeminiKey) setGeminiApiKey(savedGeminiKey);
         const savedOpenAIKey = localStorage.getItem(OPENAI_API_KEY);
         if (savedOpenAIKey) setOpenaiApiKey(savedOpenAIKey);
-        const savedOpenRouterKey = localStorage.getItem(OPENROUTER_API_KEY);
-        if (savedOpenRouterKey) setOpenRouterApiKey(savedOpenRouterKey);
 
         setIsLoading(false);
     }, []);
 
-    const handleApiKeySave = ({ gemini, openai, openrouter }) => {
+    const handleApiKeySave = ({ gemini, openai }) => {
         setGeminiApiKey(gemini);
         setOpenaiApiKey(openai);
-        setOpenRouterApiKey(openrouter);
         localStorage.setItem(GEMINI_API_KEY, gemini);
         localStorage.setItem(OPENAI_API_KEY, openai);
-        localStorage.setItem(OPENROUTER_API_KEY, openrouter);
     };
 
     const handleToolClick = (toolId: string) => {
@@ -601,7 +593,6 @@ const App = () => {
         const dashboardTools = sidebarTools.filter(tool => tool.id !== 'dashboard');
 
         const gridProps = {
-            // Update grid to have 5 columns on xl screens as requested
             className: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6'
         };
 
@@ -626,7 +617,7 @@ const App = () => {
     };
 
     const renderCurrentView = () => {
-        const appProps = { geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel: selectedAIModel };
+        const appProps = { geminiApiKey, openaiApiKey, selectedAIModel: selectedAIModel };
         const upgradeWrapperProps = { targetAppId: 'audio_to_prompt_video', onNavigate: handleToolClick };
 
         switch (currentView) {
@@ -645,6 +636,7 @@ const App = () => {
             case 'youtube_external': return React.createElement(YoutubeExternalApp, appProps);
             case 'app_affiliate': return React.createElement(AppAffiliate, appProps);
             case 'content_podcast': return React.createElement(ContentPodcastApp, appProps);
+            case 'food_review': return React.createElement(FoodReviewApp, appProps);
             case 'dashboard':
             default:
                 return React.createElement(Dashboard, { onToolClick: handleToolClick });
@@ -677,7 +669,6 @@ const App = () => {
             case 'auto': return 'Tự động (Mặc định)';
             case 'gemini': return 'Gemini';
             case 'openai': return 'OpenAI';
-            case 'openrouter': return 'OpenRouter';
             default: return model;
         }
     }
@@ -688,8 +679,7 @@ const App = () => {
                 onClose: () => setShowApiKeyModal(false),
                 onSave: handleApiKeySave,
                 initialGeminiKey: geminiApiKey,
-                initialOpenAIKey: openaiApiKey,
-                initialOpenRouterKey: openRouterApiKey
+                initialOpenAIKey: openaiApiKey
              }),
             React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col" },
                 React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-4 w-full mb-1 p-2 sm:p-4" },
@@ -719,7 +709,7 @@ const App = () => {
                          React.createElement('p', { className: "text-cyan-400 mt-1 text-lg sm:text-xl" }, currentTool && currentView !== 'dashboard' ? currentTool.description : mainDescription),
                          currentView !== 'dashboard' && React.createElement(React.Fragment, null, 
                             React.createElement('div', { className: "flex justify-center gap-4 mt-4 flex-wrap" },
-                                ['auto', 'gemini', 'openai', 'openrouter'].map((model) => (
+                                ['auto', 'openai', 'gemini'].map((model) => (
                                     React.createElement('button', {
                                         key: model,
                                         onClick: () => setSelectedAIModel(model),

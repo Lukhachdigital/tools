@@ -43,6 +43,7 @@ const CopyButton = ({ textToCopy }: { textToCopy: string }) => {
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(textToCopy).then(() => {
       setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
     }).catch(err => {
       console.error("Failed to copy text: ", err);
     });
@@ -66,7 +67,7 @@ const CopyButton = ({ textToCopy }: { textToCopy: string }) => {
 // GENERATION SERVICES
 // =================================================================
 
-const generateTitles = async (description: string, geminiKey: string, openaiKey: string, openRouterKey: string, lengthConstraint: string | null, selectedModel: string): Promise<string[]> => {
+const generateTitles = async (description: string, geminiKey: string, openaiKey: string, lengthConstraint: string | null, selectedModel: string): Promise<string[]> => {
     let lengthInstruction = "Các tiêu đề phải có độ dài tối đa 100 ký tự";
     if (lengthConstraint) {
         if (lengthConstraint === "Trên 100") {
@@ -89,13 +90,40 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
 
     Mô tả video: "${description}"`;
 
-    // Fallback Chain: Gemini -> OpenAI -> OpenRouter
-    let finalError;
+    let finalError: unknown;
+    let titles: string[] | null = null;
 
-    // 1. Try Gemini
-    if (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey)) {
+    // 1. Try OpenAI (Priority)
+    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
         try {
-            if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key missing");
+            if (!openaiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.' }],
+                    response_format: { type: 'json_object' },
+                    temperature: 1.0
+                })
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            titles = data.choices[0].message.content ? JSON.parse(data.choices[0].message.content).titles : null;
+        } catch (e) {
+            console.warn('OpenAI failed', e);
+            if (selectedModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 2. Try Gemini (Fallback)
+    if (!titles && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
+        try {
+            if (!geminiKey) throw new Error("Gemini API Key chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
@@ -109,66 +137,21 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
                     }
                 }
             });
-            return JSON.parse(response.text).titles || [];
+            titles = JSON.parse(response.text).titles || [];
         } catch (e) {
             console.warn('Gemini failed', e);
-            if (selectedModel === 'gemini') throw e;
             finalError = e;
         }
     }
-
-    // 2. Try OpenAI
-    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
-        try {
-            if (!openaiKey && selectedModel === 'openai') throw new Error("OpenAI Key missing");
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-                body: JSON.stringify({
-                    model: 'gpt-4o',
-                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.' }],
-                    response_format: { type: 'json_object' },
-                    temperature: 1.0
-                })
-            });
-            if (!response.ok) throw new Error('OpenAI failed');
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content).titles || [];
-        } catch (e) {
-            console.warn('OpenAI failed', e);
-            if (selectedModel === 'openai') throw e;
-            finalError = e;
-        }
+    
+    if (titles) {
+        return titles;
     }
 
-    // 3. Try OpenRouter
-    if (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey)) {
-        try {
-            if (!openRouterKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key missing");
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.5-pro',
-                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.' }],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter failed');
-            const data = await response.json();
-            const parsed = JSON.parse(data.choices[0].message.content);
-            return parsed.titles || [];
-        } catch (e) {
-            console.warn('OpenRouter failed', e);
-            if (selectedModel === 'openrouter') throw e;
-            finalError = e;
-        }
-    }
-
-    throw finalError || new Error("All providers failed");
+    throw finalError || new Error("Không thể tạo tiêu đề. Vui lòng kiểm tra API Key.");
 };
 
-const generateFullSEOContent = async (description: string, title: string, geminiKey: string, openaiKey: string, openRouterKey: string, descStyle: string | null, selectedModel: string): Promise<SEOContent> => {
+const generateFullSEOContent = async (description: string, title: string, geminiKey: string, openaiKey: string, descStyle: string | null, selectedModel: string): Promise<SEOContent> => {
     const styleMap = { 'Ngắn gọn': 'khoảng 80-120 từ', 'Vừa phải': 'khoảng 120-160 từ', 'Tiêu chuẩn': 'khoảng 160-220 từ', 'Dài': 'khoảng 220-300 từ' };
     const lengthInstruction = descStyle ? `Độ dài yêu cầu: ${styleMap[descStyle]}.` : 'Độ dài khoảng 160-220 từ.';
     
@@ -192,13 +175,39 @@ const generateFullSEOContent = async (description: string, title: string, gemini
     3.  **primaryKeywords:** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
     4.  **secondaryKeywords:** Liệt kê 15 từ khóa phụ mở rộng, **tập trung vào các khía cạnh cụ thể** của video.`;
 
-    // Fallback Chain: Gemini -> OpenAI -> OpenRouter
-    let finalError;
+    let finalError: unknown;
+    let content: SEOContent | null = null;
 
-    // 1. Try Gemini
-    if (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey)) {
+    // 1. Try OpenAI (Priority)
+    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
         try {
-            if (!geminiKey && selectedModel === 'gemini') throw new Error("Gemini Key missing");
+            if (!openaiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }' }],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            content = data.choices[0].message.content ? JSON.parse(data.choices[0].message.content) : null;
+        } catch (e) {
+            console.warn('OpenAI failed', e);
+            if (selectedModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 2. Try Gemini (Fallback)
+    if (!content && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
+        try {
+            if (!geminiKey) throw new Error("Gemini API Key chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
@@ -217,68 +226,25 @@ const generateFullSEOContent = async (description: string, title: string, gemini
                     }
                 }
             });
-            return JSON.parse(response.text);
+            content = JSON.parse(response.text);
         } catch (e) {
             console.warn('Gemini failed', e);
-            if (selectedModel === 'gemini') throw e;
             finalError = e;
         }
     }
-
-    // 2. Try OpenAI
-    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
-        try {
-            if (!openaiKey && selectedModel === 'openai') throw new Error("OpenAI Key missing");
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-                body: JSON.stringify({
-                    model: 'gpt-4o',
-                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }' }],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenAI failed');
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.warn('OpenAI failed', e);
-            if (selectedModel === 'openai') throw e;
-            finalError = e;
-        }
+    
+    if (content) {
+        return content;
     }
 
-    // 3. Try OpenRouter
-    if (selectedModel === 'openrouter' || (selectedModel === 'auto' && openRouterKey)) {
-        try {
-            if (!openRouterKey && selectedModel === 'openrouter') throw new Error("OpenRouter Key missing");
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openRouterKey}` },
-                body: JSON.stringify({
-                    model: 'google/gemini-2.5-pro',
-                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }' }],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) throw new Error('OpenRouter failed');
-            const data = await response.json();
-            return JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.warn('OpenRouter failed', e);
-            if (selectedModel === 'openrouter') throw e;
-            finalError = e;
-        }
-    }
-
-    throw finalError || new Error("All providers failed");
+    throw finalError || new Error("Không thể tạo nội dung SEO. Vui lòng kiểm tra API Key.");
 };
 
 // =================================================================
 // MAIN APP COMPONENT
 // =================================================================
 
-const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedAIModel }) => {
+const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [videoDescription, setVideoDescription] = useState('');
   const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
@@ -291,7 +257,7 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
   const [copiedAll, setCopiedAll] = useState(false);
   
   const handleGenerateTitles = useCallback(async () => {
-    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+    if (!geminiApiKey && !openaiApiKey) {
       setError('Vui lòng vào "Cài đặt API Key" để thêm ít nhất một key.');
       return;
     }
@@ -307,17 +273,17 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
     setCopiedAll(false);
 
     try {
-      const titles = await generateTitles(videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedTitleLength, selectedAIModel);
+      const titles = await generateTitles(videoDescription, geminiApiKey, openaiApiKey, selectedTitleLength, selectedAIModel);
       setSuggestedTitles(titles);
     } catch (err: any) {
       setError("Không thể tạo tiêu đề: " + err.message);
     } finally {
       setIsLoadingTitles(false);
     }
-  }, [videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedTitleLength, selectedAIModel]);
+  }, [videoDescription, geminiApiKey, openaiApiKey, selectedTitleLength, selectedAIModel]);
 
   const handleGenerateContent = useCallback(async (title: string) => {
-    if (!geminiApiKey && !openaiApiKey && !openRouterApiKey) {
+    if (!geminiApiKey && !openaiApiKey) {
         setError('Vui lòng vào "Cài đặt API Key" để thêm ít nhất một key.');
         return;
     }
@@ -328,7 +294,7 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
     setCopiedAll(false);
 
     try {
-      const content = await generateFullSEOContent(videoDescription, title, geminiApiKey, openaiApiKey, openRouterApiKey, selectedDescStyle, selectedAIModel);
+      const content = await generateFullSEOContent(videoDescription, title, geminiApiKey, openaiApiKey, selectedDescStyle, selectedAIModel);
       setSeoContent(content);
     } catch (err: any)
     {
@@ -336,16 +302,16 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, openRouterApiKey, selectedA
     } finally {
       setIsLoadingContent(false);
     }
-  }, [videoDescription, geminiApiKey, openaiApiKey, openRouterApiKey, selectedDescStyle, selectedAIModel]);
+  }, [videoDescription, geminiApiKey, openaiApiKey, selectedDescStyle, selectedAIModel]);
 
   const handleCopyAll = () => {
       if (!seoContent || !selectedTitle) return;
       
-      // Simple text copy without headers or explanations as requested, each part separated by 2 empty lines
       const allText = `${selectedTitle}\n\n\n${seoContent.description}\n\n\n${seoContent.hashtags.join(' ')}\n\n\n${seoContent.primaryKeywords.join(', ')}, ${seoContent.secondaryKeywords.join(', ')}`;
       
       navigator.clipboard.writeText(allText).then(() => {
           setCopiedAll(true);
+          setTimeout(() => setCopiedAll(false), 2000);
       });
   };
 
