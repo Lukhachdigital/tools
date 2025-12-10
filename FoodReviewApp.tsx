@@ -7,10 +7,10 @@ import { GoogleGenAI, Modality } from "@google/genai";
 // ==========================================
 
 export enum ThemeCategory {
-  GIANT = "Khổng lồ (Giant Food)",
+  AUTO = "Automatic (Tự động theo ý tưởng)",
   LUXURY = "Sang chảnh (Luxury Dining)",
   STREET = "Đường phố (Street Food)",
-  ASMR = "ASMR (Mukbang)",
+  COUNTRYSIDE = "Miền Quê (Countryside Cooking)",
   WILD = "Hoang dã (Wild Cooking)",
   FUTURISTIC = "Tương lai (Futuristic Food)"
 }
@@ -19,6 +19,7 @@ export type ProcessingState = 'idle' | 'analyzing' | 'success' | 'error';
 export type OutfitMode = 'original' | 'auto';
 export type VoiceGender = 'male' | 'female';
 export type VoiceAccent = 'north' | 'south';
+export type FoodSize = 'normal' | 'giant';
 
 export interface GeneratedScenario {
   part: number;
@@ -255,11 +256,16 @@ const generateCreativePrompts = async (
   outfitMode: OutfitMode,
   voiceGender: VoiceGender,
   voiceAccent: VoiceAccent,
+  foodSize: FoodSize,
   geminiApiKey: string,
   openaiApiKey: string,
   selectedModel: string
 ): Promise<GeneratedScenario[]> => {
   
+  const sizeInstruction = foodSize === 'giant'
+    ? "CRITICAL VISUAL REQUIREMENT: The food or product described MUST be SURREALISTICALLY GIANT (Huge, Oversized) relative to the human character. It should be the dominant visual element."
+    : "The food or product should be of NORMAL, REALISTIC size.";
+
   const systemPrompt = `You are a professional Food Review Content Director. Your task is to generate a storyboard of 4 consecutive scenes based on a user's idea and uploaded reference images.
 
   **INPUTS:**
@@ -268,6 +274,7 @@ const generateCreativePrompts = async (
   3.  **Theme:** ${category}
   4.  **User Idea:** "${userIdea}"
   5.  **Settings:**
+      - Food/Product Size: ${foodSize === 'giant' ? "GIANT / OVERSIZED" : "Normal"}
       - Dialogue: ${hasDialogue ? "YES" : "NO"}
       - Outfit Mode: ${outfitMode === 'original' ? "Keep original outfit from photo" : "Auto-generate outfit based on context"}
       - Voice (if dialogue): ${voiceGender} voice, ${voiceAccent} accent.
@@ -277,7 +284,7 @@ const generateCreativePrompts = async (
   Return a valid JSON object with a key "scenarios" which is an array of objects.
   Each object must have:
   - "part": number (1-4)
-  - "imagePrompt": (For Whisk/Gemini Image) A detailed English prompt for a photorealistic image. Start with "A photorealistic portrait of [Character Description]...". Include details of the food/product, the environment (${category}), and the action. ${outfitMode === 'original' ? "Describe the outfit matching the uploaded image." : "Describe a creative outfit matching the food theme."}
+  - "imagePrompt": (For Whisk/Gemini Image) A detailed English prompt for a photorealistic image. Start with "A photorealistic portrait of [Character Description]...". Include details of the food/product, the environment (${category}), and the action. ${outfitMode === 'original' ? "Describe the outfit matching the uploaded image." : "Describe a creative outfit matching the food theme."} ${sizeInstruction}
   - "videoPrompt": (For VEO/Sora) A detailed English prompt for an 8s video clip. Start with "Cinematic shot of...". Describe camera movement, lighting, and action.
   - "characterPrompt": A consistent description of the main character to ensure consistency across scenes.
 
@@ -285,7 +292,7 @@ const generateCreativePrompts = async (
   - If Dialogue is YES: Include a short, catchy voiceover line in Vietnamese in the "videoPrompt" formatted as: "Audio: Voiceover (${voiceGender}, ${voiceAccent} accent): '[Vietnamese text]'."
   - If Dialogue is NO: Do NOT include any Audio/Voiceover instructions.
   - Ensure continuity: The character should look consistent.
-  - The "Food/Product" must be the highlight.
+  - The "Food/Product" must be the highlight. ${foodSize === 'giant' ? "Make sure the size is impressively large." : ""}
   `;
 
   // Priority: OpenAI -> Gemini for TEXT
@@ -448,13 +455,14 @@ const FoodReviewApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
   const [productImageBase64, setProductImageBase64] = useState<string | null>(null);
   const [productPreviewUrl, setProductPreviewUrl] = useState<string | null>(null);
   
-  const [category, setCategory] = useState<ThemeCategory>(ThemeCategory.GIANT);
+  const [category, setCategory] = useState<ThemeCategory>(ThemeCategory.AUTO);
   const [userIdea, setUserIdea] = useState<string>("");
   const [hasDialogue, setHasDialogue] = useState<boolean>(false);
   const [outfitMode, setOutfitMode] = useState<OutfitMode>('auto');
   
   const [voiceGender, setVoiceGender] = useState<VoiceGender>('female');
   const [voiceAccent, setVoiceAccent] = useState<VoiceAccent>('south');
+  const [foodSize, setFoodSize] = useState<FoodSize>('normal');
   
   const [scenarios, setScenarios] = useState<GeneratedScenario[]>([]);
   
@@ -539,6 +547,7 @@ const FoodReviewApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
         outfitMode,
         voiceGender,
         voiceAccent,
+        foodSize,
         geminiApiKey,
         openaiApiKey,
         selectedAIModel
@@ -658,10 +667,34 @@ const FoodReviewApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
                   </div>
               </div>
 
+              {/* Size Selector */}
+              <div className="flex gap-2">
+                  <button
+                    onClick={() => setFoodSize('normal')}
+                    className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
+                      foodSize === 'normal' 
+                        ? 'bg-blue-600/20 border-blue-500 text-blue-400' 
+                        : 'bg-slate-900 border-slate-700 text-slate-500'
+                    }`}
+                  >
+                    Bình thường
+                  </button>
+                  <button
+                    onClick={() => setFoodSize('giant')}
+                    className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
+                      foodSize === 'giant' 
+                        ? 'bg-purple-600/20 border-purple-500 text-purple-400' 
+                        : 'bg-slate-900 border-slate-700 text-slate-500'
+                    }`}
+                  >
+                    Khổng lồ
+                  </button>
+              </div>
+
               {/* Theme Category */}
               <div>
                   <label className="block text-sm font-semibold text-slate-300 mb-2">Chủ đề (Theme)</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
                       {Object.values(ThemeCategory).map((cat) => (
                         <button
                           key={cat}
