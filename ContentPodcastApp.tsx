@@ -646,8 +646,13 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
               
               if (referenceImage) {
                    model = 'gemini-2.5-flash-image';
-                   const faceSwapPrompt = `Generate a photorealistic image based on this description: ${imagePrompt}.
-                   **CRITICAL INSTRUCTION FOR FACE MAPPING:**
+                   const faceSwapPrompt = `Generate a HIGH-QUALITY PHOTOREALISTIC photograph based on this description: ${imagePrompt}.
+                   **CRITICAL STYLE RULES:**
+                   1.  **ABSOLUTE REALISM:** The image MUST look like a real high-resolution photograph taken with a professional camera.
+                   2.  **NO CARTOON/ART:** Do NOT generate cartoon, anime, 3D render, illustration, or painting styles. This is a strict prohibition.
+                   3.  **FACE IDENTITY:** The face of the person in the generated image MUST MATCH the face provided in the reference image. Preserve facial features, age, and identity strictly.
+                   
+                   **INSTRUCTION FOR FACE MAPPING:**
                    1.  **Identify Reference Gender:** STRICTLY analyze the gender of the person in the provided inline reference image. Is it Male or Female?
                    2.  **Target Selection:** Find the character in the prompt description that MATCHES this identified gender.
                    3.  **Apply Face:** Apply the face from the reference image ONLY to that specific matching character.
@@ -661,7 +666,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
               } else {
                   requestBody = {
                       model,
-                      prompt: imagePrompt,
+                      prompt: `${imagePrompt}. Style: Photorealistic, 8k, highly detailed photograph. NO cartoon, NO illustration.`,
                       config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '16:9' }
                   };
               }
@@ -705,7 +710,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
                   body: JSON.stringify({
                       model: 'dall-e-3',
-                      prompt: imagePrompt,
+                      prompt: `${imagePrompt}. Style: Photorealistic, 8k, highly detailed photograph. NO cartoon, NO illustration.`,
                       n: 1,
                       size: '1792x1024',
                       response_format: 'b64_json',
