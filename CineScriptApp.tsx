@@ -314,7 +314,7 @@ const generateSingleScene = async (instruction: string, style: FilmStyle, gemini
 // 4. COMPONENTS
 // ==========================================
 
-const PasswordProtection = ({ onUnlock }: { onUnlock: () => void }) => {
+const PasswordProtection = ({ onUnlock, onClose }: { onUnlock: () => void, onClose: () => void }) => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState(false);
 
@@ -329,19 +329,25 @@ const PasswordProtection = ({ onUnlock }: { onUnlock: () => void }) => {
     };
 
     return (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0a0a0a] backdrop-blur-md">
-            <div className="bg-[#121212] p-8 rounded-2xl border border-amber-600/30 shadow-2xl max-w-md w-full mx-4 flex flex-col items-center relative overflow-hidden">
+        <div 
+            className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-slate-800 p-8 rounded-2xl border border-cyan-500/30 shadow-2xl max-w-md w-full flex flex-col items-center relative overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Background Glow */}
-                <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-amber-600/5 rotate-45 pointer-events-none" />
+                <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-cyan-600/5 rotate-45 pointer-events-none" />
                 
-                <div className="w-20 h-20 bg-amber-900/20 rounded-full flex items-center justify-center mb-6 border border-amber-600/50 shadow-inner">
-                    <Icons.Lock className="w-10 h-10 text-amber-500" />
+                <div className="w-20 h-20 bg-slate-700/50 rounded-full flex items-center justify-center mb-6 border border-slate-600 shadow-inner">
+                    <Icons.Lock className="w-10 h-10 text-cyan-400" />
                 </div>
                 
-                <h2 className="text-2xl font-bold text-amber-500 mb-2 font-serif uppercase tracking-widest text-center">
-                    Restricted Access
+                <h2 className="text-2xl font-bold text-cyan-400 mb-2 uppercase tracking-wide text-center">
+                    Bảo Mật Ứng Dụng
                 </h2>
-                <p className="text-gray-400 text-sm mb-8 text-center px-4">
+                <p className="text-slate-400 text-sm mb-8 text-center px-4">
                     Ứng dụng này yêu cầu mã truy cập đặc biệt để sử dụng.
                 </p>
 
@@ -352,7 +358,7 @@ const PasswordProtection = ({ onUnlock }: { onUnlock: () => void }) => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Nhập mã truy cập..."
-                            className={`w-full bg-[#0a0a0a] border ${error ? 'border-red-500 animate-shake' : 'border-gray-700 focus:border-amber-500'} rounded-lg py-3 px-4 text-center text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all duration-300 font-mono tracking-widest`}
+                            className={`w-full bg-slate-900 border ${error ? 'border-red-500 animate-shake' : 'border-slate-600 focus:border-cyan-500'} rounded-lg py-3 px-4 text-center text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all duration-300 font-mono tracking-widest`}
                             autoFocus
                         />
                         {error && (
@@ -364,14 +370,14 @@ const PasswordProtection = ({ onUnlock }: { onUnlock: () => void }) => {
                     
                     <button
                         type="submit"
-                        className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-black font-bold py-3 px-6 rounded-lg transition-all duration-300 transform active:scale-95 shadow-lg shadow-amber-900/20 flex items-center justify-center gap-2 uppercase tracking-wide"
+                        className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform active:scale-95 shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-2 uppercase tracking-wide"
                     >
                         <Icons.Unlock className="w-5 h-5" />
                         Mở Khóa
                     </button>
                 </form>
                 
-                <p className="mt-6 text-[10px] text-gray-600 uppercase tracking-widest">
+                <p className="mt-6 text-[10px] text-slate-500 uppercase tracking-widest">
                     CineScript AI Security System
                 </p>
             </div>
@@ -386,20 +392,20 @@ const SceneInputForm = ({
 }) => {
   const [text, setText] = useState(initialText);
   return (
-    <div className="relative z-50 animate-fade-in my-3 bg-[#121212] border border-amber-500/50 rounded-lg p-3 shadow-2xl">
+    <div className="relative z-50 animate-fade-in my-3 bg-slate-800 border border-cyan-500/50 rounded-lg p-3 shadow-2xl">
       <textarea 
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        className="w-full h-28 bg-[#1e1e1e] text-gray-100 p-3 rounded border border-gray-700 focus:border-amber-500 focus:outline-none text-sm mb-3 z-50 relative resize-none leading-relaxed"
+        className="w-full h-28 bg-slate-900 text-slate-200 p-3 rounded border border-slate-700 focus:border-cyan-500 focus:outline-none text-sm mb-3 z-50 relative resize-none leading-relaxed"
         placeholder={placeholder}
         disabled={isProcessing}
         autoFocus
       />
       <div className="flex justify-end gap-2">
-        <button onClick={(e) => { e.stopPropagation(); onCancel(); }} className="px-3 py-1.5 text-xs font-bold text-gray-400 hover:text-white uppercase transition-colors" disabled={isProcessing}>Hủy</button>
-        <button onClick={(e) => { e.stopPropagation(); onSubmit(text); }} disabled={isProcessing || !text.trim()} className="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-black text-xs font-bold uppercase rounded flex items-center gap-2 transition-transform active:scale-95">
+        <button onClick={(e) => { e.stopPropagation(); onCancel(); }} className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase transition-colors" disabled={isProcessing}>Hủy</button>
+        <button onClick={(e) => { e.stopPropagation(); onSubmit(text); }} disabled={isProcessing || !text.trim()} className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold uppercase rounded flex items-center gap-2 transition-transform active:scale-95">
           {isProcessing && <Icons.ArrowPath className="w-3 h-3 animate-spin" />}
           {submitLabel}
         </button>
@@ -408,7 +414,7 @@ const SceneInputForm = ({
   );
 };
 
-const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }> = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
+const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, selectedAIModel: string, onGoBack: () => void }> = ({ geminiApiKey, openaiApiKey, selectedAIModel, onGoBack }) => {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [idea, setIdea] = useState('');
@@ -524,33 +530,40 @@ const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
     document.body.removeChild(element);
   };
 
-  if (!isUnlocked) {
-      return <PasswordProtection onUnlock={() => setIsUnlocked(true)} />;
-  }
-
   return (
-    <div className="flex flex-col lg:flex-row h-full bg-[#0f0f0f] text-gray-200 overflow-hidden font-sans relative">
-      {/* Left Sidebar */}
-      <div className="w-full lg:w-[400px] flex-shrink-0 bg-[#0a0a0a] border-r border-gray-800 p-6 overflow-y-auto">
-         <h2 className="text-xl font-bold text-amber-500 mb-6 flex items-center gap-2 font-serif uppercase tracking-widest">
-            <Icons.VideoCamera className="w-6 h-6" /> CineScript AI
-         </h2>
-         <div className="space-y-6">
+    <div className="relative w-full h-full p-4 flex flex-col lg:flex-row gap-8 bg-slate-900 text-slate-200 font-sans">
+      
+      {/* Password Overlay */}
+      {!isUnlocked && (
+          <PasswordProtection 
+            onUnlock={() => setIsUnlocked(true)} 
+            onClose={onGoBack}
+          />
+      )}
+
+      {/* Left Sidebar (Form) */}
+      <div className="w-full lg:w-1/3 flex-shrink-0 space-y-6">
+         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 h-full flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+            <h2 className="text-xl font-bold text-cyan-400 flex items-center gap-2 font-serif uppercase tracking-widest">
+                <Icons.VideoCamera className="w-6 h-6" /> CineScript AI
+            </h2>
+            
             <div>
-                <label className="block text-amber-500 text-xs font-bold mb-2 uppercase tracking-wider">Ý tưởng kịch bản</label>
-                <textarea className="w-full h-24 bg-[#151515] border border-gray-800 rounded-md p-3 text-sm focus:border-amber-500 focus:outline-none resize-none" placeholder="Nhập nội dung phim..." value={idea} onChange={(e) => setIdea(e.target.value)} disabled={isLoading} />
+                <label className="block text-cyan-400 text-xs font-bold mb-2 uppercase tracking-wider">Ý tưởng kịch bản</label>
+                <textarea className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm text-white focus:border-cyan-500 focus:outline-none resize-none focus:ring-2 focus:ring-cyan-500/20 transition-all" placeholder="Nhập nội dung phim..." value={idea} onChange={(e) => setIdea(e.target.value)} disabled={isLoading} />
             </div>
+
             <div>
-               <label className="block text-amber-500 text-xs font-bold mb-2 uppercase tracking-wider">Ảnh mẫu & Trang phục</label>
+               <label className="block text-cyan-400 text-xs font-bold mb-2 uppercase tracking-wider">Ảnh mẫu & Trang phục</label>
                <div className="flex gap-2 h-24 mb-2">
                   <div className="w-1/2 h-full relative" onClick={() => !previewImage && fileInputRef.current?.click()}>
                      {!previewImage ? (
-                        <div className="w-full h-full border border-dashed border-gray-700 rounded-md flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-amber-500 hover:bg-[#151515] transition-all">
-                           <Icons.Photo className="w-5 h-5 text-gray-500" />
-                           <span className="text-gray-500 text-[9px]">Ảnh Gốc</span>
+                        <div className="w-full h-full border border-dashed border-slate-600 rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-cyan-500 hover:bg-slate-700 transition-all bg-slate-900">
+                           <Icons.Photo className="w-5 h-5 text-slate-500" />
+                           <span className="text-slate-500 text-[9px]">Ảnh Gốc</span>
                         </div>
                      ) : (
-                        <div className="w-full h-full rounded-md overflow-hidden relative group">
+                        <div className="w-full h-full rounded-lg overflow-hidden relative group">
                            <img src={previewImage} className="w-full h-full object-cover" alt="Main" />
                            <button onClick={(e) => { e.stopPropagation(); clearImage(false); }} className="absolute top-1 right-1 bg-black/60 hover:bg-red-600 text-white rounded-full p-1"><Icons.XMark className="w-3 h-3" /></button>
                         </div>
@@ -559,12 +572,12 @@ const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
                   </div>
                   <div className="w-1/2 h-full relative" onClick={() => !previewImage2 && fileInputRef2.current?.click()}>
                      {!previewImage2 ? (
-                        <div className="w-full h-full border border-dashed border-gray-700 rounded-md flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-amber-500 hover:bg-[#151515] transition-all">
-                           <Icons.UserPlus className="w-5 h-5 text-gray-500" />
-                           <span className="text-gray-500 text-[9px]">Phụ (Tuỳ chọn)</span>
+                        <div className="w-full h-full border border-dashed border-slate-600 rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-cyan-500 hover:bg-slate-700 transition-all bg-slate-900">
+                           <Icons.UserPlus className="w-5 h-5 text-slate-500" />
+                           <span className="text-slate-500 text-[9px]">Phụ (Tuỳ chọn)</span>
                         </div>
                      ) : (
-                        <div className="w-full h-full rounded-md overflow-hidden relative group">
+                        <div className="w-full h-full rounded-lg overflow-hidden relative group">
                            <img src={previewImage2} className="w-full h-full object-cover" alt="Sub" />
                            <button onClick={(e) => { e.stopPropagation(); clearImage(true); }} className="absolute top-1 right-1 bg-black/60 hover:bg-red-600 text-white rounded-full p-1"><Icons.XMark className="w-3 h-3" /></button>
                         </div>
@@ -574,85 +587,89 @@ const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
                </div>
                <div className="flex gap-1.5">
                   {Object.values(CostumeMode).map((mode) => (
-                      <button key={mode} onClick={() => setCostumeMode(mode)} disabled={isLoading} className={`flex-1 py-2 px-1 text-[9px] font-bold uppercase rounded border transition-all ${costumeMode === mode ? 'bg-amber-600/20 border-amber-500 text-amber-500' : 'bg-[#151515] border-gray-800 text-gray-500 hover:text-gray-300'}`}>{mode}</button>
+                      <button key={mode} onClick={() => setCostumeMode(mode)} disabled={isLoading} className={`flex-1 py-2 px-1 text-[9px] font-bold uppercase rounded border transition-all ${costumeMode === mode ? 'bg-cyan-600/20 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-600 text-slate-400 hover:text-slate-200'}`}>{mode}</button>
                   ))}
                </div>
             </div>
+
             <div className="flex gap-4">
                 <div className="flex-1">
-                    <label className="block text-amber-500 text-xs font-bold mb-2 uppercase tracking-wider">Thời lượng (Phút)</label>
-                    <input type="number" min="0.1" step="0.1" value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-[#151515] border border-gray-800 rounded-md p-3 text-white focus:border-amber-500 focus:outline-none" disabled={isLoading} />
+                    <label className="block text-cyan-400 text-xs font-bold mb-2 uppercase tracking-wider">Thời lượng (Phút)</label>
+                    <input type="number" min="0.1" step="0.1" value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-cyan-500 focus:outline-none" disabled={isLoading} />
                 </div>
                 <div className="flex-1 flex flex-col justify-end text-right">
-                     <span className="text-[10px] text-gray-500 uppercase">Ước tính</span>
-                     <span className="text-amber-500 font-bold">{duration && !isNaN(parseFloat(duration)) ? Math.ceil((parseFloat(duration) * 60) / 8) : 0} Cảnh</span>
+                     <span className="text-[10px] text-slate-500 uppercase">Ước tính</span>
+                     <span className="text-cyan-400 font-bold">{duration && !isNaN(parseFloat(duration)) ? Math.ceil((parseFloat(duration) * 60) / 8) : 0} Cảnh</span>
                 </div>
             </div>
+
             <div>
-               <label className="block text-amber-500 text-xs font-bold mb-2 uppercase tracking-wider">Phong cách</label>
+               <label className="block text-cyan-400 text-xs font-bold mb-2 uppercase tracking-wider">Phong cách</label>
                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setStyle(FilmStyle.CINEMATIC)} disabled={isLoading} className={`p-2 rounded border text-xs font-bold uppercase flex items-center justify-center gap-2 ${style === FilmStyle.CINEMATIC ? 'bg-amber-600/10 border-amber-500 text-amber-500' : 'bg-[#151515] border-gray-800 text-gray-400'}`}><Icons.Film className="w-4 h-4"/> Điện ảnh</button>
-                  <button onClick={() => setStyle(FilmStyle.ANIMATION)} disabled={isLoading} className={`p-2 rounded border text-xs font-bold uppercase flex items-center justify-center gap-2 ${style === FilmStyle.ANIMATION ? 'bg-amber-600/10 border-amber-500 text-amber-500' : 'bg-[#151515] border-gray-800 text-gray-400'}`}><Icons.Sparkles className="w-4 h-4"/> Hoạt hình</button>
+                  <button onClick={() => setStyle(FilmStyle.CINEMATIC)} disabled={isLoading} className={`p-2 rounded border text-xs font-bold uppercase flex items-center justify-center gap-2 transition-all ${style === FilmStyle.CINEMATIC ? 'bg-cyan-600/20 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-600 text-slate-400'}`}><Icons.Film className="w-4 h-4"/> Điện ảnh</button>
+                  <button onClick={() => setStyle(FilmStyle.ANIMATION)} disabled={isLoading} className={`p-2 rounded border text-xs font-bold uppercase flex items-center justify-center gap-2 transition-all ${style === FilmStyle.ANIMATION ? 'bg-cyan-600/20 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-600 text-slate-400'}`}><Icons.Sparkles className="w-4 h-4"/> Hoạt hình</button>
                </div>
             </div>
-            <button onClick={handleSubmit} disabled={isLoading || !idea.trim()} className={`w-full py-3.5 bg-amber-600 hover:bg-amber-500 text-black font-bold text-sm uppercase tracking-widest rounded-md transition-all ${isLoading ? 'opacity-50 cursor-not-allowed' : 'shadow-lg shadow-amber-900/20'}`}>
+
+            <button onClick={handleSubmit} disabled={isLoading || !idea.trim()} className={`w-full py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-sm uppercase tracking-widest rounded-lg transition-all transform active:scale-95 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'shadow-lg shadow-cyan-900/20'}`}>
                {isLoading ? "Đang xử lý..." : "Tạo Kịch Bản"}
             </button>
+            
             {error && <div className="p-3 bg-red-900/20 border border-red-500/50 rounded text-red-400 text-xs text-center">{error}</div>}
          </div>
       </div>
 
       {/* Right Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0f0f0f] relative">
+      <div className="w-full lg:w-2/3 flex-shrink-0 h-full overflow-hidden relative flex flex-col bg-slate-900/50 rounded-2xl border border-slate-700">
          {!content && !isLoading && (
             <div className="flex flex-col items-center justify-center h-full opacity-30 select-none">
-               <div className="w-24 h-24 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center mb-4"><Icons.Film className="w-10 h-10 text-gray-500" /></div>
-               <h3 className="text-xl font-light text-gray-300">Kịch bản sẽ xuất hiện tại đây</h3>
+               <div className="w-24 h-24 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mb-4"><Icons.Film className="w-10 h-10 text-slate-600" /></div>
+               <h3 className="text-xl font-light text-slate-400">Kịch bản sẽ xuất hiện tại đây</h3>
             </div>
          )}
          {isLoading && (
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-               <div className="w-16 h-16 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-               <p className="text-amber-500 font-bold tracking-widest animate-pulse">AI ĐANG SUY NGHĨ...</p>
+            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-40 flex flex-col items-center justify-center rounded-2xl">
+               <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+               <p className="text-cyan-400 font-bold tracking-widest animate-pulse">AI ĐANG SUY NGHĨ...</p>
             </div>
          )}
          {content && (
-            <div className="p-8 pb-20 max-w-5xl mx-auto">
-               <div className="sticky top-0 z-30 bg-[#0f0f0f]/95 backdrop-blur py-4 mb-8 border-b border-gray-800 flex items-center justify-between">
-                  <div className="flex bg-black p-1 rounded-lg border border-gray-800">
-                     <button onClick={() => setActiveLang('vi')} className={`px-4 py-1.5 rounded text-xs font-bold uppercase ${activeLang === 'vi' ? 'bg-amber-600 text-black' : 'text-gray-500 hover:text-gray-300'}`}>Tiếng Việt</button>
-                     <button onClick={() => setActiveLang('en')} className={`px-4 py-1.5 rounded text-xs font-bold uppercase ${activeLang === 'en' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>English</button>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pb-20">
+               <div className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur py-4 mb-8 border-b border-slate-700 flex items-center justify-between -mt-8 pt-8">
+                  <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
+                     <button onClick={() => setActiveLang('vi')} className={`px-4 py-1.5 rounded text-xs font-bold uppercase transition-all ${activeLang === 'vi' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>Tiếng Việt</button>
+                     <button onClick={() => setActiveLang('en')} className={`px-4 py-1.5 rounded text-xs font-bold uppercase transition-all ${activeLang === 'en' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}>English</button>
                   </div>
-                  <button onClick={handleDownloadScript} className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded border border-gray-700 text-xs font-bold uppercase"><Icons.Download className="w-4 h-4"/> Tải Kịch Bản</button>
+                  <button onClick={handleDownloadScript} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-600 text-xs font-bold uppercase transition-all"><Icons.Download className="w-4 h-4"/> Tải Kịch Bản</button>
                </div>
 
                <div className="mb-10 text-center">
-                  <h1 className="text-3xl font-bold text-amber-500 tracking-wider uppercase font-serif inline-block relative group cursor-pointer" onClick={() => handleCopyOne(content.title[activeLang], 'title')}>
+                  <h1 className="text-3xl font-bold text-cyan-400 tracking-wider uppercase font-serif inline-block relative group cursor-pointer" onClick={() => handleCopyOne(content.title[activeLang], 'title')}>
                      {content.title[activeLang]}
-                     <span className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500"><Icons.Clipboard className="w-5 h-5"/></span>
+                     <span className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500"><Icons.Clipboard className="w-5 h-5"/></span>
                   </h1>
-                  <div className="h-1 w-24 bg-gradient-to-r from-transparent via-amber-700 to-transparent mx-auto rounded-full mt-2"></div>
+                  <div className="h-1 w-24 bg-gradient-to-r from-transparent via-cyan-700 to-transparent mx-auto rounded-full mt-2"></div>
                </div>
 
                {/* Sections */}
                {[
-                  { title: "Thiết Kế Trang Phục", items: content.generated_costume_prompt ? [content.generated_costume_prompt] : [], icon: Icons.Sparkles, color: "text-purple-400", id: 'costume' },
-                  { title: "Bối Cảnh", items: content.context, icon: Icons.Map, color: "text-blue-400", id: 'ctx' },
-                  { title: "Nhân Vật Phụ", items: content.characters, icon: Icons.UserGroup, color: "text-green-400", id: 'char' },
-                  { title: "Kịch Bản Phân Cảnh", items: content.script, icon: Icons.Film, color: "text-amber-500", id: 'scene', isScript: true }
+                  { title: "Thiết Kế Trang Phục", items: content.generated_costume_prompt ? [content.generated_costume_prompt] : [], icon: Icons.Sparkles, color: "text-purple-400", borderColor: "border-purple-500", id: 'costume' },
+                  { title: "Bối Cảnh", items: content.context, icon: Icons.Map, color: "text-blue-400", borderColor: "border-blue-500", id: 'ctx' },
+                  { title: "Nhân Vật Phụ", items: content.characters, icon: Icons.UserGroup, color: "text-green-400", borderColor: "border-green-500", id: 'char' },
+                  { title: "Kịch Bản Phân Cảnh", items: content.script, icon: Icons.Film, color: "text-cyan-400", borderColor: "border-cyan-500", id: 'scene', isScript: true }
                ].map((section: any) => (
                   section.items.length > 0 && (
                      <div key={section.id} className="mb-12">
-                        <div className={`flex items-center gap-3 mb-6 pb-3 border-b border-gray-800`}>
+                        <div className={`flex items-center gap-3 mb-6 pb-3 border-b border-slate-700`}>
                            <section.icon className={`w-6 h-6 ${section.color}`} />
                            <h2 className={`text-xl font-bold uppercase tracking-wider ${section.color}`}>{section.title}</h2>
-                           <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full">{section.items.length} Prompt</span>
-                           <button onClick={() => handleCopyAll(section.items)} className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-[#222] border border-gray-700 hover:bg-[#333] rounded text-gray-400 hover:text-white transition-all"><Icons.Duplicate className="w-4 h-4"/> <span className="text-[10px] font-bold uppercase">Copy All</span></button>
+                           <span className="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full">{section.items.length} Prompt</span>
+                           <button onClick={() => handleCopyAll(section.items)} className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-600 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-all"><Icons.Duplicate className="w-4 h-4"/> <span className="text-[10px] font-bold uppercase">Copy All</span></button>
                         </div>
                         <div className="space-y-4">
                            {section.isScript && (
                               <div className="relative group/divider py-2 flex flex-col items-center justify-center z-10">
-                                 <button onClick={() => setAddingAtIndex(-1)} className="opacity-0 group-hover/divider:opacity-100 flex items-center gap-2 px-3 py-1 bg-gray-800 border border-gray-600 rounded-full text-xs text-gray-300 hover:text-amber-500 hover:border-amber-500 transition-all mb-2"><Icons.Plus className="w-4 h-4"/> Thêm cảnh đầu</button>
+                                 <button onClick={() => setAddingAtIndex(-1)} className="opacity-0 group-hover/divider:opacity-100 flex items-center gap-2 px-3 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-all mb-2"><Icons.Plus className="w-4 h-4"/> Thêm cảnh đầu</button>
                                  {addingAtIndex === -1 && <div className="w-full"><SceneInputForm placeholder="Mô tả cảnh mới..." submitLabel="Tạo Prompt" onCancel={() => setAddingAtIndex(null)} onSubmit={(t) => handleAddScene(t, -1)} isProcessing={isProcessingItem} /></div>}
                               </div>
                            )}
@@ -660,20 +677,20 @@ const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
                               const isEditing = editingIndex === idx && section.isScript;
                               return (
                                  <React.Fragment key={idx}>
-                                    <div className={`flex flex-col md:flex-row gap-4 p-5 bg-[#1a1a1a] border rounded-lg transition-colors group relative ${isEditing ? 'border-amber-500' : 'border-gray-800 hover:border-gray-600'}`}>
+                                    <div className={`flex flex-col md:flex-row gap-4 p-5 bg-slate-800/50 border rounded-lg transition-colors group relative ${isEditing ? 'border-cyan-500' : 'border-slate-700 hover:border-slate-500'}`}>
                                        <div className="flex-1 min-w-0">
                                           <div className="mb-2 flex items-center justify-between">
-                                             <span className={`inline-block text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-black/40 border border-gray-700/50 ${section.color}`}>{section.id === 'scene' ? `SCENE ${idx + 1}` : `#${idx + 1}`}</span>
-                                             {section.isScript && !isEditing && <button onClick={() => setEditingIndex(idx)} className="text-gray-600 hover:text-amber-500 px-2" title="Sửa"><Icons.Pencil className="w-4 h-4"/></button>}
+                                             <span className={`inline-block text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-slate-900/50 border border-slate-600/50 ${section.color}`}>{section.id === 'scene' ? `SCENE ${idx + 1}` : `#${idx + 1}`}</span>
+                                             {section.isScript && !isEditing && <button onClick={() => setEditingIndex(idx)} className="text-slate-500 hover:text-cyan-400 px-2" title="Sửa"><Icons.Pencil className="w-4 h-4"/></button>}
                                           </div>
                                           {isEditing ? (
                                              <SceneInputForm initialText="" placeholder={`Gợi ý sửa lại cảnh ${idx + 1}...`} submitLabel="Viết Lại" onCancel={() => setEditingIndex(null)} onSubmit={(t) => handleRegenerateScene(t, idx)} isProcessing={isProcessingItem} />
                                           ) : (
-                                             <p className="text-gray-300 text-base leading-relaxed whitespace-pre-wrap">{item[activeLang]}</p>
+                                             <p className="text-slate-300 text-base leading-relaxed whitespace-pre-wrap">{item[activeLang]}</p>
                                           )}
                                        </div>
                                        {!isEditing && (
-                                          <button onClick={() => handleCopyOne(item[activeLang], `${section.id}-${idx}`)} className={`shrink-0 w-full md:w-24 flex flex-row md:flex-col items-center justify-center gap-2 px-4 py-2 rounded border transition-all ${copiedIds.has(`${section.id}-${idx}`) ? 'bg-green-900/20 border-green-600/50 text-green-500' : 'bg-black border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>
+                                          <button onClick={() => handleCopyOne(item[activeLang], `${section.id}-${idx}`)} className={`shrink-0 w-full md:w-24 flex flex-row md:flex-col items-center justify-center gap-2 px-4 py-2 rounded border transition-all ${copiedIds.has(`${section.id}-${idx}`) ? 'bg-green-900/20 border-green-600/50 text-green-500' : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'}`}>
                                              {copiedIds.has(`${section.id}-${idx}`) ? <Icons.Check className="w-5 h-5"/> : <Icons.Clipboard className="w-5 h-5"/>}
                                              <span className="text-[10px] font-bold uppercase">{copiedIds.has(`${section.id}-${idx}`) ? 'Đã Chép' : 'Sao Chép'}</span>
                                           </button>
@@ -681,8 +698,8 @@ const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
                                     </div>
                                     {section.isScript && (
                                        <div className="relative group/divider py-2 flex flex-col items-center justify-center z-10">
-                                          <button onClick={() => setAddingAtIndex(idx)} className="opacity-0 group-hover/divider:opacity-100 flex items-center gap-2 px-3 py-1 bg-gray-800 border border-gray-600 rounded-full text-xs text-gray-300 hover:text-amber-500 hover:border-amber-500 transition-all mb-2 transform hover:scale-105"><Icons.Plus className="w-4 h-4"/> Thêm cảnh</button>
-                                          <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gray-800 -z-0 opacity-0 group-hover/divider:opacity-50"></div>
+                                          <button onClick={() => setAddingAtIndex(idx)} className="opacity-0 group-hover/divider:opacity-100 flex items-center gap-2 px-3 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-all mb-2 transform hover:scale-105"><Icons.Plus className="w-4 h-4"/> Thêm cảnh</button>
+                                          <div className="absolute top-1/2 left-0 w-full h-[1px] bg-slate-700 -z-0 opacity-0 group-hover/divider:opacity-50"></div>
                                           {addingAtIndex === idx && <div className="w-full relative z-50"><SceneInputForm placeholder="Mô tả cảnh mới..." submitLabel="Tạo Prompt" onCancel={() => setAddingAtIndex(null)} onSubmit={(t) => handleAddScene(t, idx)} isProcessing={isProcessingItem} /></div>}
                                        </div>
                                     )}
