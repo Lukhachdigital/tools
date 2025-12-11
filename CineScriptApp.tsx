@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -64,8 +63,13 @@ const Icons = {
 };
 
 // ==========================================
-// 3. AI SERVICES
+// 3. UTILS & AI SERVICES
 // ==========================================
+
+const cleanJsonString = (str: string): string => {
+    // Remove markdown code blocks if present
+    return str.replace(/```json\n?|```/g, '').trim();
+};
 
 const buildBasePrompt = (request: ScriptRequest, sceneCount: number, randomSeed: string) => {
     const { idea, duration, style, costumeMode } = request;
@@ -177,9 +181,35 @@ const generateScript = async (request: ScriptRequest, geminiApiKey: string, open
     let finalError: unknown;
     let result: GeneratedContent | null = null;
 
-    // 1. Try Gemini (Priority if selected or Auto)
-    if ((selectedModel === 'gemini' || selectedModel === 'auto') && geminiApiKey) {
+    // 1. Try OpenAI (Priority if selected or Auto)
+    if ((selectedModel === 'openai' || (selectedModel === 'auto' && openaiApiKey))) {
         try {
+            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cài đặt.");
+            const openAIPrompt = `${basePrompt}\nIMPORTANT: You MUST return a valid JSON object matching the requested structure EXACTLY. DO NOT output Markdown blocks. Just raw JSON.`;
+            const messages: any[] = [{ role: "user", content: [{ type: "text", text: openAIPrompt }] }];
+            if (request.imageData && request.imageMimeType) messages[0].content.push({ type: "image_url", image_url: { url: `data:${request.imageMimeType};base64,${request.imageData}` } });
+            if (request.optionalImageData && request.optionalImageMimeType) messages[0].content.push({ type: "image_url", image_url: { url: `data:${request.optionalImageMimeType};base64,${request.optionalImageData}` } });
+
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openaiApiKey}` },
+                body: JSON.stringify({ model: "gpt-4o", messages: messages, response_format: { type: "json_object" }, temperature: 0.9 })
+            });
+
+            if (!response.ok) throw new Error(`OpenAI Error: ${await response.text()}`);
+            const apiResult = await response.json();
+            result = JSON.parse(apiResult.choices[0].message.content) as GeneratedContent;
+        } catch (e) {
+            console.error("OpenAI failed", e);
+            if (selectedModel === 'openai') throw e;
+            finalError = e;
+        }
+    }
+
+    // 2. Try Gemini (Fallback or Priority)
+    if (!result && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiApiKey))) {
+        try {
+            if (!geminiApiKey) throw new Error("Gemini API Key chưa được cài đặt.");
             const ai = new GoogleGenAI({ apiKey: geminiApiKey });
             const responseSchema = {
                 type: Type.OBJECT,
@@ -202,7 +232,7 @@ const generateScript = async (request: ScriptRequest, geminiApiKey: string, open
                 contents: [{ role: 'user', parts: parts }],
                 config: { temperature: 0.9, responseMimeType: "application/json", responseSchema: responseSchema }
             });
-            result = JSON.parse(response.text || "{}") as GeneratedContent;
+            result = JSON.parse(cleanJsonString(response.text || "{}")) as GeneratedContent;
         } catch (geminiError) {
             console.error("Gemini Failed:", geminiError);
             if (selectedModel === 'gemini') throw geminiError;
@@ -210,32 +240,8 @@ const generateScript = async (request: ScriptRequest, geminiApiKey: string, open
         }
     }
 
-    // 2. Try OpenAI (Fallback or Priority)
-    if (!result && (selectedModel === 'openai' || selectedModel === 'auto') && openaiApiKey) {
-        try {
-            const openAIPrompt = `${basePrompt}\nIMPORTANT: You MUST return a valid JSON object matching the requested structure EXACTLY. DO NOT output Markdown blocks. Just raw JSON.`;
-            const messages: any[] = [{ role: "user", content: [{ type: "text", text: openAIPrompt }] }];
-            if (request.imageData && request.imageMimeType) messages[0].content.push({ type: "image_url", image_url: { url: `data:${request.imageMimeType};base64,${request.imageData}` } });
-            if (request.optionalImageData && request.optionalImageMimeType) messages[0].content.push({ type: "image_url", image_url: { url: `data:${request.optionalImageMimeType};base64,${request.optionalImageData}` } });
-
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openaiApiKey}` },
-                body: JSON.stringify({ model: "gpt-4o", messages: messages, response_format: { type: "json_object" }, temperature: 0.9 })
-            });
-
-            if (!response.ok) throw new Error(`OpenAI Error: ${await response.text()}`);
-            const apiResult = await response.json();
-            result = JSON.parse(apiResult.choices[0].message.content) as GeneratedContent;
-        } catch (e) {
-            console.error("OpenAI failed", e);
-            if (selectedModel === 'openai') throw e;
-            finalError = e;
-        }
-    }
-
     if (result) return result;
-    throw finalError || new Error("No compatible API service available for the selected model.");
+    throw finalError || new Error("Không thể tạo kịch bản từ bất kỳ API nào.");
 };
 
 const generateSingleScene = async (instruction: string, style: FilmStyle, geminiApiKey: string, openaiApiKey: string, selectedModel: string): Promise<PromptItem> => {
@@ -264,25 +270,10 @@ const generateSingleScene = async (instruction: string, style: FilmStyle, gemini
     let result: PromptItem | null = null;
     let finalError;
 
-    // 1. Try Gemini
-    if ((selectedModel === 'gemini' || selectedModel === 'auto') && geminiApiKey) {
+    // 1. Try OpenAI (Priority if selected or Auto)
+    if ((selectedModel === 'openai' || (selectedModel === 'auto' && openaiApiKey))) {
         try {
-            const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                config: { temperature: 0.9, responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { vi: { type: Type.STRING }, en: { type: Type.STRING } }, required: ["vi", "en"] } }
-            });
-            result = JSON.parse(response.text || "{}") as PromptItem;
-        } catch (err) {
-            if (selectedModel === 'gemini') throw err;
-            finalError = err;
-        }
-    }
-
-    // 2. Try OpenAI
-    if (!result && (selectedModel === 'openai' || selectedModel === 'auto') && openaiApiKey) {
-        try {
+            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cài đặt.");
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openaiApiKey}` },
@@ -296,8 +287,25 @@ const generateSingleScene = async (instruction: string, style: FilmStyle, gemini
         }
     }
 
+    // 2. Try Gemini (Fallback or Priority)
+    if (!result && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiApiKey))) {
+        try {
+            if (!geminiApiKey) throw new Error("Gemini API Key chưa được cài đặt.");
+            const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                config: { temperature: 0.9, responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { vi: { type: Type.STRING }, en: { type: Type.STRING } }, required: ["vi", "en"] } }
+            });
+            result = JSON.parse(cleanJsonString(response.text || "{}")) as PromptItem;
+        } catch (err) {
+            if (selectedModel === 'gemini') throw err;
+            finalError = err;
+        }
+    }
+
     if (result) return result;
-    throw finalError || new Error("No compatible API Service Available");
+    throw finalError || new Error("Không thể tạo cảnh từ bất kỳ API nào.");
 };
 
 // ==========================================
