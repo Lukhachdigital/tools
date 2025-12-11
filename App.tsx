@@ -519,9 +519,6 @@ const App = () => {
     const [openaiApiKey, setOpenaiApiKey] = useState('');
     const [selectedAIModel, setSelectedAIModel] = useState('auto'); // 'auto', 'gemini', 'openai'
     
-    // Auth state for CineScript
-    const [isCineScriptUnlocked, setIsCineScriptUnlocked] = useState(false);
-
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
 
@@ -595,17 +592,7 @@ const App = () => {
     };
 
     const handleToolClick = (toolId: string) => {
-        if (toolId === 'cinescript' && !isCineScriptUnlocked) {
-            const password = window.prompt("Vui lòng nhập mật khẩu để truy cập CineScript AI:");
-            if (password === "34LC-1SPO-WQUD-FFNW") {
-                setIsCineScriptUnlocked(true);
-                setCurrentView(toolId);
-            } else {
-                alert("Mật khẩu không chính xác.");
-            }
-        } else {
-            setCurrentView(toolId);
-        }
+        setCurrentView(toolId);
     };
 
     const handleOpenTutorial = () => {
