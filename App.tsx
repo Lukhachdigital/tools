@@ -17,6 +17,7 @@ import AudioChoppingApp from './AudioChoppingApp';
 import AudioToPromptVideoApp from './AudioToPromptVideoApp';
 import ContentPodcastApp from './ContentPodcastApp';
 import FoodReviewApp from './FoodReviewApp';
+import CineScriptApp from './CineScriptApp';
 
 // Import Constants Links
 import { APP_LINKS, SOCIAL_LINKS, TUTORIAL_LINKS, FALLBACK_TUTORIAL } from './constants';
@@ -227,6 +228,20 @@ const IconFoodReview = (props: React.SVGProps<SVGSVGElement>) => {
     return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" }),
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M21 12a9 9 0 11-18 0 9 9 0 0118 0z" })
+    );
+};
+
+const IconCineScript = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" })
     );
 };
 
@@ -503,6 +518,9 @@ const App = () => {
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
     const [selectedAIModel, setSelectedAIModel] = useState('auto'); // 'auto', 'gemini', 'openai'
+    
+    // Auth state for CineScript
+    const [isCineScriptUnlocked, setIsCineScriptUnlocked] = useState(false);
 
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
@@ -525,6 +543,7 @@ const App = () => {
         { id: 'youtube_external', text: 'Youtube ngoại', title: 'Công cụ tối ưu Youtube view ngoại', icon: React.createElement(IconYoutubeExternal), description: 'Dịch nội dung sang nhiều ngôn ngữ chuẩn ngữ pháp để tiếp cận khán giả toàn cầu.' },
         { id: 'content_podcast', text: 'Content Podcast', title: 'AI Sáng Tạo Nội Dung Đa Lĩnh Vực', icon: React.createElement(IconContentPodcast), description: 'Sáng tạo nội dung bài viết sâu sắc, đa lĩnh vực với AI.' },
         { id: 'food_review', text: 'Food Review', title: 'FoodReview AI Studio', icon: React.createElement(IconFoodReview), description: 'Tạo kịch bản, hình ảnh, và nội dung review món ăn chuyên nghiệp.' },
+        { id: 'cinescript', text: 'CineScript AI', title: 'CineScript AI - Hollywood Screenwriter', icon: React.createElement(IconCineScript), description: 'Chuyên gia viết kịch bản phim Hollywood, tạo prompt chi tiết từng cảnh quay.' },
     ];
     
     const orderedIds = [
@@ -544,7 +563,8 @@ const App = () => {
         'seo_youtube', 
         'youtube_external',
         'content_podcast',
-        'food_review'
+        'food_review',
+        'cinescript'
     ];
 
     const sidebarTools = orderedIds.map(id => allTools.find(tool => tool.id === id)).filter(Boolean);
@@ -575,7 +595,17 @@ const App = () => {
     };
 
     const handleToolClick = (toolId: string) => {
-        setCurrentView(toolId);
+        if (toolId === 'cinescript' && !isCineScriptUnlocked) {
+            const password = window.prompt("Vui lòng nhập mật khẩu để truy cập CineScript AI:");
+            if (password === "34LC-1SPO-WQUD-FFNW") {
+                setIsCineScriptUnlocked(true);
+                setCurrentView(toolId);
+            } else {
+                alert("Mật khẩu không chính xác.");
+            }
+        } else {
+            setCurrentView(toolId);
+        }
     };
 
     const handleOpenTutorial = () => {
@@ -637,6 +667,7 @@ const App = () => {
             case 'app_affiliate': return React.createElement(AppAffiliate, appProps);
             case 'content_podcast': return React.createElement(ContentPodcastApp, appProps);
             case 'food_review': return React.createElement(FoodReviewApp, appProps);
+            case 'cinescript': return React.createElement(CineScriptApp, appProps);
             case 'dashboard':
             default:
                 return React.createElement(Dashboard, { onToolClick: handleToolClick });
