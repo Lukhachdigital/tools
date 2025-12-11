@@ -710,7 +710,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
                   body: JSON.stringify({
                       model: 'dall-e-3',
-                      prompt: `${imagePrompt}. Style: Cinematic, Photorealistic, 8k, highly detailed photograph. NO cartoon, NO illustration.`,
+                      prompt: `${imagePrompt}. Style: Hình ảnh chân thực, Cinematic, Photorealistic, highly detailed photograph. NO cartoon, NO illustration.`,
                       n: 1,
                       size: '1792x1024',
                       response_format: 'b64_json',
