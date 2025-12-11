@@ -59,7 +59,9 @@ const Icons = {
   Plus: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>,
   ArrowPath: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>,
   Copy: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" /></svg>,
-  Duplicate: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" /></svg>
+  Duplicate: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" /></svg>,
+  Lock: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
+  Unlock: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
 };
 
 // ==========================================
@@ -312,6 +314,71 @@ const generateSingleScene = async (instruction: string, style: FilmStyle, gemini
 // 4. COMPONENTS
 // ==========================================
 
+const PasswordProtection = ({ onUnlock }: { onUnlock: () => void }) => {
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState(false);
+
+    const handleUnlock = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (password === '34LC-1SPO-WQUD-FFNW') {
+            onUnlock();
+        } else {
+            setError(true);
+            setTimeout(() => setError(false), 2000); // Clear error animation after 2s
+        }
+    };
+
+    return (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0a0a0a] backdrop-blur-md">
+            <div className="bg-[#121212] p-8 rounded-2xl border border-amber-600/30 shadow-2xl max-w-md w-full mx-4 flex flex-col items-center relative overflow-hidden">
+                {/* Background Glow */}
+                <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-amber-600/5 rotate-45 pointer-events-none" />
+                
+                <div className="w-20 h-20 bg-amber-900/20 rounded-full flex items-center justify-center mb-6 border border-amber-600/50 shadow-inner">
+                    <Icons.Lock className="w-10 h-10 text-amber-500" />
+                </div>
+                
+                <h2 className="text-2xl font-bold text-amber-500 mb-2 font-serif uppercase tracking-widest text-center">
+                    Restricted Access
+                </h2>
+                <p className="text-gray-400 text-sm mb-8 text-center px-4">
+                    Ứng dụng này yêu cầu mã truy cập đặc biệt để sử dụng.
+                </p>
+
+                <form onSubmit={handleUnlock} className="w-full space-y-4 relative z-10">
+                    <div className="relative">
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Nhập mã truy cập..."
+                            className={`w-full bg-[#0a0a0a] border ${error ? 'border-red-500 animate-shake' : 'border-gray-700 focus:border-amber-500'} rounded-lg py-3 px-4 text-center text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all duration-300 font-mono tracking-widest`}
+                            autoFocus
+                        />
+                        {error && (
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500">
+                                <Icons.XMark className="w-5 h-5"/>
+                            </span>
+                        )}
+                    </div>
+                    
+                    <button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-black font-bold py-3 px-6 rounded-lg transition-all duration-300 transform active:scale-95 shadow-lg shadow-amber-900/20 flex items-center justify-center gap-2 uppercase tracking-wide"
+                    >
+                        <Icons.Unlock className="w-5 h-5" />
+                        Mở Khóa
+                    </button>
+                </form>
+                
+                <p className="mt-6 text-[10px] text-gray-600 uppercase tracking-widest">
+                    CineScript AI Security System
+                </p>
+            </div>
+        </div>
+    );
+};
+
 const SceneInputForm = ({ 
   initialText = '', placeholder, submitLabel, onCancel, onSubmit, isProcessing 
 }: { 
@@ -342,6 +409,7 @@ const SceneInputForm = ({
 };
 
 const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }> = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
+  const [isUnlocked, setIsUnlocked] = useState(false);
   const [content, setContent] = useState<GeneratedContent | null>(null);
   const [idea, setIdea] = useState('');
   const [duration, setDuration] = useState<string>('1');
@@ -456,8 +524,12 @@ const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
     document.body.removeChild(element);
   };
 
+  if (!isUnlocked) {
+      return <PasswordProtection onUnlock={() => setIsUnlocked(true)} />;
+  }
+
   return (
-    <div className="flex flex-col lg:flex-row h-full bg-[#0f0f0f] text-gray-200 overflow-hidden font-sans">
+    <div className="flex flex-col lg:flex-row h-full bg-[#0f0f0f] text-gray-200 overflow-hidden font-sans relative">
       {/* Left Sidebar */}
       <div className="w-full lg:w-[400px] flex-shrink-0 bg-[#0a0a0a] border-r border-gray-800 p-6 overflow-y-auto">
          <h2 className="text-xl font-bold text-amber-500 mb-6 flex items-center gap-2 font-serif uppercase tracking-widest">
