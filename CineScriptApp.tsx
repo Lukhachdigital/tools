@@ -320,7 +320,7 @@ const PasswordProtection = ({ onUnlock, onClose }: { onUnlock: () => void, onClo
 
     const handleUnlock = (e: React.FormEvent) => {
         e.preventDefault();
-        if (password === '34LC-1SPO-WQUD-FFNW') {
+        if (password === 'cinescript') {
             onUnlock();
         } else {
             setError(true);
