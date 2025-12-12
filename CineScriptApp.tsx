@@ -230,7 +230,8 @@ const generateScript = async (request: ScriptRequest, geminiApiKey: string, open
             if (request.optionalImageData && request.optionalImageMimeType) parts.push({ inlineData: { data: request.optionalImageData, mimeType: request.optionalImageMimeType } });
 
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                // Fix: Use a more powerful model for complex scriptwriting tasks.
+                model: 'gemini-3-pro-preview',
                 contents: [{ role: 'user', parts: parts }],
                 config: { temperature: 0.9, responseMimeType: "application/json", responseSchema: responseSchema }
             });
@@ -295,7 +296,8 @@ const generateSingleScene = async (instruction: string, style: FilmStyle, gemini
             if (!geminiApiKey) throw new Error("Gemini API Key chưa được cài đặt.");
             const ai = new GoogleGenAI({ apiKey: geminiApiKey });
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                // Fix: Use a more powerful model for complex scriptwriting tasks.
+                model: 'gemini-3-pro-preview',
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 config: { temperature: 0.9, responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { vi: { type: Type.STRING }, en: { type: Type.STRING } }, required: ["vi", "en"] } }
             });
