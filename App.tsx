@@ -18,6 +18,7 @@ import AudioToPromptVideoApp from './AudioToPromptVideoApp';
 import ContentPodcastApp from './ContentPodcastApp';
 import FoodReviewApp from './FoodReviewApp';
 import CineScriptApp from './CineScriptApp';
+import CloneSceneVideoApp from './CloneSceneVideoApp';
 
 // Import Constants Links
 import { APP_LINKS, SOCIAL_LINKS, TUTORIAL_LINKS, FALLBACK_TUTORIAL } from './constants';
@@ -242,6 +243,20 @@ const IconCineScript = (props: React.SVGProps<SVGSVGElement>) => {
     };
     return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" })
+    );
+};
+
+const IconCloneSceneVideo = (props: React.SVGProps<SVGSVGElement>) => {
+    const svgProps: React.SVGProps<SVGSVGElement> = {
+        ...iconProps,
+        xmlns: "http://www.w3.org/2000/svg",
+        fill: "none",
+        viewBox: "0 0 24 24",
+        stroke: "currentColor",
+        ...props
+    };
+    return React.createElement('svg', svgProps,
+        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" })
     );
 };
 
@@ -541,6 +556,7 @@ const App = () => {
         { id: 'content_podcast', text: 'Content Podcast', title: 'AI Sáng Tạo Nội Dung Đa Lĩnh Vực', icon: React.createElement(IconContentPodcast), description: 'Sáng tạo nội dung bài viết sâu sắc, đa lĩnh vực với AI.' },
         { id: 'food_review', text: 'Food Review', title: 'FoodReview AI Studio', icon: React.createElement(IconFoodReview), description: 'Tạo kịch bản, hình ảnh, và nội dung review món ăn chuyên nghiệp.' },
         { id: 'cinescript', text: 'CineScript AI', title: 'CineScript AI - Hollywood Screenwriter', icon: React.createElement(IconCineScript), description: 'Chuyên gia viết kịch bản phim Hollywood, tạo prompt chi tiết từng cảnh quay.' },
+        { id: 'clone_scene_video', text: 'Clone Scene Video', title: 'Clone Scene Video AI', icon: React.createElement(IconCloneSceneVideo), description: 'Phân tích video/ảnh và tạo prompt tái tạo cảnh quay hoàn hảo.' },
     ];
     
     const orderedIds = [
@@ -561,7 +577,8 @@ const App = () => {
         'youtube_external',
         'content_podcast',
         'food_review',
-        'cinescript'
+        'cinescript',
+        'clone_scene_video'
     ];
 
     const sidebarTools = orderedIds.map(id => allTools.find(tool => tool.id === id)).filter(Boolean);
@@ -655,6 +672,7 @@ const App = () => {
             case 'content_podcast': return React.createElement(ContentPodcastApp, appProps);
             case 'food_review': return React.createElement(FoodReviewApp, appProps);
             case 'cinescript': return React.createElement(CineScriptApp, { ...appProps, onGoBack: () => setCurrentView('dashboard') });
+            case 'clone_scene_video': return React.createElement(CloneSceneVideoApp, { ...appProps, onGoBack: () => setCurrentView('dashboard') });
             case 'dashboard':
             default:
                 return React.createElement(Dashboard, { onToolClick: handleToolClick });
