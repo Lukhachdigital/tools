@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -20,8 +19,6 @@ import ContentPodcastApp from './ContentPodcastApp';
 import FoodReviewApp from './FoodReviewApp';
 import CineScriptApp from './CineScriptApp';
 import CloneSceneVideoApp from './CloneSceneVideoApp';
-// Fix: Changed to a named import to resolve module resolution error.
-import { GeneratePromptApp } from './GeneratePromptApp';
 
 // Import Constants Links
 import { APP_LINKS, SOCIAL_LINKS, TUTORIAL_LINKS, FALLBACK_TUTORIAL } from './constants';
@@ -260,20 +257,6 @@ const IconCloneSceneVideo = (props: React.SVGProps<SVGSVGElement>) => {
     };
     return React.createElement('svg', svgProps,
         React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" })
-    );
-};
-
-const IconGeneratePrompt = (props: React.SVGProps<SVGSVGElement>) => {
-    const svgProps: React.SVGProps<SVGSVGElement> = {
-        ...iconProps,
-        xmlns: "http://www.w3.org/2000/svg",
-        fill: "none",
-        viewBox: "0 0 24 24",
-        stroke: "currentColor",
-        ...props
-    };
-    return React.createElement('svg', svgProps,
-        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", d: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" })
     );
 };
 
@@ -574,7 +557,6 @@ const App = () => {
         { id: 'food_review', text: 'Food Review', title: 'FoodReview AI Studio', icon: React.createElement(IconFoodReview), description: 'Tạo kịch bản, hình ảnh, và nội dung review món ăn chuyên nghiệp.' },
         { id: 'cinescript', text: 'CineScript AI', title: 'CineScript AI - Hollywood Screenwriter', icon: React.createElement(IconCineScript), description: 'Chuyên gia viết kịch bản phim Hollywood, tạo prompt chi tiết từng cảnh quay.' },
         { id: 'clone_scene_video', text: 'Clone Scene Video', title: 'Clone Scene Video AI', icon: React.createElement(IconCloneSceneVideo), description: 'Phân tích video/ảnh và tạo prompt tái tạo cảnh quay hoàn hảo.' },
-        { id: 'generate_prompt', text: 'Generate Prompt', title: 'Generate Prompt - AI Screenwriter', icon: React.createElement(IconGeneratePrompt), description: 'Chuyển ý tưởng thành kịch bản phân cảnh chi tiết chuẩn điện ảnh.' },
     ];
     
     const orderedIds = [
@@ -596,8 +578,7 @@ const App = () => {
         'content_podcast',
         'food_review',
         'cinescript',
-        'clone_scene_video',
-        'generate_prompt'
+        'clone_scene_video'
     ];
 
     const sidebarTools = orderedIds.map(id => allTools.find(tool => tool.id === id)).filter(Boolean);
@@ -692,7 +673,6 @@ const App = () => {
             case 'food_review': return React.createElement(FoodReviewApp, appProps);
             case 'cinescript': return React.createElement(CineScriptApp, { ...appProps, onGoBack: () => setCurrentView('dashboard') });
             case 'clone_scene_video': return React.createElement(CloneSceneVideoApp, { ...appProps, onGoBack: () => setCurrentView('dashboard') });
-            case 'generate_prompt': return React.createElement(GeneratePromptApp, { ...appProps, onGoBack: () => setCurrentView('dashboard') });
             case 'dashboard':
             default:
                 return React.createElement(Dashboard, { onToolClick: handleToolClick });
