@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -19,7 +20,8 @@ import ContentPodcastApp from './ContentPodcastApp';
 import FoodReviewApp from './FoodReviewApp';
 import CineScriptApp from './CineScriptApp';
 import CloneSceneVideoApp from './CloneSceneVideoApp';
-import GeneratePromptApp from './GeneratePromptApp';
+// Fix: Changed to a named import to resolve module resolution error.
+import { GeneratePromptApp } from './GeneratePromptApp';
 
 // Import Constants Links
 import { APP_LINKS, SOCIAL_LINKS, TUTORIAL_LINKS, FALLBACK_TUTORIAL } from './constants';
