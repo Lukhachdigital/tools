@@ -16,10 +16,10 @@ const AIPromptVEO31App: React.FC<AIPromptVEO31AppProps> = ({ geminiApiKey, opena
   const getInitialApiType = (): 'gemini' | 'gpt' => {
       if (selectedAIModel === 'gemini') return 'gemini';
       if (selectedAIModel === 'openai') return 'gpt';
-      // Auto fallback priority: OpenAI -> Gemini for TEXT
-      if (openaiApiKey) return 'gpt';
+      // Auto fallback priority: Gemini -> OpenAI
       if (geminiApiKey) return 'gemini';
-      return 'gpt';
+      if (openaiApiKey) return 'gpt';
+      return 'gemini'; // Default fallback
   };
 
   const [params, setParams] = useState<Omit<ScriptParams, 'apiKey' | 'numPrompts'>>({
@@ -47,15 +47,15 @@ const AIPromptVEO31App: React.FC<AIPromptVEO31AppProps> = ({ geminiApiKey, opena
     }
 
     let apiKey = '';
-    let currentApiType: 'gemini' | 'gpt' = 'gpt'; // Default to GPT if auto
+    let currentApiType: 'gemini' | 'gpt' = 'gemini'; // Default to Gemini if auto
 
     // 1. Determine API Type
     if (selectedAIModel === 'gemini') currentApiType = 'gemini';
     else if (selectedAIModel === 'openai') currentApiType = 'gpt';
     else {
-        // Auto Mode Priority: OpenAI -> Gemini
-        if (openaiApiKey) currentApiType = 'gpt';
-        else if (geminiApiKey) currentApiType = 'gemini';
+        // Auto Mode Priority: Gemini -> OpenAI
+        if (geminiApiKey) currentApiType = 'gemini';
+        else if (openaiApiKey) currentApiType = 'gpt';
     }
 
     // 2. Select Key based on determined Type

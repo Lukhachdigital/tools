@@ -226,46 +226,8 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
     let finalError: unknown;
     let generatedScenes: Scene[] | null = null;
 
-    // 1. Try OpenAI (Priority)
-    if (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey)) {
-        try {
-            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openaiApiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o',
-                    messages: [
-                        { role: 'system', content: openAISystemInstruction },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) {
-                 const errorData = await response.json();
-                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            const parsedResponse = JSON.parse(data.choices[0].message.content);
-            if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) throw new Error("Phản hồi JSON không hợp lệ từ OpenAI");
-            generatedScenes = parsedResponse.scenes;
-        } catch (e) {
-            console.warn("OpenAI failed", e);
-            if (selectedAIModel === 'openai') { // If user explicitly chose OpenAI, fail here
-                 setError(getApiErrorMessage(e));
-                 setIsGenerating(false);
-                 return;
-            }
-            finalError = e; // Store error and try fallback
-        }
-    }
-
-    // 2. Try Gemini (Fallback)
-    if (!generatedScenes && (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey))) {
+    // 1. Try Gemini (Priority)
+    if (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey)) {
         try {
             if (!geminiApiKey) throw new Error("Gemini API Key chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -311,7 +273,45 @@ For each scene, the "prompt" field must be a JSON object that strictly adheres t
             generatedScenes = JSON.parse(response.text.trim());
         } catch (e) {
             console.warn("Gemini failed", e);
+            if (selectedAIModel === 'gemini') {
+                 setError(getApiErrorMessage(e));
+                 setIsGenerating(false);
+                 return;
+            }
             finalError = e; // Store final error
+        }
+    }
+
+    // 2. Try OpenAI (Fallback)
+    if (!generatedScenes && (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey))) {
+        try {
+            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: openAISystemInstruction },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            const parsedResponse = JSON.parse(data.choices[0].message.content);
+            if (!parsedResponse.scenes || !Array.isArray(parsedResponse.scenes)) throw new Error("Phản hồi JSON không hợp lệ từ OpenAI");
+            generatedScenes = parsedResponse.scenes;
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            finalError = e; // Store error and try fallback
         }
     }
     

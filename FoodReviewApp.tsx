@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 
@@ -299,8 +298,35 @@ const generateCreativePrompts = async (
   let finalError;
   let result: any = null;
 
-  // 1. Try OpenAI (GPT-4o Multimodal)
-  if ((selectedModel === 'openai' || selectedModel === 'auto') && openaiApiKey) {
+  // 1. Try Gemini (Multimodal) (Priority)
+  if ((selectedModel === 'gemini' || selectedModel === 'auto') && geminiApiKey) {
+      try {
+          const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+          
+          const parts = [
+              { text: systemPrompt + " Return JSON." },
+              { inlineData: { mimeType: "image/jpeg", data: faceImageBase64 } }
+          ];
+          if (productImageBase64) {
+              parts.push({ inlineData: { mimeType: "image/jpeg", data: productImageBase64 } });
+          }
+
+          const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: { parts },
+              config: { responseMimeType: "application/json" }
+          });
+          
+          result = JSON.parse(response.text);
+      } catch (e) {
+          console.warn("Gemini failed", e);
+          if (selectedModel === 'gemini') throw e;
+          finalError = e;
+      }
+  }
+
+  // 2. Try OpenAI (GPT-4o Multimodal) (Fallback)
+  if (!result && (selectedModel === 'openai' || selectedModel === 'auto') && openaiApiKey) {
       try {
           const content = [
               { type: "text", text: systemPrompt },
@@ -328,33 +354,6 @@ const generateCreativePrompts = async (
           result = JSON.parse(data.choices[0].message.content);
       } catch (e) {
           console.warn("OpenAI failed", e);
-          if (selectedModel === 'openai') throw e;
-          finalError = e;
-      }
-  }
-
-  // 2. Try Gemini (Multimodal)
-  if (!result && (selectedModel === 'gemini' || selectedModel === 'auto') && geminiApiKey) {
-      try {
-          const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-          
-          const parts = [
-              { text: systemPrompt + " Return JSON." },
-              { inlineData: { mimeType: "image/jpeg", data: faceImageBase64 } }
-          ];
-          if (productImageBase64) {
-              parts.push({ inlineData: { mimeType: "image/jpeg", data: productImageBase64 } });
-          }
-
-          const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: { parts },
-              config: { responseMimeType: "application/json" }
-          });
-          
-          result = JSON.parse(response.text);
-      } catch (e) {
-          console.warn("Gemini failed", e);
           finalError = e;
       }
   }

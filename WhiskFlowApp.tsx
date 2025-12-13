@@ -118,42 +118,8 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
     let finalError: unknown;
     let scenes: Scene[] | null = null;
 
-    // 1. Try OpenAI (Priority)
-    if (model === 'openai' || (model === 'auto' && openaiApiKey)) {
-        try {
-            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openaiApiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o',
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            const jsonText = data.choices[0].message.content;
-            const parsedResponse = JSON.parse(jsonText);
-            if (parsedResponse.scenes) scenes = parsedResponse.scenes;
-        } catch (e) {
-            console.warn("OpenAI failed", e);
-            if (model === 'openai') throw e; // If user explicitly selected OpenAI, throw the error
-            finalError = e; // Otherwise, store error and attempt fallback
-        }
-    }
-
-    // 2. Try Gemini (Fallback)
-    if (!scenes && (model === 'gemini' || (model === 'auto' && geminiApiKey))) {
+    // 1. Try Gemini (Priority)
+    if (model === 'gemini' || (model === 'auto' && geminiApiKey)) {
         try {
             if (!geminiApiKey) throw new Error("Gemini API Key chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -191,7 +157,41 @@ const WhiskFlowApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiA
             if (parsedResponse.scenes) scenes = parsedResponse.scenes;
         } catch (e) {
             console.warn("Gemini failed", e);
+            if (model === 'gemini') throw e;
             finalError = e; // Store final error
+        }
+    }
+
+    // 2. Try OpenAI (Fallback)
+    if (!scenes && (model === 'openai' || (model === 'auto' && openaiApiKey))) {
+        try {
+            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            const jsonText = data.choices[0].message.content;
+            const parsedResponse = JSON.parse(jsonText);
+            if (parsedResponse.scenes) scenes = parsedResponse.scenes;
+        } catch (e) {
+            console.warn("OpenAI failed", e);
+            finalError = e; 
         }
     }
 

@@ -346,10 +346,36 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     const CREATIVE_TEMP = 1.0; 
     let rawResult: GeneratedContent | null = null;
     
-    // Priority: OpenAI -> Gemini for Text
+    // Priority: Gemini -> OpenAI for Text
 
-    // 1. Try OpenAI
-    if (!rawResult && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
+    // 1. Try Gemini
+    if ((selectedModel === 'gemini' || selectedModel === 'auto') && geminiKey) {
+        try {
+            if (!geminiKey) throw new Error("Gemini Key chưa được cài đặt.");
+            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
+            const response = await ai.models.generateContent({
+                model: "gemini-3-pro-preview",
+                contents: userContent,
+                config: {
+                    systemInstruction: systemInstruction,
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema,
+                    temperature: CREATIVE_TEMP,
+                },
+            });
+            rawResult = JSON.parse(response.text.trim());
+        } catch (e) {
+            console.warn("Gemini failed", e);
+            if (selectedModel === 'gemini') {
+                finalError = e;
+            } else {
+                finalError = e; // will fallthrough
+            }
+        }
+    }
+
+    // 2. Try OpenAI
+    if (!rawResult && (selectedModel === 'openai' || selectedModel === 'auto') && openaiKey) {
         try {
             if (!openaiKey) throw new Error("OpenAI Key chưa được cài đặt.");
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -371,28 +397,6 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         } catch (e) {
             console.warn("OpenAI failed", e);
             if (selectedModel === 'openai') throw e;
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini
-    if (!rawResult && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
-        try {
-            if (!geminiKey) throw new Error("Gemini Key chưa được cài đặt.");
-            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
-            const response = await ai.models.generateContent({
-                model: "gemini-3-pro-preview",
-                contents: userContent,
-                config: {
-                    systemInstruction: systemInstruction,
-                    responseMimeType: "application/json",
-                    responseSchema: responseSchema,
-                    temperature: CREATIVE_TEMP,
-                },
-            });
-            rawResult = JSON.parse(response.text.trim());
-        } catch (e) {
-            console.warn("Gemini failed", e);
             finalError = e;
         }
     }
@@ -457,14 +461,14 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       Output ONLY the prompt text. Do not include explanations.`;
 
       let providerKey = '';
-      let provider: 'openai' | 'gemini' = 'openai';
+      let provider: 'openai' | 'gemini' = 'gemini'; // Default to Gemini priority
 
-      if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
-          provider = 'openai';
-          providerKey = openaiApiKey;
-      } else if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
+      if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
           provider = 'gemini';
           providerKey = geminiApiKey;
+      } else if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
+          provider = 'openai';
+          providerKey = openaiApiKey;
       }
 
       if (!providerKey) {
@@ -473,7 +477,14 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       }
 
       try {
-          if (provider === 'openai') {
+          if (provider === 'gemini') {
+              const ai = new window.GoogleGenAI({ apiKey: providerKey });
+              const response = await ai.models.generateContent({
+                  model: 'gemini-2.5-flash',
+                  contents: promptRequest
+              });
+              setImagePrompt(response.text.trim());
+          } else { // OpenAI
               const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${providerKey}` },
@@ -484,13 +495,6 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
             });
             const data = await response.json();
             setImagePrompt(data.choices[0].message.content.trim());
-          } else { // Gemini
-              const ai = new window.GoogleGenAI({ apiKey: providerKey });
-              const response = await ai.models.generateContent({
-                  model: 'gemini-2.5-flash',
-                  contents: promptRequest
-              });
-              setImagePrompt(response.text.trim());
           }
       } catch (err) {
           console.error("Error generating visual prompt:", err);
@@ -513,9 +517,10 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       const textToSpeak = generatedContent.article + ". " + generatedContent.engagementCall;
       const safeText = textToSpeak.substring(0, 4096);
 
-      // Priority: Gemini TTS > OpenAI TTS (as per typical multimodal priority, or user pref? Stick to Gemini first for TTS as it's often free-er/faster in this context, or follow text rule? Let's stick to Gemini First for Audio as default behavior in this specific app section unless specified otherwise, but Text generation was OpenAI > Gemini. Let's keep Gemini > OpenAI for Audio to balance usage or follow Text rule? The prompt said "Text apps: OpenAI > Gemini". This is Audio. Let's stick to Gemini first for Audio as it's 'media'.)
+      // Priority: Gemini TTS > OpenAI TTS
+      let generatedAudio = false;
       
-      if (geminiApiKey) {
+      if (!generatedAudio && geminiApiKey) {
           try {
               const geminiVoiceName = voice === 'male' ? 'Puck' : 'Aoede';
               const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -548,15 +553,14 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
 
                   setAudioUrl(url);
                   setAudioFormat('wav');
-                  setIsGeneratingAudio(false);
-                  return;
+                  generatedAudio = true;
               }
           } catch (e) {
               console.warn("Gemini TTS failed, falling back to OpenAI", e);
           }
       }
 
-      if (openaiApiKey) {
+      if (!generatedAudio && openaiApiKey) {
           try {
               const openAIVoice = voice === 'male' ? 'onyx' : 'shimmer';
               const response = await fetch('https://api.openai.com/v1/audio/speech', {
@@ -581,11 +585,14 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
               const url = URL.createObjectURL(blob);
               setAudioUrl(url);
               setAudioFormat('mp3');
+              generatedAudio = true;
           } catch (err: any) {
               setAudioError(err.message);
           }
-      } else {
-          setAudioError("Gemini TTS thất bại và không có OpenAI Key để dự phòng.");
+      } 
+      
+      if (!generatedAudio && !audioError) {
+          setAudioError("Không thể tạo audio từ bất kỳ nguồn nào.");
       }
       
       setIsGeneratingAudio(false);

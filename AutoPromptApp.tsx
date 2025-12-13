@@ -138,37 +138,8 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemini
         let generatedData: GeneratedContent | null = null;
         let finalError: any = null;
 
-        // 1. Try OpenAI
-        if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
-            try {
-                if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
-                    body: JSON.stringify({
-                        model: 'gpt-4o',
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userPrompt }
-                        ],
-                        response_format: { type: 'json_object' }
-                    })
-                });
-                if (!response.ok) {
-                     const errorData = await response.json();
-                     throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                generatedData = JSON.parse(data.choices[0].message.content);
-            } catch (e) {
-                console.error("OpenAI failed", e);
-                if (selectedAIModel === 'openai') finalError = e;
-                else finalError = e; // Store for fallback
-            }
-        }
-
-        // 2. Try Gemini
-        if (!generatedData && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
+        // 1. Try Gemini (Priority)
+        if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
             try {
                 if (!geminiApiKey) throw new Error("Gemini API Key chưa được cấu hình.");
                 const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -199,7 +170,37 @@ const AutoPromptApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemini
                 generatedData = JSON.parse(result.text);
             } catch (e) {
                 console.error("Gemini failed", e);
-                finalError = e;
+                if (selectedAIModel === 'gemini') finalError = e;
+                else finalError = e;
+            }
+        }
+
+        // 2. Try OpenAI (Fallback)
+        if (!generatedData && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
+            try {
+                if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+                    body: JSON.stringify({
+                        model: 'gpt-4o',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        response_format: { type: 'json_object' }
+                    })
+                });
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                generatedData = JSON.parse(data.choices[0].message.content);
+            } catch (e) {
+                console.error("OpenAI failed", e);
+                if (selectedAIModel === 'openai') finalError = e;
+                else finalError = e; // Store for fallback
             }
         }
 

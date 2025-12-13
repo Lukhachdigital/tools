@@ -230,10 +230,33 @@ const generateTextAndPromptSet = async (
 
     let finalError;
 
-    // Priority: OpenAI -> Gemini for TEXT Generation tasks (as per general rule, although Gemini Multimodal is strong here, following stricter priority)
-    
-    // 1. Try OpenAI
-    if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiKey) {
+    // 1. Try Gemini (Priority)
+    if ((selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiKey))) {
+        if (!geminiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
+        try {
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
+            const textAndPromptGenResponse = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: {
+                    parts: [
+                        { text: prompt },
+                        { inlineData: { data: productImageBase64, mimeType: 'image/jpeg' } },
+                        { inlineData: { data: generatedImageBase64, mimeType: 'image/jpeg' } }
+                    ]
+                },
+                config: { responseMimeType: 'application/json' }
+            });
+            return JSON.parse(textAndPromptGenResponse.text);
+        } catch (e) {
+            console.warn("Gemini failed", e);
+            if (selectedAIModel === 'gemini') throw e;
+            finalError = e;
+        }
+    }
+
+    // 2. Try OpenAI (Fallback)
+    if (!finalError && (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiKey))) {
+        if (!openaiKey && selectedAIModel === 'openai') throw new Error("OpenAI Key chưa được cài đặt.");
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -260,31 +283,6 @@ const generateTextAndPromptSet = async (
             console.warn("OpenAI failed", e);
             if (selectedAIModel === 'openai') throw e;
             finalError = e;
-        }
-    }
-
-    // 2. Try Gemini
-    if (!finalError || (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
-        if (!geminiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
-        if (geminiKey) {
-            try {
-                const ai = new GoogleGenAI({ apiKey: geminiKey });
-                const textAndPromptGenResponse = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: {
-                        parts: [
-                            { text: prompt },
-                            { inlineData: { data: productImageBase64, mimeType: 'image/jpeg' } },
-                            { inlineData: { data: generatedImageBase64, mimeType: 'image/jpeg' } }
-                        ]
-                    },
-                    config: { responseMimeType: 'application/json' }
-                });
-                return JSON.parse(textAndPromptGenResponse.text);
-            } catch (e) {
-                console.warn("Gemini failed", e);
-                finalError = e;
-            }
         }
     }
 
@@ -368,11 +366,13 @@ ${checklistInstruction}
     let generatedImageBase64: string | null = null;
     let finalError = null;
 
-    // This feature (image composition) is heavily reliant on Gemini's multimodal capabilities.
-    // However, adhering to the instruction: Image Priority: Gemini > OpenAI.
-    
-    // 1. Try Gemini (Primary for Images)
-    if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiKey) {
+    // This feature (image composition) is Gemini-specific. Check model selection.
+    if (selectedAIModel !== 'gemini' && selectedAIModel !== 'auto') {
+        throw new Error(`Tính năng tạo ảnh ghép (Face Swap & Product) hiện chỉ hỗ trợ model Gemini. Vui lòng chọn model 'Gemini' hoặc 'Tự động' trong Menu để sử dụng tính năng này.`);
+    }
+
+    // Try Gemini (Primary for this app due to multimodal capabilities)
+    if (geminiKey) {
         try {
             const ai = new GoogleGenAI({ apiKey: geminiKey });
             const imageResponse = await ai.models.generateContent({
@@ -395,26 +395,13 @@ ${checklistInstruction}
             }
         } catch (e) {
             console.warn("Gemini Image Gen failed", e);
-            if (selectedAIModel === 'gemini') finalError = e; // Fail if explicitly selected
-            else finalError = e; // Store to try fallback
+            finalError = e;
         }
-    }
-
-    // 2. Try OpenAI (Fallback for Images - Note: DALL-E doesn't support inline image editing nicely like Gemini here, but we keep the structure)
-    if (!generatedImageBase64 && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiKey) {
-         try {
-             // DALL-E 3 doesn't support image-to-image with multi-input composition effectively via standard API in the same way.
-             // We can only try text-to-image or throw a specific error for this advanced feature.
-             throw new Error("Tính năng ghép mặt/sản phẩm nâng cao này yêu cầu Gemini (Multimodal). OpenAI DALL-E không hỗ trợ đầy đủ tính năng này.");
-         } catch(e) {
-             console.warn("OpenAI fallback failed/not supported", e);
-             finalError = e;
-         }
     }
 
     // If Gemini failed or key is missing, alert if we couldn't generate image
     if (!generatedImageBase64) {
-        throw finalError || new Error("Không thể tạo ảnh. Vui lòng kiểm tra API Key và thử lại.");
+        throw finalError || new Error("Không thể tạo ảnh từ Gemini. Vui lòng kiểm tra API Key và thử lại.");
     }
 
     const imageUrl = `data:image/jpeg;base64,${generatedImageBase64}`;

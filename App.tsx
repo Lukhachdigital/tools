@@ -668,7 +668,7 @@ const App = () => {
             case 'tao_anh_trend': return React.createElement(TaoAnhTrendApp, appProps);
             case 'seo_youtube': return React.createElement(SeoYoutubeApp, appProps);
             case 'youtube_external': return React.createElement(YoutubeExternalApp, appProps);
-            case 'app_affiliate': return React.createElement(AppAffiliate, appProps);
+            case 'app_affiliate': return React.createElement(AppAffiliate, { ...appProps });
             case 'content_podcast': return React.createElement(ContentPodcastApp, appProps);
             case 'food_review': return React.createElement(FoodReviewApp, appProps);
             case 'cinescript': return React.createElement(CineScriptApp, { ...appProps, onGoBack: () => setCurrentView('dashboard') });

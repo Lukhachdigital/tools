@@ -93,8 +93,33 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
     let finalError: unknown;
     let titles: string[] | null = null;
 
-    // 1. Try OpenAI (Priority)
-    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
+    // 1. Try Gemini (Priority)
+    if (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey)) {
+        try {
+            if (!geminiKey) throw new Error("Gemini API Key chưa được cấu hình.");
+            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: systemPrompt,
+                config: {
+                    temperature: 1.2,
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: window.GenAIType.OBJECT,
+                        properties: { titles: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } } }
+                    }
+                }
+            });
+            titles = JSON.parse(response.text).titles || [];
+        } catch (e) {
+            console.warn('Gemini failed', e);
+            if (selectedModel === 'gemini') throw e;
+            finalError = e;
+        }
+    }
+
+    // 2. Try OpenAI (Fallback)
+    if (!titles && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
         try {
             if (!openaiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -115,31 +140,6 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
             titles = data.choices[0].message.content ? JSON.parse(data.choices[0].message.content).titles : null;
         } catch (e) {
             console.warn('OpenAI failed', e);
-            if (selectedModel === 'openai') throw e;
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini (Fallback)
-    if (!titles && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
-        try {
-            if (!geminiKey) throw new Error("Gemini API Key chưa được cấu hình.");
-            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: systemPrompt,
-                config: {
-                    temperature: 1.2,
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: window.GenAIType.OBJECT,
-                        properties: { titles: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } } }
-                    }
-                }
-            });
-            titles = JSON.parse(response.text).titles || [];
-        } catch (e) {
-            console.warn('Gemini failed', e);
             finalError = e;
         }
     }
@@ -178,34 +178,8 @@ const generateFullSEOContent = async (description: string, title: string, gemini
     let finalError: unknown;
     let content: SEOContent | null = null;
 
-    // 1. Try OpenAI (Priority)
-    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
-        try {
-            if (!openaiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-                body: JSON.stringify({
-                    model: 'gpt-4o',
-                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }' }],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) {
-                 const errorData = await response.json();
-                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            content = data.choices[0].message.content ? JSON.parse(data.choices[0].message.content) : null;
-        } catch (e) {
-            console.warn('OpenAI failed', e);
-            if (selectedModel === 'openai') throw e;
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini (Fallback)
-    if (!content && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
+    // 1. Try Gemini (Priority)
+    if (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey)) {
         try {
             if (!geminiKey) throw new Error("Gemini API Key chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
@@ -229,6 +203,32 @@ const generateFullSEOContent = async (description: string, title: string, gemini
             content = JSON.parse(response.text);
         } catch (e) {
             console.warn('Gemini failed', e);
+            if (selectedModel === 'gemini') throw e;
+            finalError = e;
+        }
+    }
+
+    // 2. Try OpenAI (Fallback)
+    if (!content && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
+        try {
+            if (!openaiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Hãy trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác như sau: { "description": "...", "hashtags": ["...", "..."], "primaryKeywords": ["...", "..."], "secondaryKeywords": ["...", "..."] }' }],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            content = data.choices[0].message.content ? JSON.parse(data.choices[0].message.content) : null;
+        } catch (e) {
+            console.warn('OpenAI failed', e);
             finalError = e;
         }
     }

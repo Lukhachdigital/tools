@@ -104,8 +104,25 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
                 let translatedText: string | null = null;
                 let langError: unknown = null;
 
-                // 1. Try OpenAI (Priority)
-                if (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey)) {
+                // 1. Try Gemini (Priority)
+                if (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey)) {
+                    try {
+                        if (!geminiApiKey) throw new Error("Gemini API Key chưa được cấu hình.");
+                        const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+                        const response = await ai.models.generateContent({
+                            model: 'gemini-2.5-flash',
+                            contents: userPrompt,
+                        });
+                        translatedText = response.text;
+                    } catch (e) {
+                        console.warn(`Gemini failed for ${lang}`, e);
+                        if (selectedAIModel === 'gemini') throw e;
+                        langError = e;
+                    }
+                }
+
+                // 2. Try OpenAI (Fallback)
+                if (!translatedText && (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey))) {
                     try {
                         if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cấu hình.");
                         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -129,23 +146,6 @@ const YoutubeExternalApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { g
                         }
                     } catch (e) {
                         console.warn(`OpenAI failed for ${lang}`, e);
-                        if (selectedAIModel === 'openai') throw e;
-                        langError = e;
-                    }
-                }
-
-                // 2. Try Gemini (Fallback)
-                if (!translatedText && (selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiApiKey))) {
-                    try {
-                        if (!geminiApiKey) throw new Error("Gemini API Key chưa được cấu hình.");
-                        const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-                        const response = await ai.models.generateContent({
-                            model: 'gemini-2.5-flash',
-                            contents: userPrompt,
-                        });
-                        translatedText = response.text;
-                    } catch (e) {
-                        console.warn(`Gemini failed for ${lang}`, e);
                         langError = e;
                     }
                 }

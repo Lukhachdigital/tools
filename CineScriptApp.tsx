@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 
 // ==========================================
@@ -41,7 +41,7 @@ export interface GeneratedContent {
 }
 
 // ==========================================
-// 2. ICONS (Inlined for compatibility)
+// 2. ICONS
 // ==========================================
 const Icons = {
   VideoCamera: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" /></svg>,
@@ -183,33 +183,8 @@ const generateScript = async (request: ScriptRequest, geminiApiKey: string, open
     let finalError: unknown;
     let result: GeneratedContent | null = null;
 
-    // 1. Try OpenAI (Priority if selected or Auto)
-    if ((selectedModel === 'openai' || (selectedModel === 'auto' && openaiApiKey))) {
-        try {
-            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cài đặt.");
-            const openAIPrompt = `${basePrompt}\nIMPORTANT: You MUST return a valid JSON object matching the requested structure EXACTLY. DO NOT output Markdown blocks. Just raw JSON.`;
-            const messages: any[] = [{ role: "user", content: [{ type: "text", text: openAIPrompt }] }];
-            if (request.imageData && request.imageMimeType) messages[0].content.push({ type: "image_url", image_url: { url: `data:${request.imageMimeType};base64,${request.imageData}` } });
-            if (request.optionalImageData && request.optionalImageMimeType) messages[0].content.push({ type: "image_url", image_url: { url: `data:${request.optionalImageMimeType};base64,${request.optionalImageData}` } });
-
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openaiApiKey}` },
-                body: JSON.stringify({ model: "gpt-4o", messages: messages, response_format: { type: "json_object" }, temperature: 0.9 })
-            });
-
-            if (!response.ok) throw new Error(`OpenAI Error: ${await response.text()}`);
-            const apiResult = await response.json();
-            result = JSON.parse(apiResult.choices[0].message.content) as GeneratedContent;
-        } catch (e) {
-            console.error("OpenAI failed", e);
-            if (selectedModel === 'openai') throw e;
-            finalError = e;
-        }
-    }
-
-    // 2. Try Gemini (Fallback or Priority)
-    if (!result && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiApiKey))) {
+    // 1. Try Gemini (Priority if selected or Auto)
+    if ((selectedModel === 'gemini' || (selectedModel === 'auto' && geminiApiKey))) {
         try {
             if (!geminiApiKey) throw new Error("Gemini API Key chưa được cài đặt.");
             const ai = new GoogleGenAI({ apiKey: geminiApiKey });
@@ -230,7 +205,7 @@ const generateScript = async (request: ScriptRequest, geminiApiKey: string, open
             if (request.optionalImageData && request.optionalImageMimeType) parts.push({ inlineData: { data: request.optionalImageData, mimeType: request.optionalImageMimeType } });
 
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3-pro-preview',
                 contents: [{ role: 'user', parts: parts }],
                 config: { temperature: 0.9, responseMimeType: "application/json", responseSchema: responseSchema }
             });
@@ -239,6 +214,31 @@ const generateScript = async (request: ScriptRequest, geminiApiKey: string, open
             console.error("Gemini Failed:", geminiError);
             if (selectedModel === 'gemini') throw geminiError;
             finalError = geminiError;
+        }
+    }
+
+    // 2. Try OpenAI (Fallback)
+    if (!result && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiApiKey))) {
+        try {
+            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cài đặt.");
+            const openAIPrompt = `${basePrompt}\nIMPORTANT: You MUST return a valid JSON object matching the requested structure EXACTLY. DO NOT output Markdown blocks. Just raw JSON.`;
+            const messages: any[] = [{ role: "user", content: [{ type: "text", text: openAIPrompt }] }];
+            if (request.imageData && request.imageMimeType) messages[0].content.push({ type: "image_url", image_url: { url: `data:${request.imageMimeType};base64,${request.imageData}` } });
+            if (request.optionalImageData && request.optionalImageMimeType) messages[0].content.push({ type: "image_url", image_url: { url: `data:${request.optionalImageMimeType};base64,${request.optionalImageData}` } });
+
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openaiApiKey}` },
+                body: JSON.stringify({ model: "gpt-4o", messages: messages, response_format: { type: "json_object" }, temperature: 0.9 })
+            });
+
+            if (!response.ok) throw new Error(`OpenAI Error: ${await response.text()}`);
+            const apiResult = await response.json();
+            result = JSON.parse(apiResult.choices[0].message.content) as GeneratedContent;
+        } catch (e) {
+            console.error("OpenAI failed", e);
+            if (selectedModel === 'openai') throw e;
+            finalError = e;
         }
     }
 
@@ -272,8 +272,25 @@ const generateSingleScene = async (instruction: string, style: FilmStyle, gemini
     let result: PromptItem | null = null;
     let finalError;
 
-    // 1. Try OpenAI (Priority if selected or Auto)
-    if ((selectedModel === 'openai' || (selectedModel === 'auto' && openaiApiKey))) {
+    // 1. Try Gemini (Priority if selected or Auto)
+    if ((selectedModel === 'gemini' || (selectedModel === 'auto' && geminiApiKey))) {
+        try {
+            if (!geminiApiKey) throw new Error("Gemini API Key chưa được cài đặt.");
+            const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+            const response = await ai.models.generateContent({
+                model: 'gemini-3-pro-preview',
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                config: { temperature: 0.9, responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { vi: { type: Type.STRING }, en: { type: Type.STRING } }, required: ["vi", "en"] } }
+            });
+            result = JSON.parse(cleanJsonString(response.text || "{}")) as PromptItem;
+        } catch (err) {
+            if (selectedModel === 'gemini') throw err;
+            finalError = err;
+        }
+    }
+
+    // 2. Try OpenAI (Fallback)
+    if (!result && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiApiKey))) {
         try {
             if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cài đặt.");
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -286,23 +303,6 @@ const generateSingleScene = async (instruction: string, style: FilmStyle, gemini
         } catch (e) {
             if (selectedModel === 'openai') throw e;
             finalError = e;
-        }
-    }
-
-    // 2. Try Gemini (Fallback or Priority)
-    if (!result && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiApiKey))) {
-        try {
-            if (!geminiApiKey) throw new Error("Gemini API Key chưa được cài đặt.");
-            const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                config: { temperature: 0.9, responseMimeType: "application/json", responseSchema: { type: Type.OBJECT, properties: { vi: { type: Type.STRING }, en: { type: Type.STRING } }, required: ["vi", "en"] } }
-            });
-            result = JSON.parse(cleanJsonString(response.text || "{}")) as PromptItem;
-        } catch (err) {
-            if (selectedModel === 'gemini') throw err;
-            finalError = err;
         }
     }
 
@@ -483,6 +483,13 @@ const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
   const handleCopyOne = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedIds(prev => new Set(prev).add(id));
+    setTimeout(() => {
+        setCopiedIds(prev => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+        });
+    }, 2000);
   };
 
   const handleCopyAll = (items: PromptItem[]) => {
@@ -640,76 +647,109 @@ const CineScriptApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, sele
                      <button onClick={() => setActiveLang('vi')} className={`px-4 py-1.5 rounded text-xs font-bold uppercase transition-all ${activeLang === 'vi' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>Tiếng Việt</button>
                      <button onClick={() => setActiveLang('en')} className={`px-4 py-1.5 rounded text-xs font-bold uppercase transition-all ${activeLang === 'en' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}>English</button>
                   </div>
-                  <button onClick={handleDownloadScript} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-600 text-xs font-bold uppercase transition-all"><Icons.Download className="w-4 h-4"/> Tải Kịch Bản</button>
+                  <div className="flex gap-2">
+                      <button onClick={() => handleCopyAll(content.script)} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all" title="Copy Script"><Icons.Copy className="w-4 h-4" /></button>
+                      <button onClick={handleDownloadScript} className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-all" title="Download"><Icons.Download className="w-4 h-4" /></button>
+                  </div>
                </div>
 
-               <div className="mb-10 text-center">
-                  <h1 className="text-3xl font-bold text-cyan-400 tracking-wider uppercase font-serif inline-block relative group cursor-pointer" onClick={() => handleCopyOne(content.title[activeLang], 'title')}>
-                     {content.title[activeLang]}
-                     <span className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500"><Icons.Clipboard className="w-5 h-5"/></span>
-                  </h1>
-                  <div className="h-1 w-24 bg-gradient-to-r from-transparent via-cyan-700 to-transparent mx-auto rounded-full mt-2"></div>
-               </div>
+               <div className="space-y-8 animate-fade-in">
+                  
+                  {/* Title */}
+                  <div className="text-center mb-8">
+                      <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 font-serif mb-2 uppercase tracking-widest">{content.title[activeLang]}</h1>
+                      <div className="w-24 h-1 bg-cyan-500/30 mx-auto rounded-full"></div>
+                  </div>
 
-               {/* Sections */}
-               {[
-                  { title: "Thiết Kế Trang Phục", items: content.generated_costume_prompt ? [content.generated_costume_prompt] : [], icon: Icons.Sparkles, color: "text-purple-400", borderColor: "border-purple-500", id: 'costume' },
-                  { title: "Bối Cảnh", items: content.context, icon: Icons.Map, color: "text-blue-400", borderColor: "border-blue-500", id: 'ctx' },
-                  { title: "Nhân Vật Phụ", items: content.characters, icon: Icons.UserGroup, color: "text-green-400", borderColor: "border-green-500", id: 'char' },
-                  { title: "Kịch Bản Phân Cảnh", items: content.script, icon: Icons.Film, color: "text-cyan-400", borderColor: "border-cyan-500", id: 'scene', isScript: true }
-               ].map((section: any) => (
-                  section.items.length > 0 && (
-                     <div key={section.id} className="mb-12">
-                        <div className={`flex items-center gap-3 mb-6 pb-3 border-b border-slate-700`}>
-                           <section.icon className={`w-6 h-6 ${section.color}`} />
-                           <h2 className={`text-xl font-bold uppercase tracking-wider ${section.color}`}>{section.title}</h2>
-                           <span className="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full">{section.items.length} Prompt</span>
-                           <button onClick={() => handleCopyAll(section.items)} className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-600 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-all"><Icons.Duplicate className="w-4 h-4"/> <span className="text-[10px] font-bold uppercase">Copy All</span></button>
-                        </div>
-                        <div className="space-y-4">
-                           {section.isScript && (
-                              <div className="relative group/divider py-2 flex flex-col items-center justify-center z-10">
-                                 <button onClick={() => setAddingAtIndex(-1)} className="opacity-0 group-hover/divider:opacity-100 flex items-center gap-2 px-3 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-all mb-2"><Icons.Plus className="w-4 h-4"/> Thêm cảnh đầu</button>
-                                 {addingAtIndex === -1 && <div className="w-full"><SceneInputForm placeholder="Mô tả cảnh mới..." submitLabel="Tạo Prompt" onCancel={() => setAddingAtIndex(null)} onSubmit={(t) => handleAddScene(t, -1)} isProcessing={isProcessingItem} /></div>}
+                  {/* Context */}
+                  <div className="space-y-4">
+                      <h3 className="text-lg font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wider"><Icons.Map className="w-5 h-5 text-cyan-500" /> Bối cảnh (Context)</h3>
+                      <div className="grid gap-3">
+                          {content.context.map((ctx, idx) => (
+                              <div key={idx} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 hover:border-cyan-500/30 transition-all group relative">
+                                  <p className="text-slate-300 text-sm leading-relaxed">{ctx[activeLang]}</p>
+                                  <button onClick={() => handleCopyOne(ctx[activeLang], `ctx-${idx}`)} className="absolute top-2 right-2 text-slate-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all"><Icons.Copy className="w-4 h-4" /></button>
                               </div>
-                           )}
-                           {section.items.map((item: PromptItem, idx: number) => {
-                              const isEditing = editingIndex === idx && section.isScript;
-                              return (
-                                 <React.Fragment key={idx}>
-                                    <div className={`flex flex-col md:flex-row gap-4 p-5 bg-slate-800/50 border rounded-lg transition-colors group relative ${isEditing ? 'border-cyan-500' : 'border-slate-700 hover:border-slate-500'}`}>
-                                       <div className="flex-1 min-w-0">
-                                          <div className="mb-2 flex items-center justify-between">
-                                             <span className={`inline-block text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-slate-900/50 border border-slate-600/50 ${section.color}`}>{section.id === 'scene' ? `SCENE ${idx + 1}` : `#${idx + 1}`}</span>
-                                             {section.isScript && !isEditing && <button onClick={() => setEditingIndex(idx)} className="text-slate-500 hover:text-cyan-400 px-2" title="Sửa"><Icons.Pencil className="w-4 h-4"/></button>}
+                          ))}
+                      </div>
+                  </div>
+
+                  {/* Generated Costume (If Auto/Sexy) */}
+                  {content.generated_costume_prompt && (
+                      <div className="space-y-4">
+                          <h3 className="text-lg font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wider"><Icons.Sparkles className="w-5 h-5 text-purple-500" /> Trang Phục AI (Generated Costume)</h3>
+                          <div className="bg-purple-900/10 p-4 rounded-lg border border-purple-500/30 hover:border-purple-500/50 transition-all group relative">
+                              <p className="text-purple-200 text-sm leading-relaxed font-mono">{content.generated_costume_prompt[activeLang]}</p>
+                              <button onClick={() => handleCopyOne(content.generated_costume_prompt![activeLang], 'gen-costume')} className="absolute top-2 right-2 text-purple-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all"><Icons.Copy className="w-4 h-4" /></button>
+                          </div>
+                      </div>
+                  )}
+
+                  {/* Characters */}
+                  <div className="space-y-4">
+                      <h3 className="text-lg font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wider"><Icons.UserGroup className="w-5 h-5 text-green-500" /> Nhân vật (Characters)</h3>
+                      <div className="grid gap-3">
+                          {content.characters.map((char, idx) => (
+                              <div key={idx} className="bg-slate-800/50 p-4 rounded-lg border border-slate-700 hover:border-green-500/30 transition-all group relative">
+                                  <p className="text-slate-300 text-sm leading-relaxed">{char[activeLang]}</p>
+                                  <button onClick={() => handleCopyOne(char[activeLang], `char-${idx}`)} className="absolute top-2 right-2 text-slate-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all"><Icons.Copy className="w-4 h-4" /></button>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+
+                  {/* Script Scenes */}
+                  <div className="space-y-6">
+                      <h3 className="text-lg font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wider"><Icons.Film className="w-5 h-5 text-orange-500" /> Kịch bản chi tiết (Prompts)</h3>
+                      {content.script.map((scene, idx) => (
+                          <div key={idx} className="relative group">
+                              <div className="absolute -left-3 top-4 w-6 h-6 bg-slate-900 border border-slate-700 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 z-10 shadow">{idx + 1}</div>
+                              <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/80 transition-all shadow-lg ml-3">
+                                  
+                                  {editingIndex === idx ? (
+                                      <SceneInputForm 
+                                          initialText={scene[activeLang]} 
+                                          placeholder="Chỉnh sửa cảnh này..." 
+                                          submitLabel="Cập nhật" 
+                                          onCancel={() => setEditingIndex(null)}
+                                          onSubmit={(text) => handleRegenerateScene(text, idx)}
+                                          isProcessing={isProcessingItem}
+                                      />
+                                  ) : (
+                                      <>
+                                          <p className="text-slate-200 text-sm leading-relaxed font-mono whitespace-pre-wrap">{scene[activeLang]}</p>
+                                          <div className="flex gap-2 mt-3 justify-end opacity-0 group-hover:opacity-100 transition-all">
+                                              <button onClick={() => setEditingIndex(idx)} className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-xs rounded text-slate-300 transition-colors flex items-center gap-1"><Icons.Pencil className="w-3 h-3" /> Edit</button>
+                                              <button onClick={() => handleCopyOne(scene[activeLang], `scene-${idx}`)} className={`px-3 py-1 text-xs rounded transition-colors flex items-center gap-1 ${copiedIds.has(`scene-${idx}`) ? 'bg-green-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
+                                                  {copiedIds.has(`scene-${idx}`) ? <Icons.Check className="w-3 h-3" /> : <Icons.Copy className="w-3 h-3" />} {copiedIds.has(`scene-${idx}`) ? 'Copied' : 'Copy'}
+                                              </button>
                                           </div>
-                                          {isEditing ? (
-                                             <SceneInputForm initialText="" placeholder={`Gợi ý sửa lại cảnh ${idx + 1}...`} submitLabel="Viết Lại" onCancel={() => setEditingIndex(null)} onSubmit={(t) => handleRegenerateScene(t, idx)} isProcessing={isProcessingItem} />
-                                          ) : (
-                                             <p className="text-slate-300 text-base leading-relaxed whitespace-pre-wrap">{item[activeLang]}</p>
-                                          )}
-                                       </div>
-                                       {!isEditing && (
-                                          <button onClick={() => handleCopyOne(item[activeLang], `${section.id}-${idx}`)} className={`shrink-0 w-full md:w-24 flex flex-row md:flex-col items-center justify-center gap-2 px-4 py-2 rounded border transition-all ${copiedIds.has(`${section.id}-${idx}`) ? 'bg-green-900/20 border-green-600/50 text-green-500' : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'}`}>
-                                             {copiedIds.has(`${section.id}-${idx}`) ? <Icons.Check className="w-5 h-5"/> : <Icons.Clipboard className="w-5 h-5"/>}
-                                             <span className="text-[10px] font-bold uppercase">{copiedIds.has(`${section.id}-${idx}`) ? 'Đã Chép' : 'Sao Chép'}</span>
-                                          </button>
-                                       )}
-                                    </div>
-                                    {section.isScript && (
-                                       <div className="relative group/divider py-2 flex flex-col items-center justify-center z-10">
-                                          <button onClick={() => setAddingAtIndex(idx)} className="opacity-0 group-hover/divider:opacity-100 flex items-center gap-2 px-3 py-1 bg-slate-800 border border-slate-600 rounded-full text-xs text-slate-300 hover:text-cyan-400 hover:border-cyan-500 transition-all mb-2 transform hover:scale-105"><Icons.Plus className="w-4 h-4"/> Thêm cảnh</button>
-                                          <div className="absolute top-1/2 left-0 w-full h-[1px] bg-slate-700 -z-0 opacity-0 group-hover/divider:opacity-50"></div>
-                                          {addingAtIndex === idx && <div className="w-full relative z-50"><SceneInputForm placeholder="Mô tả cảnh mới..." submitLabel="Tạo Prompt" onCancel={() => setAddingAtIndex(null)} onSubmit={(t) => handleAddScene(t, idx)} isProcessing={isProcessingItem} /></div>}
-                                       </div>
-                                    )}
-                                 </React.Fragment>
-                              );
-                           })}
-                        </div>
-                     </div>
-                  )
-               ))}
+                                      </>
+                                  )}
+
+                                  {/* Add Scene Button below */}
+                                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all z-20">
+                                      <button onClick={() => setAddingAtIndex(idx)} className="w-6 h-6 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110"><Icons.Plus className="w-4 h-4" /></button>
+                                  </div>
+                              </div>
+                              
+                              {/* Add Scene Form */}
+                              {addingAtIndex === idx && (
+                                  <div className="ml-3 mt-4">
+                                      <SceneInputForm 
+                                          placeholder="Mô tả cảnh mới muốn thêm vào..." 
+                                          submitLabel="Thêm Cảnh" 
+                                          onCancel={() => setAddingAtIndex(null)}
+                                          onSubmit={(text) => handleAddScene(text, idx)}
+                                          isProcessing={isProcessingItem}
+                                      />
+                                  </div>
+                              )}
+                          </div>
+                      ))}
+                  </div>
+
+               </div>
             </div>
          )}
       </div>

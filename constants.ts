@@ -3,8 +3,7 @@ export const APP_LINKS = {
     FREE_RESOURCES: "https://lamyoutubeai.com/free",
     API_KEY_TUTORIAL: "https://www.youtube.com/watch?v=1Pi-xnnFq70",
     GEMINI_API_KEY_GET: "https://aistudio.google.com/app/apikey",
-    OPENAI_API_KEY_GET: "https://platform.openai.com/api-keys",
-    OPENROUTER_API_KEY_GET: "https://openrouter.ai/keys"
+    OPENAI_API_KEY_GET: "https://platform.openai.com/api-keys"
 };
 
 export const SOCIAL_LINKS = {
@@ -31,7 +30,10 @@ export const TUTORIAL_LINKS: Record<string, string> = {
     seo_youtube: "https://www.youtube.com/watch?v=NWU08JKzgeo",
     youtube_external: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
     app_affiliate: "https://www.youtube.com/watch?v=N_UfSbpBAjs",
-    content_podcast: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1"
+    content_podcast: "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1",
+    food_review: "https://www.youtube.com/watch?v=wTnCnsvxk2M",
+    cinescript: "https://www.youtube.com/watch?v=wTnCnsvxk2M",
+    clone_scene_video: "https://www.youtube.com/watch?v=wTnCnsvxk2M"
 };
 
 export const FALLBACK_TUTORIAL = "https://www.youtube.com/channel/UCwSbzgfgu1iMfOR__AB4QGQ?sub_confirmation=1";

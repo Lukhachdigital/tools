@@ -225,37 +225,8 @@ Generate an array of exactly ${numberOfScenes} scene objects with the following 
     const prompt = `${systemPrompt}\nVideo Idea: "${videoIdea}"\nGenerate JSON with "recurringContexts" and "scenes" (exactly ${numberOfScenes} objects).`;
     const openAISystemPrompt = `${systemPrompt}\n\nYour final output MUST be a single, valid JSON object with keys "recurringContexts" and "scenes". The value of "scenes" must be an array of exactly ${numberOfScenes} scene objects.`;
 
-    // 1. Try OpenAI
-    if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
-        try {
-            if (!openaiApiKey) throw new Error("API Key OpenAI chưa được cấu hình.");
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
-                body: JSON.stringify({
-                    model: 'gpt-4o',
-                    messages: [
-                        { role: 'system', content: openAISystemPrompt },
-                        { role: 'user', content: `Video Idea: "${videoIdea}"` }
-                    ],
-                    response_format: { type: 'json_object' }
-                })
-            });
-            if (!response.ok) {
-                 const errorData = await response.json();
-                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            script = JSON.parse(data.choices[0].message.content);
-        } catch (e) {
-            console.error("OpenAI failed:", e);
-            if (selectedAIModel === 'openai') throw e;
-            finalError = e;
-        }
-    }
-    
-    // 2. Try Gemini
-    if (!script && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
+    // 1. Try Gemini (Priority)
+    if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
         try {
             if (!geminiApiKey) throw new Error("API Key Gemini chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
@@ -311,6 +282,38 @@ Generate an array of exactly ${numberOfScenes} scene objects with the following 
             script = JSON.parse(response.text.trim());
         } catch (e) { 
             console.error("Gemini failed:", e);
+            if (selectedAIModel === 'gemini') {
+                finalError = e;
+            } else {
+                finalError = e; // will be overwritten if OpenAI also fails
+            }
+        }
+    }
+
+    // 2. Try OpenAI (Fallback)
+    if (!script && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
+        try {
+            if (!openaiApiKey) throw new Error("API Key OpenAI chưa được cấu hình.");
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
+                body: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [
+                        { role: 'system', content: openAISystemPrompt },
+                        { role: 'user', content: `Video Idea: "${videoIdea}"` }
+                    ],
+                    response_format: { type: 'json_object' }
+                })
+            });
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            script = JSON.parse(data.choices[0].message.content);
+        } catch (e) {
+            console.error("OpenAI failed:", e);
             finalError = e;
         }
     }

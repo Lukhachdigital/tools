@@ -293,12 +293,58 @@ ${characterInstruction}
     const systemPrompt = `${commonPrompt}\n\nGenerate a JSON object that strictly adheres to the following structure: { "characterList": [ ... ], "prompts": [ ... ] }`;
 
     let finalError: unknown;
+    let result: GeneratedContent | null = null;
 
-    // Priority: OpenAI -> Gemini for TEXT Generation
-
-    // 1. Try OpenAI
-    if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
+    // 1. Try Gemini (Priority)
+    if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
         try {
+            if (!geminiApiKey) throw new Error("Gemini API Key chưa được cài đặt.");
+            const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+            const schema = {
+                type: window.GenAIType.OBJECT,
+                properties: {
+                    characterList: {
+                        type: window.GenAIType.ARRAY,
+                        items: {
+                            type: window.GenAIType.OBJECT,
+                            properties: {
+                                name: { type: window.GenAIType.STRING },
+                                role: { type: window.GenAIType.STRING },
+                                description: { type: window.GenAIType.STRING },
+                                whiskPrompt: { type: window.GenAIType.STRING }
+                            },
+                            required: ["name", "role", "description", "whiskPrompt"]
+                        }
+                    },
+                    prompts: {
+                        type: window.GenAIType.ARRAY,
+                        items: { type: window.GenAIType.STRING },
+                    }
+                },
+                required: ["characterList", "prompts"]
+            };
+
+            const response = await ai.models.generateContent({
+                model: "gemini-3-pro-preview",
+                contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}\n\nGenerate a JSON object that strictly adheres to the provided schema.`,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: schema,
+                },
+            });
+            const jsonStr = cleanJsonString(response.text);
+            result = JSON.parse(jsonStr) as GeneratedContent;
+        } catch (e) {
+            console.warn("Gemini failed", e);
+            if (selectedAIModel === 'gemini') throw e;
+            finalError = e;
+        }
+    }
+
+    // 2. Try OpenAI (Fallback)
+    if (!result && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
+        try {
+            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cài đặt.");
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -317,62 +363,15 @@ ${characterInstruction}
             if (!response.ok) throw new Error('OpenAI failed');
             const data = await response.json();
             const jsonText = cleanJsonString(data.choices[0].message.content);
-            return JSON.parse(jsonText) as GeneratedContent;
+            result = JSON.parse(jsonText) as GeneratedContent;
         } catch (e) {
             console.warn("OpenAI failed", e);
-            if (selectedAIModel === 'openai') throw e;
             finalError = e;
         }
     }
 
-    // 2. Try Gemini
-    if (!finalError || (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
-        if (!geminiApiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key missing");
-        if (geminiApiKey) {
-            try {
-                const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-                const schema = {
-                    type: window.GenAIType.OBJECT,
-                    properties: {
-                        characterList: {
-                            type: window.GenAIType.ARRAY,
-                            items: {
-                                type: window.GenAIType.OBJECT,
-                                properties: {
-                                    name: { type: window.GenAIType.STRING },
-                                    role: { type: window.GenAIType.STRING },
-                                    description: { type: window.GenAIType.STRING },
-                                    whiskPrompt: { type: window.GenAIType.STRING }
-                                },
-                                required: ["name", "role", "description", "whiskPrompt"]
-                            }
-                        },
-                        prompts: {
-                            type: window.GenAIType.ARRAY,
-                            items: { type: window.GenAIType.STRING },
-                        }
-                    },
-                    required: ["characterList", "prompts"]
-                };
-
-                const response = await ai.models.generateContent({
-                model: "gemini-3-pro-preview",
-                contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}\n\nGenerate a JSON object that strictly adheres to the provided schema.`,
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: schema,
-                },
-                });
-                const jsonStr = cleanJsonString(response.text);
-                return JSON.parse(jsonStr) as GeneratedContent;
-            } catch (e) {
-                console.warn("Gemini failed", e);
-                finalError = e;
-            }
-        }
-    }
-
-    throw finalError || new Error("Không thể tạo kịch bản. Vui lòng thử lại.");
+    if (result) return result;
+    throw finalError || new Error("Không thể tạo kịch bản từ bất kỳ API nào. Vui lòng kiểm tra API Key.");
 
   }, [geminiApiKey, openaiApiKey, selectedAIModel]);
   
