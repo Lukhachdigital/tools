@@ -673,7 +673,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
               } else {
                   requestBody = {
                       model,
-                      prompt: `${imagePrompt}. Style: Photorealistic, 8k, highly detailed photograph. NO cartoon, NO illustration.`,
+                      prompt: `${imagePrompt}. Style: Cinematic, Photorealistic, 8k, highly detailed photograph. NO cartoon, NO illustration.`,
                       config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '16:9' }
                   };
               }
@@ -717,7 +717,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
                   body: JSON.stringify({
                       model: 'dall-e-3',
-                      prompt: `${imagePrompt}. Style: Hình ảnh chân thực, Cinematic, Photorealistic, highly detailed photograph. NO cartoon, NO illustration.`,
+                      prompt: `${imagePrompt}. Style: Hình ảnh chân thực, Cinematic, không hoạt hình, Photorealistic, highly detailed photograph. NO cartoon, NO illustration.`,
                       n: 1,
                       size: '1792x1024',
                       response_format: 'b64_json',
@@ -1032,3 +1032,4 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
 };
 
 export default ContentPodcastApp;
+
