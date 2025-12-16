@@ -294,17 +294,16 @@ const responseSchema = {
 const getSystemInstruction = (length: ArticleLength, seed: number, category: string) => {
     // Length remains the same
     const lengthInstruction = length === 'short'
-    ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1500 đến 2200 ký tự. Hãy viết nội dung cô đọng nhưng giàu cảm xúc.'
+    ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1700 đến 2500 ký tự. Hãy viết nội dung cô đọng nhưng giàu cảm xúc.'
     : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 8800 ký tự. Hãy viết cực kỳ sâu sắc, khai thác mọi ngóc ngách của cảm xúc.';
 
     return `Bạn là một chuyên gia sáng tạo nội dung Podcast và Video hàng đầu.
 NHIỆM VỤ: Viết một bài chia sẻ sâu sắc về chủ đề được cung cấp.
 
 PHONG CÁCH VIẾT:
-1.  **Sâu sắc & Cảm xúc:** Đi sâu vào tâm lý, nỗi đau hoặc niềm hạnh phúc của con người.
-2.  **Kể chuyện (Storytelling):** Sử dụng các ví dụ, câu chuyện nhỏ hoặc phép ẩn dụ để làm rõ vấn đề, nhưng không lấy 1 người cụ thể nào để ví dụ.
-3.  **Gần gũi:** Sử dụng ngôn ngữ tự nhiên, như đang tâm sự với người nghe. Có thể xưng hô (Chúng ta - Bạn) hoặc nói chung, miễn sao phù hợp nhất với mạch cảm xúc.
-4.  **Cấu trúc:**
+1.  **Sâu sắc & Cảm xúc:** Đi sâu vào tâm lý, nỗi đau hoặc niềm hạnh phúc của con người. Riêng chủ đề về "Hôn nhân" hãy viết sâu về yếu tố tình dục trong hôn nhân.
+2.  **Gần gũi:** Sử dụng ngôn ngữ tự nhiên, như đang tâm sự với người nghe. Có thể xưng hô (Chúng ta - Bạn) hoặc nói chung, miễn sao phù hợp nhất với mạch cảm xúc.
+3.  **Cấu trúc:**
     - Mở đầu: Hook hấp dẫn, đánh vào vấn đề ngay lập tức.
     - Thân bài: Phân tích, chia sẻ góc nhìn, câu chuyện.
     - Kết bài: Đúc kết thông điệp, tạo dư âm.
