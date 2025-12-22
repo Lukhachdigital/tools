@@ -61,7 +61,32 @@ ${params.topic}
     3. Chi tiết: Mô tả cực kỳ chi tiết về hình ảnh, ánh sáng, và chuyển động camera.
     `;
 
-    // Priority 1: OpenAI (GPT) for Text Generation
+    // Priority 1: Gemini
+    if (params.apiType === 'gemini') {
+        if (!params.apiKey) throw new Error("API Key Gemini chưa được cấu hình.");
+        const ai = new GoogleGenAI({ apiKey: params.apiKey });
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: commonPrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        script: {
+                            type: Type.ARRAY,
+                            items: { type: Type.STRING }
+                        }
+                    },
+                    required: ['script']
+                },
+            },
+        });
+        const jsonStr = response.text.trim();
+        return JSON.parse(jsonStr) as ScriptResponse;
+    }
+
+    // Priority 2: OpenAI (GPT)
     if (params.apiType === 'gpt') {
         if (!params.apiKey) throw new Error("API Key OpenAI chưa được cấu hình.");
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -88,31 +113,6 @@ ${params.topic}
         const jsonText = data.choices[0].message.content;
         return JSON.parse(jsonText) as ScriptResponse;
     } 
-    
-    // Priority 2: Gemini
-    if (params.apiType === 'gemini') {
-        if (!params.apiKey) throw new Error("API Key Gemini chưa được cấu hình.");
-        const ai = new GoogleGenAI({ apiKey: params.apiKey });
-        const response = await ai.models.generateContent({
-            model: "gemini-3-pro-preview",
-            contents: commonPrompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        script: {
-                            type: Type.ARRAY,
-                            items: { type: Type.STRING }
-                        }
-                    },
-                    required: ['script']
-                },
-            },
-        });
-        const jsonStr = response.text.trim();
-        return JSON.parse(jsonStr) as ScriptResponse;
-    }
 
     throw new Error("Loại API không hợp lệ.");
 };
