@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 
 // --- TYPES ---
@@ -248,41 +247,42 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
 
 
     const commonPrompt = `
-You are an expert Hollywood screenwriter and director, tasked with creating a concept for an epic, profound, and thrilling film. 
+You are an expert Hollywood screenwriter and director, tasked with creating a concept for an epic, profound, and thrilling film. Your primary goal is to ensure thematic and visual consistency throughout the entire script.
 
-**CREATIVITY MANDATE:** Your outputs must exhibit a high degree of creativity and uniqueness. For every new request, generate a completely new and different story, a unique set of characters with original names, and a fresh sequence of prompts.
+**CREATIVITY MANDATE:** Your outputs must exhibit a high degree of creativity and uniqueness. For every new request, even if the user provides the exact same idea as before, you are REQUIRED to generate a completely new and different story, a unique set of characters (both main and supporting) with original names, and a fresh sequence of prompts. Repetitive or formulaic responses are not acceptable. Your goal is to surprise the user with your originality on every single run.
 
-**CRITICAL RULE: REALISM AND AUTHENTICITY**
-1. **NO FANTASY/SCIFI (UNLESS SELECTED):** Unless the selected "Cinematic Style" is "Viễn tưởng" (Sci-fi), everything you generate—characters, items, actions, and settings—MUST be strictly grounded in reality, present-day logic, or historical accuracy related to the style. ABSOLUTELY NO futuristic tech, magical elements, or unreal/illusionary concepts for "Hiện đại", "Điện ảnh", "Tiền sử", "Hoạt hình", or "Hài hước". 
-2. **THEMATIC CONSISTENCY:** If the style is "${cinematicStyle}", adhere deeply to its era and logic.
+**CRITICAL RULE: THEMATIC CONSISTENCY**
+You MUST strictly adhere to the user-selected "Cinematic Style". Analyze it deeply. If the style is "${cinematicStyle}", all characters, actions, settings, and objects in both the character descriptions and the VEO prompts MUST be appropriate for that era and genre. For example, if the user's idea is 'a forest man saving animals' and the style is 'prehistoric', you absolutely CANNOT include modern items like cameras, walkie-talkies, or guns. This rule is non-negotiable and takes precedence over all other creative instructions.
+
+Based on the user's idea and your strict adherence to the cinematic style, you must perform two tasks and return the result as a single JSON object.
 
 **Task 1: Character Development & Whisk Prompts**
 ${characterInstruction}
-- For each character, you will create an object:
-    1.  **name**: Unique and creative character name.
-    2.  **role**: 'Nhân vật chính' or 'Nhân vật phụ'.
-    3.  **description**: Detailed description in VIETNAMESE (Appearance, clothing, key traits).
-    4.  **whiskPrompt**: A detailed English prompt for Whisk AI.
-        **STRICT WHISK PROMPT RULES:**
+- For each character, you will create an object with four fields:
+    1.  **name**: The character's name. It MUST be unique and creative for this specific generation, and thematically appropriate for the cinematic style.
+    2.  **role**: The character's role in the story. MUST be either 'Nhân vật chính' or 'Nhân vật phụ'.
+    3.  **description**: A detailed description of the character in VIETNAMESE. Describe what/who they are, their appearance, and key traits (e.g., "Manu: Một con sói đầu đàn dũng mãnh, có bộ lông màu vàng óng và một vết sẹo dài trên mắt phải.").
+    4.  **whiskPrompt**: A detailed, cinematic prompt in ENGLISH for Whisk AI to generate a standalone portrait of this character.
+        **CRITICAL Whisk Prompt Rules:**
         a. **Style**: ${whiskStyleInstruction}
-        b. **Background**: The background MUST be a 'solid white background'. 
-        c. **Pose & Composition**: The character MUST be standing straight, facing the camera directly ('full-body shot', 'standing straight facing camera'). 
-        d. **Content**: Describe ONLY physical appearance, hair, facial features, and specific CLOTHING (colors/materials).
-        e. **EMOTION**: You MUST describe the character's EMOTION (e.g., 'looking determined', 'with a subtle smile', 'looking exhausted').
-        f. **PROHIBITION**: ABSOLUTELY NO accessories, NO handheld items (no bags, no phones, no tools, no weapons), and NO background scenery. Focus purely on the person.
+        b. **Background**: The background MUST be a 'solid white background'. This is a strict, non-negotiable requirement.
+        c. **Content**: The prompt MUST NOT include the character's name. Instead, it must contain a highly detailed and evocative description of the character's physical appearance, clothing, posture, and emotions, consistent with your Vietnamese description.
+        d. **Composition**: The prompt MUST explicitly demand a 'full-body shot' or 'full-length portrait' to ensure the entire character, from head to toe, is visible. No part of the character's body should be cropped or cut off. This is a mandatory instruction.
 
 **Task 2: Prompt Generation for VEO 3.1**
-- Generate exactly ${numberOfScenes} prompts (8s per scene).
-- **CRITICAL VEO PROMPT REQUIREMENTS:**
-    1. **MANDATORY CONTENT:** Every prompt MUST describe the following five elements in detail:
-       a. **Character Emotion & Facial Expression**: Be very specific.
-       b. **Character Clothing**: Describe the outfit accurately in EVERY scene.
-       c. **Objects/Items**: Describe any physical items appearing in the scene (shape, color, material).
-       d. **Setting/Background Context**: Where is this happening?
-       e. **Environment/Atmosphere**: Lighting, weather, mood of the surroundings.
-    2. **Consistency**: Use identical descriptions for recurring locations/clothing to ensure visual continuity.
-    3. **Language**: Visual descriptions in ENGLISH. 
-    4. ${voicePromptInstruction}
+- You must generate exactly ${numberOfScenes} prompts, as each prompt corresponds to an 8-second video scene.
+- **CRITICAL VEO PROMPT RULES (THESE ARE ABSOLUTE AND NON-NEGOTIABLE):**
+    1.  **Character Presence & Naming:**
+        a. **Named Characters:** If a character from your 'characterList' is in the scene, you are REQUIRED to mention them by their exact 'name'. This is a mandatory rule.
+        b. **Unnamed Characters:** If a scene includes other people or creatures not on the 'characterList' (e.g., a crowd of soldiers, mysterious figures in the dark), you MUST describe them with specific visual details (e.g., "three soldiers in futuristic chrome armor", "a mysterious cloaked figure"). DO NOT use generic terms like 'they' or 'people'.
+        c. **No Characters:** If a scene is a landscape or object shot with NO characters, do not invent or mention any.
+    2.  **Setting & Background Consistency:**
+        a. **Detailed Background for ALL Prompts:** Every single prompt, without exception, MUST contain a detailed and evocative description of the setting (bối cảnh).
+        b. **Identical Descriptions for Recurring Locations:** Before writing, you must internally plan the key locations. If multiple scenes occur in the same location (e.g., "the ancient jungle temple"), the detailed description for that setting MUST be **word-for-word identical** in each of those prompts to ensure perfect visual continuity.
+    3.  **Content Focus:** Do NOT describe clothing or outfits. Focus exclusively on character actions, the detailed setting/background, character emotions, and facial expressions.
+    4.  **Language:** All visual descriptions MUST be in ENGLISH.
+    5.  **Cinematic Style**: Each prompt must incorporate descriptive words that reflect the chosen '${cinematicStyle}' style. For example, if the style is 'Viễn tưởng' (Sci-Fi), use terms like 'holographic glow', 'sleek metallic surfaces', 'cybernetic implants'.
+    6.  ${voicePromptInstruction}
 `;
 
     const userPrompt = `
@@ -490,7 +490,7 @@ ${characterInstruction}
 
   const handleDownload = () => {
       if(!generatedContent) return;
-      const text = `--- NHÂN VẬT ---\n${generatedContent.characterList.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n')}\n\n--- KỊCH BẢN ---\n${generatedContent.prompts.map((p, idx) => `Scene ${idx + 1}: ${p}`).join('\n\n')}`;
+      const text = `--- NHÂN VẬT ---\n${generatedContent.characterList.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n')}\n\n--- KỊCH BẢN ---\n${generatedContent.prompts.join('\n\n')}`;
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
