@@ -170,9 +170,10 @@ const generateFullSEOContent = async (description: string, title: string, gemini
     1.  **description:** Viết MỘT ĐOẠN VĂN mô tả chuẩn SEO, tự nhiên và liền mạch. ${lengthInstruction}
         -   **QUAN TRỌNG:** Trong 1-2 câu đầu tiên, hãy viết một đoạn mở đầu (hook) thật hấp dẫn để giữ chân người xem.
         -   Sử dụng lối kể chuyện (storytelling) nếu phù hợp để làm cho nội dung trở nên lôi cuốn.
-        -   Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Sau mỗi câu hoặc đoạn văn, hãy xuống dòng hai lần để tạo khoảng cách, giúp người đọc dễ theo dõi.
+        -   **ĐỊNH DẠNG DÒNG:** Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Mỗi dòng hoặc đoạn văn mới **BẮT BUỘC** phải bắt đầu bằng 1 icon (emoji) phù hợp với ý nghĩa của dòng đó.
+        -   **KHOẢNG CÁCH:** Xuống dòng hai lần sau mỗi đoạn/ý chính để tạo sự thông thoáng và dễ đọc.
         -   Nội dung phải tập trung vào chủ đề video và từ khóa, **KHÔNG** có lời kêu gọi hành động (CTA) và tránh dùng đại từ 'chúng tôi'. Văn phong phải tự nhiên, không nhồi nhét từ khóa máy móc.
-        -   Ch chỉ sử dụng 1-2 emoji phù hợp trong toàn bộ đoạn văn để tạo điểm nhấn, không bắt đầu mỗi câu bằng emoji.
+        -   Sử dụng icon vừa phải, tinh tế ở đầu mỗi câu/đoạn.
     2.  **hashtags:** Viết 3 hashtag **liên quan mật thiết và trực tiếp nhất** đến nội dung video. Sau đó, **BẮT BUỘC** thêm 3 hashtag sau vào cuối: #lamyoutubeai, #huynhxuyenson, #huongdanai. Tổng cộng là 6 hashtag. Hashtag phải không dấu, viết bằng chữ thường, và viết liền. **QUAN TRỌNG:** Mỗi hashtag trong mảng kết quả BẮT BUỘC phải bắt đầu bằng ký tự '#'.
     3.  **primaryKeywords:** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
     4.  **secondaryKeywords:** Liệt kê 15 từ khóa phụ mở rộng, **tập trung vào các khía cạnh cụ thể** của video.`;
@@ -257,6 +258,10 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [selectedTitleLength, setSelectedTitleLength] = useState<string | null>(null);
   const [selectedDescStyle, setSelectedDescStyle] = useState<string | null>('Tiêu chuẩn');
   const [copiedAll, setCopiedAll] = useState(false);
+
+  const toTitleCase = (str: string) => {
+    return str.toLowerCase().replace(/(^|\s)\S/g, l => l.toUpperCase());
+  };
   
   const handleGenerateTitles = useCallback(async () => {
     if (!geminiApiKey && !openaiApiKey) {
@@ -289,14 +294,16 @@ const SeoYoutubeApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
         setError('Vui lòng vào "Cài đặt API Key" để thêm ít nhất một key.');
         return;
     }
-    setSelectedTitle(title);
+    // Capitalize all first letters of words in the selected title
+    const formattedTitle = toTitleCase(title);
+    setSelectedTitle(formattedTitle);
     setIsLoadingContent(true);
     setSeoContent(null);
     setError(null);
     setCopiedAll(false);
 
     try {
-      const content = await generateFullSEOContent(videoDescription, title, geminiApiKey, openaiApiKey, selectedDescStyle, selectedAIModel);
+      const content = await generateFullSEOContent(videoDescription, formattedTitle, geminiApiKey, openaiApiKey, selectedDescStyle, selectedAIModel);
       setSeoContent(content);
     } catch (err: any)
     {
