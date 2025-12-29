@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 
 // =================================================================
@@ -78,15 +79,16 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
         }
     }
 
-    const systemPrompt = `Bạn là một chuyên gia SEO YouTube và bậc thầy sáng tạo nội dung (Clickbait Expert) với khả năng tạo ra các tiêu đề lan truyền (Viral Titles).
-    Phân tích ngôn ngữ của mô tả video sau. Bằng chính ngôn ngữ đó và đảm bảo ngữ pháp hoàn toàn chính xác, hãy tạo ra 5 tiêu đề ĐỈNH CAO, cực kỳ thu hút.
+    const systemPrompt = `Bạn là một phù thủy ngôn ngữ, chuyên gia sáng tạo nội dung YouTube với khả năng đặt tiêu đề "chạm" đến cảm xúc người xem một cách tự nhiên nhất.
+    Hãy phân tích mô tả video dưới đây và tạo ra 5 tiêu đề ĐỈNH CAO, CUỐN HÚT bằng chính ngôn ngữ của mô tả đó.
     
-    **YÊU CẦU QUAN TRỌNG:**
-    1.  **Tối đa hóa sự tò mò (High Curiosity):** Tiêu đề phải tạo ra "khoảng trống tò mò" (curiosity gap) khiến người xem không thể không bấm vào. Sử dụng các từ ngữ mạnh (Power Words), gây sốc nhẹ, cảm xúc mạnh hoặc hứa hẹn một bí mật/giải pháp bất ngờ. Hook phải thật sắc bén.
-    2.  **Đa dạng & Sáng tạo (High Variance):** 5 tiêu đề phải có 5 góc nhìn/cấu trúc hoàn toàn khác nhau. TRÁNH lặp lại công thức. KHÔNG được giống với các lần tạo trước. Hãy suy nghĩ vượt khuôn khổ (Think outside the box).
-    3.  **Không sử dụng năm (No Year):** TUYỆT ĐỐI KHÔNG đưa năm cụ thể (ví dụ: 2024, 2025...) vào tiêu đề trừ khi mô tả video yêu cầu rõ ràng về báo cáo năm. Hãy tập trung vào giá trị cốt lõi để video luôn hợp thời (evergreen).
-    4.  **Kỹ thuật Hook:** Sử dụng câu hỏi tu từ, phủ định (Đừng làm X trước khi biết Y), con số cụ thể, hoặc sự so sánh đối lập để tăng CTR.
-    5.  **Độ dài:** ${lengthInstruction}.
+    **PHONG CÁCH ĐẶT TIÊU ĐỀ:**
+    1.  **Tự nhiên & Chân thực (Authentic):** Tuyệt đối không dùng các từ ngữ "giật gân" rẻ tiền (Ví dụ: sốc, kinh hoàng, không thể tin nổi). Hãy viết như một người bạn đang kể lại một điều thú vị cho bạn của mình nghe.
+    2.  **Cuốn hút tinh tế (Engaging):** Đánh vào tâm lý tò mò hoặc giải quyết một nỗi đau/nhu cầu cụ thể của khán giả. Tiêu đề phải gợi ra một giá trị thực tế ngay lập tức.
+    3.  **Văn phong đời thường:** Sử dụng ngôn từ gần gũi, ấm áp hoặc chuyên nghiệp tùy vào nội dung video, nhưng phải luôn mang hơi thở cuộc sống, không máy móc.
+    4.  **Sáng tạo đa góc nhìn:** 5 tiêu đề phải là 5 hướng tiếp cận khác nhau (Chia sẻ trải nghiệm cá nhân, Hướng dẫn bước-by-bước, Kể chuyện truyền cảm hứng, Đặt câu hỏi khơi gợi suy nghĩ, Tổng hợp bí kíp).
+    5.  **Không sử dụng năm:** Tránh đưa các con số năm cụ thể để tiêu đề luôn mới mẻ theo thời gian.
+    6.  **Độ dài:** ${lengthInstruction}.
 
     Mô tả video: "${description}"`;
 
@@ -99,10 +101,10 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
             if (!geminiKey) throw new Error("Gemini API Key chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3-flash-preview',
                 contents: systemPrompt,
                 config: {
-                    temperature: 1.2,
+                    temperature: 1.0,
                     responseMimeType: "application/json",
                     responseSchema: {
                         type: window.GenAIType.OBJECT,
@@ -129,7 +131,7 @@ const generateTitles = async (description: string, geminiKey: string, openaiKey:
                     model: 'gpt-4o',
                     messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Trả về kết quả dưới dạng một đối tượng JSON có một khóa duy nhất là "titles", chứa một mảng gồm 5 chuỗi tiêu đề.' }],
                     response_format: { type: 'json_object' },
-                    temperature: 1.0
+                    temperature: 0.9
                 })
             });
             if (!response.ok) {
@@ -170,7 +172,7 @@ const generateFullSEOContent = async (description: string, title: string, gemini
         -   Sử dụng lối kể chuyện (storytelling) nếu phù hợp để làm cho nội dung trở nên lôi cuốn.
         -   Cấu trúc mô tả thành các câu hoặc đoạn văn ngắn. Sau mỗi câu hoặc đoạn văn, hãy xuống dòng hai lần để tạo khoảng cách, giúp người đọc dễ theo dõi.
         -   Nội dung phải tập trung vào chủ đề video và từ khóa, **KHÔNG** có lời kêu gọi hành động (CTA) và tránh dùng đại từ 'chúng tôi'. Văn phong phải tự nhiên, không nhồi nhét từ khóa máy móc.
-        -   Chỉ sử dụng 1-2 emoji phù hợp trong toàn bộ đoạn văn để tạo điểm nhấn, không bắt đầu mỗi câu bằng emoji.
+        -   Ch chỉ sử dụng 1-2 emoji phù hợp trong toàn bộ đoạn văn để tạo điểm nhấn, không bắt đầu mỗi câu bằng emoji.
     2.  **hashtags:** Viết 3 hashtag **liên quan mật thiết và trực tiếp nhất** đến nội dung video. Sau đó, **BẮT BUỘC** thêm 3 hashtag sau vào cuối: #lamyoutubeai, #huynhxuyenson, #huongdanai. Tổng cộng là 6 hashtag. Hashtag phải không dấu, viết bằng chữ thường, và viết liền. **QUAN TRỌNG:** Mỗi hashtag trong mảng kết quả BẮT BUỘC phải bắt đầu bằng ký tự '#'.
     3.  **primaryKeywords:** Liệt kê 8 từ khóa **quan trọng và cốt lõi nhất**.
     4.  **secondaryKeywords:** Liệt kê 15 từ khóa phụ mở rộng, **tập trung vào các khía cạnh cụ thể** của video.`;
@@ -184,7 +186,7 @@ const generateFullSEOContent = async (description: string, title: string, gemini
             if (!geminiKey) throw new Error("Gemini API Key chưa được cấu hình.");
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3-flash-preview',
                 contents: systemPrompt,
                 config: {
                     responseMimeType: "application/json",
