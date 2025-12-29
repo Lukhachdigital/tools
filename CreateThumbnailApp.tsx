@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // =================================================================
@@ -309,19 +310,32 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) 
   const [accessoryImage, setAccessoryImage] = useState<UploadedImage | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [showText, setShowText] = useState(false);
   
   const generateThumbnail = async (userTextPrompt, index) => {
      setResults(prev => prev.map((res, idx) => idx === index ? { ...res, status: 'generating' } : res));
 
+     let textInstruction = "";
+     if (showText) {
+         textInstruction = `
+         *   **TEXT OVERLAY (CRITICAL):** You MUST render the following text clearly on the image: "${userTextPrompt}". 
+         *   **ACCURACY:** Ensure 100% correct spelling, grammar, and all Vietnamese accents (diacritics).
+         *   **LEGIBILITY:** Place the text in a highly legible font and position (e.g., using bold styles, shadows, or outlines) so it's easy to read as a YouTube thumbnail.
+         `;
+     } else {
+         textInstruction = `*   **NO TEXT:** DO NOT RENDER ANY TEXT ON THE IMAGE under any circumstances.`;
+     }
+
      const finalPromptForAI = `
-        **MISSION: Create ONE viral-quality thumbnail (VISUALS ONLY).**
+        **MISSION: Create ONE viral-quality thumbnail (VISUALS).**
         **[DESIGN & STYLE REQUIREMENTS]**
-        *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${userTextPrompt}". **DO NOT RENDER ANY TEXT ON THE IMAGE.**
+        *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${userTextPrompt}".
         *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles for maximum clickability.
         *   **USER GUIDANCE:** ${creativeNotes.trim() ? `**User's Creative Guidance (High Priority):** ${creativeNotes}` : ''}
         *   **COMPOSITION:** Create a dynamic and engaging composition. AVOID boring, centered layouts.
+        ${textInstruction}
         ---
-        **FINAL GOAL:** A visually stunning thumbnail that represents the theme perfectly, with absolutely NO TEXT.
+        **FINAL GOAL:** A visually stunning thumbnail that represents the theme perfectly.
     `;
     
     const sizeMap = { '16:9': '1792x1024', '9:16': '1024x1792', '1:1': '1024x1024' };
@@ -336,15 +350,16 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) 
             if (characterImage) {
               const parts = [];
               const finalPrompt = `
-                  **MISSION: VIRAL THUMBNAIL CREATION (VISUALS ONLY)**
+                  **MISSION: VIRAL THUMBNAIL CREATION (VISUALS)**
                   **[ART DIRECTION & CREATIVE EXECUTION]**
-                  1.  **CORE TASK:** Transform the uploaded image based on a visual theme. The person in the image is the main character, but you must reimagine everything else: pose, action, clothing, and background to create a dynamic, viral-quality scene. **DO NOT ADD ANY TEXT TO THE IMAGE.**
+                  1.  **CORE TASK:** Transform the uploaded image based on a visual theme. The person in the image is the main character, but you must reimagine everything else: pose, action, clothing, and background to create a dynamic, viral-quality scene.
                   2.  **ASPECT RATIO:** The final image's aspect ratio MUST match the aspect ratio of the uploaded character image.
                   3.  **ACCESSORY INTEGRATION (If accessory image is provided):** The character MUST be wearing or using the accessory from the secondary image in a natural and visually appealing way. The accessory's design, shape, and color must be preserved with 100% fidelity.
                   4.  **THEME:** The visual theme is: "${userTextPrompt}". All visuals must powerfully represent this concept.
                   5.  **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly clickable thumbnail.'}
                   6.  **FACIAL IDENTITY (NON-NEGOTIABLE):** The character's face, features, and identity MUST be preserved with 100% accuracy from the uploaded photo. This is the most critical instruction. Do not alter the face.
-                  **FINAL REVIEW:** Is the person recognizable? Is the thumbnail visually compelling based on the theme? Is there absolutely NO TEXT on the image? If all answers are YES, complete the mission.
+                  ${textInstruction}
+                  **FINAL REVIEW:** Is the person recognizable? Is the thumbnail visually compelling based on the theme? ${showText ? "Is the text clearly legible and correctly spelled with accents?" : "Is there absolutely NO TEXT on the image?"} If all answers are YES, complete the mission.
                 `;
               
               parts.push({ text: finalPrompt });
@@ -500,7 +515,18 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) 
                     onSelect: setAspectRatio,
                     disabled: !!(characterImage || accessoryImage)
                 }),
-                // Only warn if NO key supports multimodal (which is Gemini-only feature currently)
+                React.createElement('div', { className: "flex bg-gray-700 rounded-lg p-1" },
+                  React.createElement('button', {
+                    onClick: () => setShowText(true),
+                    disabled: isGenerating,
+                    className: `flex-1 text-center py-2 text-xs font-bold rounded-md transition-all ${showText ? 'bg-blue-600 text-white shadow' : 'text-gray-300 hover:bg-gray-600'}`
+                  }, "Hiện chữ"),
+                  React.createElement('button', {
+                    onClick: () => setShowText(false),
+                    disabled: isGenerating,
+                    className: `flex-1 text-center py-2 text-xs font-bold rounded-md transition-all ${!showText ? 'bg-blue-600 text-white shadow' : 'text-gray-300 hover:bg-gray-600'}`
+                  }, "Không hiện")
+                ),
                 (!geminiApiKey) && React.createElement('p', { className: "text-xs text-center text-yellow-400 p-2 bg-yellow-900/50 rounded-md -my-2" }, "Tính năng upload ảnh và giữ khuôn mặt chỉ hỗ trợ model Gemini."),
                 React.createElement('p', { className: "text-base font-bold text-center text-yellow-400 mb-2 uppercase tracking-wide" }, "Bạn Upload ảnh mẫu tỷ lệ nào, ảnh kết quả sẽ là tỷ lệ tương tự"),
                 React.createElement('div', { className: "grid grid-cols-2 gap-4" },
