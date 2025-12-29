@@ -493,7 +493,8 @@ ${characterInstruction}
 
   const handleDownload = () => {
       if(!generatedContent) return;
-      const text = `--- NHÂN VẬT ---\n${generatedContent.characterList.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n')}\n\n--- BỐI CẢNH ---\n${generatedContent.contextList.map(c => `${c.name}: ${c.description}`).join('\n')}\n\n--- KỊCH BẢN ---\n${generatedContent.prompts.map((p, idx) => `Scene ${idx + 1}: ${p}`).join('\n')}`;
+      // Chỉ lấy danh sách prompt, mỗi cái cách nhau 2 dòng trống (tổng cộng 3 dấu \n), không chứa ký tự khác
+      const text = generatedContent.prompts.join('\n\n\n');
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
