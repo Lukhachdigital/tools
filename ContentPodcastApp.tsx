@@ -257,7 +257,7 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
               </React.Fragment>
             ) : (
               <div className="text-center text-gray-400 p-2">
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto mb-2 text-gray-500 group-hover:text-gray-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto mb-2 text-gray-500 group-hover:text-orange-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                  </svg>
                 <p className="text-xs font-medium text-gray-400 group-hover:text-gray-300">Tải ảnh lên</p>
@@ -375,7 +375,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     }
 
     // 2. Try OpenAI
-    if (!rawResult && (selectedModel === 'openai' || selectedModel === 'auto') && openaiKey) {
+    if (!rawResult && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey) || (selectedModel === 'openrouter' && false))) {
         try {
             if (!openaiKey) throw new Error("OpenAI Key chưa được cài đặt.");
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -405,7 +405,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         return {
             title: rawResult.title,
             article: postProcessText(rawResult.article),
-            engagementCall: postProcessText(rawResult.engagementCall)
+            engagementCall: rawResult.engagementCall
         };
     }
 
@@ -436,12 +436,14 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
   const [audioError, setAudioError] = useState<string | null>(null);
   const [audioFormat, setAudioFormat] = useState<'mp3' | 'wav'>('mp3');
 
-
   const generatePromptFromContent = async (content: GeneratedContent) => {
       setIsGeneratingPrompt(true);
       setImagePrompt('');
 
+      const seed = Date.now();
       const promptRequest = `Based on the following article content and title, create a detailed, cinematic, photorealistic image generation prompt (in English). 
+      
+      **RANDOM SEED FOR VARIATION:** ${seed}
       
       **CRITICAL INSTRUCTIONS FOR CHARACTER COMPOSITION:**
       1.  **Analyze the Content:** Deeply analyze the article to determine the *implied* characters. 
@@ -451,13 +453,22 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           - If the topic is "Loneliness", feature a **Single Person**.
           - If the topic is "Business/Negotiation", feature **Multiple Professionals**.
           - ALWAYS default to including both male and female figures if the topic involves relationships, unless specified otherwise.
-      2.  **Determine Emotions:** The facial expressions and body language MUST perfectly match the mood of the article (e.g., joyful, teary-eyed, angry, pensive, hopeful).
-      3.  **Output:** A concise but highly descriptive prompt focusing on the characters, their interaction, facial expressions, and the setting.
+      2.  **PHYSICAL APPEARANCE (MANDATORY - ULTRA SEXY):** 
+          - The female character(s) MUST have a **highly sexy, extremely curvaceous body** (thân hình gợi cảm).
+          - They MUST have **exceptionally full, prominent bust and full, rounded, voluminous hips** (vòng 1 và vòng 3 đầy đặn).
+          - Describe their physique as fit, alluring, voluptuous, and strikingly attractive.
+      3.  **COSTUME & OUTFIT (UNIQUE & SEXY EVERY TIME):**
+          - The character(s) MUST wear a **highly sexy, glamorous, or alluring outfit**.
+          - EACH time you generate, the outfit MUST be different and unique (e.g., a form-fitting elegant silk evening gown with high slits, a tight stylish urban street outfit, sophisticated alluring lingerie-inspired fashion, etc.).
+          - Describe fabrics like lace, silk, or leather that accentuate the curves.
+          - **DO NOT USE** the outfit from any reference image. Start completely fresh.
+      4.  **Determine Emotions:** The facial expressions and body language MUST perfectly match the mood of the article (e.g., joyful, teary-eyed, angry, pensive, hopeful).
+      5.  **Output:** A concise but highly descriptive prompt focusing on the characters, their sexy physique, their unique sexy outfit, interaction, facial expressions, and the setting.
       
       Title: "${content.title}"
       Content Excerpt: "${content.article.substring(0, 2000)}..."
       
-      Style: Cinematic, 8k, highly detailed, dramatic lighting.
+      Style: Cinematic, 8k, highly detailed, dramatic lighting, professional photography.
       Output ONLY the prompt text. Do not include explanations.`;
 
       let providerKey = '';
@@ -480,7 +491,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           if (provider === 'gemini') {
               const ai = new window.GoogleGenAI({ apiKey: providerKey });
               const response = await ai.models.generateContent({
-                  model: 'gemini-2.5-flash',
+                  model: 'gemini-3-pro-preview',
                   contents: promptRequest
               });
               setImagePrompt(response.text.trim());
@@ -654,17 +665,20 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
               if (referenceImage) {
                    model = 'gemini-2.5-flash-image';
                    const faceSwapPrompt = `Generate a HIGH-QUALITY PHOTOREALISTIC photograph based on this description: ${imagePrompt}.
-                   **CRITICAL STYLE RULES:**
-                   1.  **ABSOLUTE REALISM:** The image MUST look like a real high-resolution photograph taken with a professional camera.
-                   2.  **NO CARTOON/ART:** Do NOT generate cartoon, anime, 3D render, illustration, or painting styles. This is a strict prohibition.
-                   3.  **FACE IDENTITY:** The face of the person in the generated image MUST MATCH the face provided in the reference image. Preserve facial features, age, and identity strictly.
+                   
+                   **CRITICAL STYLE & PHYSIQUE RULES:**
+                   1.  **ABSOLUTE REALISM:** The image MUST look like a real high-resolution photograph taken with a professional camera. No art/cartoon styles.
+                   2.  **PHYSIQUE & SEXY BODY:** The character MUST have a highly sexy body with an exceptionally full bust and full, rounded, voluminous hips (curvaceous and fit figure). Voluptuous.
+                   3.  **IGNORE ORIGINAL CLOTHING (CRITICAL):** COMPLETELY IGNORE the clothing in the reference image. The character MUST wear the unique sexy outfit described in the prompt. Do NOT repeat or use the reference image's outfit.
+                   4.  **FACE IDENTITY:** The face of the person in the generated image MUST MATCH the face provided in the reference image. Preserve facial features, age, and identity strictly.
                    
                    **INSTRUCTION FOR FACE MAPPING:**
-                   1.  **Identify Reference Gender:** STRICTLY analyze the gender of the person in the provided inline reference image. Is it Male or Female?
+                   1.  **Identify Reference Gender:** STRICTLY analyze the gender of the person in the provided reference image.
                    2.  **Target Selection:** Find the character in the prompt description that MATCHES this identified gender.
                    3.  **Apply Face:** Apply the face from the reference image ONLY to that specific matching character.
                    4.  **Non-Matching Characters:** If there are other characters in the scene, generate a generic face for them.
-                   5.  Blend the face naturally with the lighting and emotion described.`;
+                   5.  Blend the face naturally with the lighting and sexy physique described.`;
+                   
                    requestBody = {
                       model,
                       contents: { parts: [{ text: faceSwapPrompt }, { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }] },
@@ -673,7 +687,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
               } else {
                   requestBody = {
                       model,
-                      prompt: `${imagePrompt}. Style: Cinematic, Photorealistic, 8k, highly detailed photograph. NO cartoon, NO illustration.`,
+                      prompt: `${imagePrompt}. Style: Cinematic, Photorealistic photograph, highly detailed. NO cartoon, NO illustration.`,
                       config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '16:9' }
                   };
               }
@@ -707,7 +721,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       }
 
       // 2. Try OpenAI
-      if (!generatedSuccess && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
+      if (!generatedSuccess && (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey))) {
           try {
               if (referenceImage) {
                   throw new Error("Tính năng ảnh mẫu khuôn mặt chỉ được hỗ trợ bởi Gemini.");
@@ -832,7 +846,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                 {(generatedContent || imagePrompt) && (
                     <div className="animate-fade-in mt-4 bg-slate-900/50 p-4 rounded-lg border border-slate-600/50 relative">
                         <label className="block text-sm font-semibold text-pink-400 mb-2 flex justify-between items-center">
-                            <span>Prompt Tạo Ảnh (AI đề xuất theo nội dung)</span>
+                            <span>Prompt Tạo Ảnh (Gợi cảm & Quyến rũ)</span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => {
