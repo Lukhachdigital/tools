@@ -349,9 +349,12 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     // Priority: Gemini -> OpenAI for Text
 
     // 1. Try Gemini
+    // Fix: Use geminiKey parameter instead of geminiApiKey
     if ((selectedModel === 'gemini' || selectedModel === 'auto') && geminiKey) {
         try {
+            // Fix: Use geminiKey parameter instead of geminiApiKey
             if (!geminiKey) throw new Error("Gemini Key chưa được cài đặt.");
+            // Fix: Use geminiKey parameter instead of geminiApiKey
             const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
                 model: "gemini-3-pro-preview",
@@ -377,6 +380,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     // 2. Try OpenAI
     if (!rawResult && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey) || (selectedModel === 'openrouter' && false))) {
         try {
+            // Fix: Use openaiKey parameter instead of openaiApiKey
             if (!openaiKey) throw new Error("OpenAI Key chưa được cài đặt.");
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
@@ -453,15 +457,14 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           - If the topic is "Loneliness", feature a **Single Person**.
           - If the topic is "Business/Negotiation", feature **Multiple Professionals**.
           - ALWAYS default to including both male and female figures if the topic involves relationships, unless specified otherwise.
-      2.  **PHYSICAL APPEARANCE (MANDATORY - ULTRA SEXY):** 
-          - The female character(s) MUST have a **highly sexy, extremely curvaceous body** (thân hình gợi cảm).
-          - They MUST have **exceptionally full, prominent bust and full, rounded, voluminous hips** (vòng 1 và vòng 3 đầy đặn).
-          - Describe their physique as fit, alluring, voluptuous, and strikingly attractive.
-      3.  **COSTUME & OUTFIT (UNIQUE & SEXY EVERY TIME):**
+      2.  **PHYSICAL APPEARANCE (MANDATORY):** 
+          - The female character(s) MUST have a **highly sexy, curvaceous body** (thân hình gợi cảm).
+          - They MUST have **full, prominent bust and full, rounded hips** (vòng 1 và vòng 3 đầy đặn).
+          - Describe their physique as fit, alluring, and voluptuous.
+      3.  **COSTUME & OUTFIT (UNIQUE EVERY TIME):**
           - The character(s) MUST wear a **highly sexy, glamorous, or alluring outfit**.
           - EACH time you generate, the outfit MUST be different and unique (e.g., a form-fitting elegant silk evening gown with high slits, a tight stylish urban street outfit, sophisticated alluring lingerie-inspired fashion, etc.).
           - Describe fabrics like lace, silk, or leather that accentuate the curves.
-          - **DO NOT USE** the outfit from any reference image. Start completely fresh.
       4.  **Determine Emotions:** The facial expressions and body language MUST perfectly match the mood of the article (e.g., joyful, teary-eyed, angry, pensive, hopeful).
       5.  **Output:** A concise but highly descriptive prompt focusing on the characters, their sexy physique, their unique sexy outfit, interaction, facial expressions, and the setting.
       
@@ -668,8 +671,8 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                    
                    **CRITICAL STYLE & PHYSIQUE RULES:**
                    1.  **ABSOLUTE REALISM:** The image MUST look like a real high-resolution photograph taken with a professional camera. No art/cartoon styles.
-                   2.  **PHYSIQUE & SEXY BODY:** The character MUST have a highly sexy body with an exceptionally full bust and full, rounded, voluminous hips (curvaceous and fit figure). Voluptuous.
-                   3.  **IGNORE ORIGINAL CLOTHING (CRITICAL):** COMPLETELY IGNORE the clothing in the reference image. The character MUST wear the unique sexy outfit described in the prompt. Do NOT repeat or use the reference image's outfit.
+                   2.  **PHYSIQUE & SEXY BODY:** The character MUST have a highly sexy body with a full bust and full rounded hips (curvaceous figure). Voluptuous and fit.
+                   3.  **IGNORE ORIGINAL CLOTHING:** COMPLETELY IGNORE the clothing in the reference image. The character MUST wear the unique sexy outfit described in the prompt.
                    4.  **FACE IDENTITY:** The face of the person in the generated image MUST MATCH the face provided in the reference image. Preserve facial features, age, and identity strictly.
                    
                    **INSTRUCTION FOR FACE MAPPING:**
