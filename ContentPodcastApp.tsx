@@ -266,7 +266,8 @@ MÃ NGẪU NHIÊN: ${seed}.
 YÊU CẦU:
 1. Tiêu đề: Viết hoa chữ cái đầu mỗi từ.
 2. Bài viết: ${lengthInstruction}. Trình bày rõ ràng, không icon, xuống dòng hợp lý.
-3. Lời kêu gọi: CTA ngắn gọn.
+3. Câu cuối cùng của bài viết PHẢI là một câu hỏi hoặc lời mời tương tác trực tiếp với khán giả (Ví dụ: "Bạn nghĩ sao về điều này?", "Hãy để lại bình luận chia sẻ câu chuyện của bạn nhé").
+4. Lời kêu gọi: CTA ngắn gọn.
 Chỉ trả về JSON hợp lệ.`;
 };
 
@@ -287,9 +288,9 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     const CREATIVE_TEMP = 1.0; 
     let rawResult: GeneratedContent | null = null;
     
-    // Priority: OpenAI -> Gemini (User request)
+    // Priority: OpenAI -> Gemini
 
-    // 1. Try OpenAI
+    // 1. Try OpenAI (Priority)
     if ((selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
         try {
             if (!openaiKey) throw new Error("OpenAI Key chưa được cài đặt.");
@@ -382,25 +383,27 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       
       **RANDOM SEED FOR VARIATION:** ${seed}
       
-      **CRITICAL INSTRUCTIONS:**
-      1.  **Analyze the Content:** Determine the characters and mood.
-      2.  **PHYSICAL APPEARANCE (ULTRA SEXY):** 
-          - The female character MUST have a **highly sexy, curvaceous body** (thân hình gợi cảm).
-          - She MUST have **exceptionally full, prominent bust and full, rounded, voluminous hips** (vòng 1 và vòng 3 đầy đặn).
-          - Physique: fit, alluring, voluptuous.
-      3.  **COSTUME & OUTFIT (SEXY SLEEPWEAR - UNIQUE EVERY TIME):**
-          - The character MUST wear **highly sexy sleepwear** (trang phục ngủ gợi cảm).
-          - EACH time you generate, the sleepwear MUST be different and unique (e.g., sheer lace negligee, tiny silk slip dress, alluring satin robe with high slit, seductive lace bodysuit, etc.).
-          - Describe fabrics that accentuate curves.
-          - **IGNORE** any outfit from reference images. Start fresh.
-      4.  **Emotions:** Match the mood of the article.
-      5.  **Output:** English prompt focusing on the sexy character, her curvaceous physique, her unique sexy sleepwear, and setting.
+      **CRITICAL INSTRUCTIONS (MANDATORY):**
+      1.  **Analyze Content:** Determine the character(s) and mood.
+      2.  **PHYSICAL APPEARANCE:** 
+          - The female character MUST have a **highly glamorous, alluring, curvaceous body** (thân hình gợi cảm).
+          - She MUST have **prominent, full bust and full, rounded, voluminous hips** (vòng 1 và vòng 3 đầy đặn).
+          - Describe her physique as fit, stunning, and voluptuous.
+      3.  **COSTUME (UNIQUE EVERY TIME):**
+          - The character MUST wear **alluring, high-fashion, glamorous sleepwear** (trang phục ngủ gợi cảm).
+          - FOR EVERY GENERATION, create a COMPLETELY DIFFERENT and UNIQUE outfit (e.g., silk negligee with lace details, sheer flowing robe, stylish satin nightgown, or elegant lingerie-inspired fashion).
+          - Use fabrics like silk, lace, or satin that catch the light beautifully.
+          - **STRICT RULE:** IGNORE the outfit from any reference image. Do NOT repeat or reference the source image's clothing.
+      4.  **Emotions:** Match the mood of the article (joyful, pensive, mysterious, etc.).
+      5.  **Output:** A high-quality English prompt focusing on the stunning character, her curvaceous physique, her unique glamorous sleepwear, and setting.
+      6.  **POLICY COMPLIANCE:** Ensure the prompt describes high-fashion glamour and artistic beauty. No explicit nudity or prohibited content.
       
       Title: "${content.title}"
-      Content: "${content.article.substring(0, 2000)}..."
-      Style: Cinematic, 8k, photorealistic photography. Output ONLY the prompt text.`;
+      Content: "${content.article.substring(0, 1500)}..."
+      Style: Cinematic, 8k, photorealistic photography, professional lighting.
+      Output ONLY the prompt text. No explanations.`;
 
-      // Use Gemini for Image Prompt Generation per request (as part of image processing pipeline)
+      // Use Gemini for Image Prompt Generation per request (part of image process)
       let providerKey = geminiApiKey;
       if (!providerKey) {
           setIsGeneratingPrompt(false);
@@ -518,10 +521,11 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           if (referenceImage) {
                const faceSwapPrompt = `Generate a HIGH-QUALITY PHOTOREALISTIC photograph based on this description: ${imagePrompt}.
                **CRITICAL RULES:**
-               1. **PHYSIQUE & SEXY BODY:** Character MUST have a highly sexy, voluptuous body with full bust and full rounded hips.
-               2. **IGNORE ORIGINAL CLOTHING:** Character MUST wear the unique sexy sleepwear described. DO NOT use reference outfit.
-               3. **FACE IDENTITY:** Face MUST MATCH reference provided strictly.
-               4. **BLEND:** Natural lighting and textures.`;
+               1. **PHYSIQUE:** Character MUST have a highly alluring, glamorous, fit, and voluptuous body with full bust and rounded hips.
+               2. **OUTFIT:** Character MUST wear the unique glamorous sleepwear described. DO NOT use reference outfit. Start completely fresh.
+               3. **FACE:** Face MUST MATCH the provided reference image identity strictly.
+               4. **QUALITY:** Cinematic lighting, 8k resolution, professional photography style. 
+               5. **SAFETY:** Comply with standard AI safety guidelines while maintaining the requested glamorous/sexy aesthetic.`;
                
                const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
@@ -533,7 +537,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           } else {
               const response = await ai.models.generateImages({
                   model: 'imagen-4.0-generate-001',
-                  prompt: `${imagePrompt}. Photorealistic photograph, highly detailed.`,
+                  prompt: `${imagePrompt}. Ultra-realistic, cinematic, high fashion.`,
                   config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '16:9' }
               });
               if (response.generatedImages?.[0]?.image?.imageBytes) imageUrl = `data:image/png;base64,${response.generatedImages[0].image.imageBytes}`;
@@ -598,13 +602,13 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                 {(generatedContent || imagePrompt) && (
                     <div className="animate-fade-in mt-4 bg-slate-900/50 p-4 rounded-lg border border-slate-600/50 relative">
                         <label className="block text-sm font-semibold text-pink-400 mb-2 flex justify-between items-center">
-                            <span>Prompt Tạo Ảnh (Gợi cảm & Quyến rũ)</span>
+                            <span>Prompt Tạo Ảnh</span>
                             <div className="flex items-center gap-2">
                                 <button onClick={() => navigator.clipboard.writeText(imagePrompt)} className="flex items-center gap-1 px-3 py-1 text-xs bg-pink-600 hover:bg-pink-700 text-white rounded-md transition-colors font-bold"><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>Sao chép</button>
                                 {isGeneratingPrompt && <span className="text-xs animate-pulse text-gray-400">Đang tạo...</span>}
                             </div>
                         </label>
-                        <textarea value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-yellow-300 font-mono h-24 resize-none" placeholder="Prompt tạo ảnh gợi cảm..." />
+                        <textarea value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-yellow-300 font-mono h-24 resize-none" placeholder="Prompt tạo ảnh..." />
                         <button onClick={handleGenerateImage} disabled={isGeneratingImage || !imagePrompt} className="w-full mt-3 bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg flex items-center justify-center gap-2">
                             {isGeneratingImage ? <LoadingSpinner /> : <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" /></svg>}
                             {isGeneratingImage ? 'Đang vẽ ảnh...' : 'Tạo Ảnh Minh Họa (Gemini)'}
