@@ -292,7 +292,6 @@ const responseSchema = {
 };
 
 const getSystemInstruction = (length: ArticleLength, seed: number, category: string) => {
-    // Length remains the same
     const lengthInstruction = length === 'short'
     ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1500 đến 2200 ký tự. Hãy viết nội dung cô đọng nhưng giàu cảm xúc.'
     : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 8800 ký tự. Hãy viết cực kỳ sâu sắc, khai thác mọi ngóc ngách của cảm xúc.';
@@ -346,41 +345,11 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     const CREATIVE_TEMP = 1.0; 
     let rawResult: GeneratedContent | null = null;
     
-    // Priority: Gemini -> OpenAI for Text
+    // Priority: OpenAI -> Gemini for Text
 
-    // 1. Try Gemini
-    // Fix: Use geminiKey parameter instead of geminiApiKey
-    if ((selectedModel === 'gemini' || selectedModel === 'auto') && geminiKey) {
+    // 1. Try OpenAI (Priority)
+    if (!rawResult && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
         try {
-            // Fix: Use geminiKey parameter instead of geminiApiKey
-            if (!geminiKey) throw new Error("Gemini Key chưa được cài đặt.");
-            // Fix: Use geminiKey parameter instead of geminiApiKey
-            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
-            const response = await ai.models.generateContent({
-                model: "gemini-3-pro-preview",
-                contents: userContent,
-                config: {
-                    systemInstruction: systemInstruction,
-                    responseMimeType: "application/json",
-                    responseSchema: responseSchema,
-                    temperature: CREATIVE_TEMP,
-                },
-            });
-            rawResult = JSON.parse(response.text.trim());
-        } catch (e) {
-            console.warn("Gemini failed", e);
-            if (selectedModel === 'gemini') {
-                finalError = e;
-            } else {
-                finalError = e; // will fallthrough
-            }
-        }
-    }
-
-    // 2. Try OpenAI
-    if (!rawResult && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey) || (selectedModel === 'openrouter' && false))) {
-        try {
-            // Fix: Use openaiKey parameter instead of openaiApiKey
             if (!openaiKey) throw new Error("OpenAI Key chưa được cài đặt.");
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
@@ -401,6 +370,29 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         } catch (e) {
             console.warn("OpenAI failed", e);
             if (selectedModel === 'openai') throw e;
+            finalError = e; // will fallthrough
+        }
+    }
+
+    // 2. Try Gemini (Fallback)
+    if (!rawResult && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
+        try {
+            if (!geminiKey) throw new Error("Gemini Key chưa được cài đặt.");
+            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
+            const response = await ai.models.generateContent({
+                model: "gemini-3-pro-preview",
+                contents: userContent,
+                config: {
+                    systemInstruction: systemInstruction,
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema,
+                    temperature: CREATIVE_TEMP,
+                },
+            });
+            rawResult = JSON.parse(response.text.trim());
+        } catch (e) {
+            console.warn("Gemini failed", e);
+            if (selectedModel === 'gemini') throw e;
             finalError = e;
         }
     }
@@ -449,59 +441,45 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       
       **RANDOM SEED FOR VARIATION:** ${seed}
       
-      **CRITICAL INSTRUCTIONS FOR CHARACTER COMPOSITION:**
-      1.  **Analyze the Content:** Deeply analyze the article to determine the *implied* characters. 
-          - **Explicitly extract the number of characters and their gender.**
-          - If the topic is "Marriage" or "Love", the image MUST feature a **Man and a Woman** (or strictly follow the context if it specifies otherwise).
+      **CRITICAL COSTUME & SETTING INSTRUCTIONS:**
+      1.  **Thematic Costume & Setting:** The outfit and background MUST strictly match the theme of the content.
+          - If the topic involves sex, sexual intimacy, or marriage: Feature a man and a woman in a romantic, dimly lit cozy bedroom setting. They MUST be wearing stylish, appropriate sleepwear or pajamas.
+          - If the topic is "Marriage" or "Love", feature a **Man and a Woman** together.
           - If the topic is "Parenting", feature **Parent(s) and Child(ren)**.
-          - If the topic is "Loneliness", feature a **Single Person**.
-          - If the topic is "Business/Negotiation", feature **Multiple Professionals**.
-          - ALWAYS default to including both male and female figures if the topic involves relationships, unless specified otherwise.
-      2.  **PHYSICAL APPEARANCE (MANDATORY):** 
+          - Always choose outfits and environments that represent the specific emotions and topic of the article.
+      2.  **IGNORE ORIGINAL CLOTHING:** You MUST NOT use the clothing from any provided reference image. Invent a COMPLETELY NEW outfit that fits the theme described above.
+      3.  **UNIQUE EVERY TIME:** Every time you generate this prompt (using the seed), ensure the specific design of the outfit and room is fresh and unique.
+      4.  **PHYSICAL APPEARANCE (MANDATORY):** 
           - The female character(s) MUST have a **highly sexy, curvaceous body** (thân hình gợi cảm).
           - They MUST have **full, prominent bust and full, rounded hips** (vòng 1 và vòng 3 đầy đặn).
           - Describe their physique as fit, alluring, and voluptuous.
-      3.  **COSTUME & OUTFIT (UNIQUE EVERY TIME):**
-          - The character(s) MUST wear a **highly sexy, glamorous, or alluring outfit**.
-          - EACH time you generate, the outfit MUST be different and unique (e.g., a form-fitting elegant silk evening gown with high slits, a tight stylish urban street outfit, sophisticated alluring lingerie-inspired fashion, etc.).
-          - Describe fabrics like lace, silk, or leather that accentuate the curves.
-      4.  **Determine Emotions:** The facial expressions and body language MUST perfectly match the mood of the article (e.g., joyful, teary-eyed, angry, pensive, hopeful).
-      5.  **Output:** A concise but highly descriptive prompt focusing on the characters, their sexy physique, their unique sexy outfit, interaction, facial expressions, and the setting.
-      
+      5.  **FACE REFERENCE:** The reference image should ONLY be used for facial identity, nothing else.
+      6.  **Style:** Cinematic, 8k, photorealistic, professional photography, dramatic lighting.
+
       Title: "${content.title}"
-      Content Excerpt: "${content.article.substring(0, 2000)}..."
+      Content Excerpt: "${content.article.substring(0, 1500)}..."
       
-      Style: Cinematic, 8k, highly detailed, dramatic lighting, professional photography.
-      Output ONLY the prompt text. Do not include explanations.`;
+      Output ONLY the prompt text in English. Do not include explanations.`;
 
-      let providerKey = '';
-      let provider: 'openai' | 'gemini' = 'gemini'; // Default to Gemini priority
-
-      if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
-          provider = 'gemini';
-          providerKey = geminiApiKey;
-      } else if ((selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
-          provider = 'openai';
-          providerKey = openaiApiKey;
-      }
-
+      // Always use Gemini for visual prompt analysis to keep image processing consistent
+      const providerKey = geminiApiKey || openaiApiKey;
       if (!providerKey) {
           setIsGeneratingPrompt(false);
           return;
       }
 
       try {
-          if (provider === 'gemini') {
-              const ai = new window.GoogleGenAI({ apiKey: providerKey });
+          if (geminiApiKey) {
+              const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
               const response = await ai.models.generateContent({
                   model: 'gemini-3-pro-preview',
                   contents: promptRequest
               });
               setImagePrompt(response.text.trim());
-          } else { // OpenAI
+          } else {
               const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${providerKey}` },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiApiKey}` },
                 body: JSON.stringify({
                     model: "gpt-4o",
                     messages: [{ role: "user", content: promptRequest }],
@@ -649,6 +627,11 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           return;
       }
 
+      if (!geminiApiKey) {
+          setError('Tính năng xử lý hình ảnh yêu cầu API Key của Gemini.');
+          return;
+      }
+
       setIsGeneratingImage(true);
       setError(null);
       setGeneratedImageUrl(null);
@@ -656,109 +639,67 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       let finalError: unknown = null;
       let generatedSuccess = false;
 
-      // Priority: Gemini -> OpenAI for IMAGE Generation
-
-      // 1. Try Gemini
-      if (!generatedSuccess && (selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
-          try {
-              const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-              let model: 'gemini-2.5-flash-image' | 'imagen-4.0-generate-001' = 'imagen-4.0-generate-001';
-              let requestBody: any;
-              
-              if (referenceImage) {
-                   model = 'gemini-2.5-flash-image';
-                   const faceSwapPrompt = `Generate a HIGH-QUALITY PHOTOREALISTIC photograph based on this description: ${imagePrompt}.
-                   
-                   **CRITICAL STYLE & PHYSIQUE RULES:**
-                   1.  **ABSOLUTE REALISM:** The image MUST look like a real high-resolution photograph taken with a professional camera. No art/cartoon styles.
-                   2.  **PHYSIQUE & SEXY BODY:** The character MUST have a highly sexy body with a full bust and full rounded hips (curvaceous figure). Voluptuous and fit.
-                   3.  **IGNORE ORIGINAL CLOTHING:** COMPLETELY IGNORE the clothing in the reference image. The character MUST wear the unique sexy outfit described in the prompt.
-                   4.  **FACE IDENTITY:** The face of the person in the generated image MUST MATCH the face provided in the reference image. Preserve facial features, age, and identity strictly.
-                   
-                   **INSTRUCTION FOR FACE MAPPING:**
-                   1.  **Identify Reference Gender:** STRICTLY analyze the gender of the person in the provided reference image.
-                   2.  **Target Selection:** Find the character in the prompt description that MATCHES this identified gender.
-                   3.  **Apply Face:** Apply the face from the reference image ONLY to that specific matching character.
-                   4.  **Non-Matching Characters:** If there are other characters in the scene, generate a generic face for them.
-                   5.  Blend the face naturally with the lighting and sexy physique described.`;
-                   
-                   requestBody = {
-                      model,
-                      contents: { parts: [{ text: faceSwapPrompt }, { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }] },
-                      config: { responseModalities: [window.GenAIModality.IMAGE] }
-                   };
-              } else {
-                  requestBody = {
-                      model,
-                      prompt: `${imagePrompt}. Style: Cinematic, Photorealistic photograph, highly detailed. NO cartoon, NO illustration.`,
-                      config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '16:9' }
-                  };
-              }
-
-              let imageUrl = '';
-              if (model === 'gemini-2.5-flash-image') {
-                  const imageResponse = await ai.models.generateContent(requestBody);
-                  const imagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-                  if (imagePart?.inlineData) {
-                      imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-                  }
-              } else {
-                  const imageResponse = await ai.models.generateImages(requestBody);
-                  if (imageResponse.generatedImages?.[0]?.image?.imageBytes) {
-                      imageUrl = `data:image/png;base64,${imageResponse.generatedImages[0].image.imageBytes}`;
-                  }
-              }
-              
-              if (imageUrl) {
-                  setGeneratedImageUrl(imageUrl);
-                  generatedSuccess = true;
-              } else {
-                  throw new Error("Gemini không trả về hình ảnh.");
-              }
-
-          } catch (e) {
-              console.warn("Gemini Image Gen failed", e);
-              if (selectedAIModel === 'gemini') finalError = e;
-              else finalError = e;
+      // Processing image exclusively with Gemini as requested
+      try {
+          const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+          let model: 'gemini-2.5-flash-image' | 'imagen-4.0-generate-001' = 'imagen-4.0-generate-001';
+          let requestBody: any;
+          
+          if (referenceImage) {
+               model = 'gemini-2.5-flash-image';
+               const finalFaceSwapPrompt = `Generate a HIGH-QUALITY PHOTOREALISTIC photograph based on this description: ${imagePrompt}.
+               
+               **CRITICAL INSTRUCTIONS:**
+               1.  **FACE IDENTITY:** The face of the matching character MUST match the face provided in the reference image exactly. Preserve identity, age, and features.
+               2.  **IGNORE ORIGINAL OUTFIT:** You MUST COMPLETELY DISREGARD the clothing in the reference image. The character MUST wear the thematic outfit described in the prompt (e.g., pajamas if in a bedroom setting).
+               3.  **PHYSIQUE & BODY:** The character MUST have a highly sexy body with a full bust and rounded hips as per instructions.
+               4.  **SETTING:** Ensure the background matches the prompt (e.g., romantic bedroom, street, etc.).
+               5.  **UNIQUE:** Ensure this specific generation is unique.
+               
+               Identify the gender from the reference image and apply that face only to the character in the scene that matches.`;
+               
+               requestBody = {
+                  model,
+                  contents: { parts: [{ text: finalFaceSwapPrompt }, { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }] },
+                  config: { responseModalities: [window.GenAIModality.IMAGE] }
+               };
+          } else {
+              requestBody = {
+                  model,
+                  prompt: `${imagePrompt}. Style: Cinematic, Photorealistic photograph, highly detailed. NO cartoon, NO illustration.`,
+                  config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '16:9' }
+              };
           }
-      }
 
-      // 2. Try OpenAI
-      if (!generatedSuccess && (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiApiKey))) {
-          try {
-              if (referenceImage) {
-                  throw new Error("Tính năng ảnh mẫu khuôn mặt chỉ được hỗ trợ bởi Gemini.");
+          let imageUrl = '';
+          if (model === 'gemini-2.5-flash-image') {
+              const imageResponse = await ai.models.generateContent(requestBody);
+              const imagePart = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+              if (imagePart?.inlineData) {
+                  imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
               }
-              const response = await fetch('https://api.openai.com/v1/images/generations', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
-                  body: JSON.stringify({
-                      model: 'dall-e-3',
-                      prompt: `${imagePrompt}. Style: Hình ảnh chân thực, Cinematic, không hoạt hình, Photorealistic, highly detailed photograph. NO cartoon, NO illustration.`,
-                      n: 1,
-                      size: '1792x1024',
-                      response_format: 'b64_json',
-                      quality: 'hd',
-                      style: 'vivid'
-                  })
-              });
-              if (response.ok) {
-                  const data = await response.json();
-                  setGeneratedImageUrl(`data:image/png;base64,${data.data[0].b64_json}`);
-                  generatedSuccess = true;
-              } else {
-                  const errorData = await response.json();
-                  throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+          } else {
+              const imageResponse = await ai.models.generateImages(requestBody);
+              if (imageResponse.generatedImages?.[0]?.image?.imageBytes) {
+                  imageUrl = `data:image/png;base64,${imageResponse.generatedImages[0].image.imageBytes}`;
               }
-          } catch (e) {
-              console.warn("OpenAI Image Gen failed", e);
-              finalError = e;
           }
+          
+          if (imageUrl) {
+              setGeneratedImageUrl(imageUrl);
+              generatedSuccess = true;
+          } else {
+              throw new Error("Gemini không trả về hình ảnh.");
+          }
+
+      } catch (e) {
+          console.warn("Gemini Image Gen failed", e);
+          finalError = e;
       }
 
       setIsGeneratingImage(false);
       if (!generatedSuccess) {
-          setError(`Lỗi khi tạo ảnh: ${finalError instanceof Error ? finalError.message : 'Tất cả các API đều thất bại hoặc chưa được cấu hình.'}`);
+          setError(`Lỗi khi tạo ảnh: ${finalError instanceof Error ? finalError.message : 'Xử lý hình ảnh với Gemini thất bại.'}`);
       }
   };
 
@@ -849,7 +790,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                 {(generatedContent || imagePrompt) && (
                     <div className="animate-fade-in mt-4 bg-slate-900/50 p-4 rounded-lg border border-slate-600/50 relative">
                         <label className="block text-sm font-semibold text-pink-400 mb-2 flex justify-between items-center">
-                            <span>Prompt Tạo Ảnh (Gợi cảm & Quyến rũ)</span>
+                            <span>Prompt Tạo Ảnh (Thay đổi trang phục theo chủ đề)</span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => {
@@ -882,7 +823,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                                     <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                                 </svg>
                             )}
-                            {isGeneratingImage ? 'Đang vẽ ảnh...' : 'Tạo Ảnh Minh Họa'}
+                            {isGeneratingImage ? 'Đang vẽ ảnh...' : 'Tạo Ảnh Minh Họa (Gemini)'}
                         </button>
                     </div>
                 )}
@@ -893,7 +834,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                             uploadedImage={referenceImage} 
                             setUploadedImage={setReferenceImage} 
                             disabled={isGeneratingImage} 
-                            label="Ảnh mẫu (Khuôn mặt)"
+                            label="Ảnh mẫu (Chỉ lấy mặt)"
                         />
                     </div>
                     
