@@ -247,9 +247,9 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
 const responseSchema = {
   type: Type.OBJECT,
   properties: {
-    title: { type: Type.STRING, description: "Tiêu đề của bài viết." },
-    article: { type: Type.STRING, description: "Nội dung chính của bài viết." },
-    engagementCall: { type: Type.STRING, description: "Lời kêu gọi tương tác." },
+    title: { type: Type.STRING, description: "Tiêu đề bài viết, viết hoa các chữ cái đầu." },
+    article: { type: Type.STRING, description: "Nội dung bài viết sâu sắc." },
+    engagementCall: { type: Type.STRING, description: "Lời kết nối tương tác khán giả." },
   },
   required: ["title", "article", "engagementCall"],
 };
@@ -259,23 +259,46 @@ const getSystemInstruction = (length: ArticleLength, seed: number) => {
     ? 'Độ dài bài viết: 1500-2200 ký tự.'
     : 'Độ dài bài viết: tối thiểu 8800 ký tự.';
 
-    return `Bạn là chuyên gia Content Podcast. 
-Nhiệm vụ: Viết bài chia sẻ sâu sắc.
+    return `Bạn là một chuyên gia Content Creator cho Podcast.
+Nhiệm vụ: Viết bài chia sẻ cực kỳ sâu sắc, giàu cảm xúc và gần gũi.
 Yêu cầu:
 1. Tiêu đề: Viết hoa chữ cái đầu mỗi từ.
-2. Bài viết: ${lengthInstruction}. Không icon.
-3. Luôn kết thúc bằng câu hỏi tương tác.
-4. Trả về JSON hợp lệ. Seed: ${seed}`;
+2. Bài viết: ${lengthInstruction}. Trình bày mạch lạc, không icon.
+3. Luôn kết thúc bằng một câu hỏi mở để khán giả bình luận.
+Trả về JSON hợp lệ. Seed: ${seed}`;
 };
 
 const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, selectedModel: string): Promise<GeneratedContent> => {
     const seed = Date.now(); 
     const systemInstruction = getSystemInstruction(length, seed);
-    const userContent = `Chủ đề: "${topic}". Lĩnh vực: ${category}.`;
+    const userContent = `LĨNH VỰC: ${category}. CHỦ ĐỀ: "${topic}". Hãy viết bài Podcast dựa trên thông tin này.`;
     
     let rawResult: GeneratedContent | null = null;
-    
-    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
+    let finalError: any = null;
+
+    // ƯU TIÊN 1: GEMINI (Priority as requested)
+    if (selectedModel === 'gemini' || (selectedModel === 'auto')) {
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const response = await ai.models.generateContent({
+                model: "gemini-3-pro-preview",
+                contents: userContent,
+                config: {
+                    systemInstruction: systemInstruction,
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema,
+                    temperature: 1.0,
+                },
+            });
+            rawResult = JSON.parse(response.text.trim());
+        } catch (e) {
+            console.warn("Gemini failed, trying fallback...", e);
+            finalError = e;
+        }
+    }
+
+    // ƯU TIÊN 2: OPENAI (Fallback)
+    if (!rawResult && (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
         try {
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
@@ -284,31 +307,21 @@ const generateContentWithFallback = async (topic: string, category: string, leng
                     model: "gpt-4o",
                     messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
                     response_format: { type: "json_object" },
+                    temperature: 1.0,
                 }),
             });
             if (response.ok) {
                 const data = await response.json();
                 rawResult = JSON.parse(data.choices[0].message.content);
             }
-        } catch (e) { console.error(e); }
-    }
-
-    if (!rawResult && (selectedModel === 'gemini' || selectedModel === 'auto')) {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-            model: "gemini-3-pro-preview",
-            contents: userContent,
-            config: {
-                systemInstruction: systemInstruction,
-                responseMimeType: "application/json",
-                responseSchema: responseSchema,
-            },
-        });
-        rawResult = JSON.parse(response.text || "{}");
+        } catch (e) {
+            console.warn("OpenAI fallback failed", e);
+            finalError = e;
+        }
     }
 
     if (rawResult) return rawResult;
-    throw new Error("Không thể tạo nội dung.");
+    throw finalError || new Error("Không thể tạo nội dung. Vui lòng kiểm tra API Key.");
 };
 
 // ==========================================
@@ -337,15 +350,20 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       setIsGeneratingPrompt(true);
       setError(null);
       
-      const promptRequest = `Analyze this article title and content: "${content.title}. ${content.article.substring(0, 500)}".
+      const promptRequest = `Analyze this Podcast script title and content to create a high-end cinematic visual prompt (English only).
       
-      MANDATORY RULES FOR IMAGE PROMPT (ENGLISH ONLY):
-      1. DETECT SUBJECTS: If keywords mention marriage (vợ chồng), love (tình yêu), or couple, describe TWO subjects (a man and a woman). Otherwise use 1 person.
-      2. DETECT COSTUME: If keywords mention bedroom (phòng ngủ), night (đêm), or intimacy, describe "luxury silk loungewear" or "elegant sleepwear".
-      3. STYLE: High-end editorial cinematic photography, 8k, photorealistic, atmospheric mood lighting, soft background blur.
-      4. Avoid explicit words. Use "artistic", "glamorous", "classic proportions".
+      **MANDATORY LOGIC RULES:**
+      1. **Subject Detection:** If the topic is about "Hôn nhân" (Marriage), "Tình yêu" (Love), "Vợ chồng" (Couple), or "Gia đình" (Family), the prompt MUST feature TWO people (a man and a woman) or a group.
+      2. **Costume Awareness:** 
+         - If the content mentions "Phòng ngủ" (Bedroom), "Tình dục" (Sex), "Đêm" (Night), or "Sự gần gũi" (Intimacy), the characters MUST wear **luxury silk loungewear** or **elegant silk pajamas**.
+         - Otherwise, use elegant modern fashion.
+      3. **Visual Aesthetics:** Photorealistic, 8k, professional cinematic lighting, soft bokeh background, film grain texture, emotional atmosphere.
+      4. **Safety:** No explicit nudity, use "artistic", "glamorous", "high fashion" terms.
       
-      Output ONLY the English prompt.`;
+      Title: "${content.title}"
+      Summary: "${content.article.substring(0, 500)}"
+      
+      Output ONLY the final English prompt.`;
 
       try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -356,8 +374,6 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           const text = response.text;
           if (text) {
               setImagePrompt(text.trim());
-          } else {
-              throw new Error("Không thể tạo Prompt ảnh.");
           }
       } catch (err: any) {
           console.error("Visual Prompt Error:", err);
@@ -404,7 +420,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
     try {
       const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, selectedAIModel);
       setGeneratedContent(result);
-      await generatePromptFromContent(result);
+      await generatePromptFromContent(result); // Tự động tạo prompt ảnh ngay sau khi viết bài
     } catch (err: any) { setError(`Lỗi: ${err.message}`); } finally { setIsLoading(false); }
   };
 
@@ -415,7 +431,9 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           let imageUrl = '';
           if (referenceImage) {
-               const faceSwapPrompt = `Maintain identity from reference image. Scene: ${imagePrompt}. High-end cinematic professional photograph. 8k. Realistic.`;
+               const faceSwapPrompt = `Create a masterpiece based on this scene: ${imagePrompt}. 
+               IMPORTANT: Use the face from the provided image as the reference for the primary subject. 
+               Style: Photorealistic, 8k, professional photography.`;
                const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
                   contents: { parts: [{ text: faceSwapPrompt }, { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }] }
@@ -425,7 +443,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           } else {
               const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
-                  contents: `${imagePrompt}. Cinematic editorial style, 8k.`
+                  contents: `${imagePrompt}. Photorealistic, ultra-detailed, professional cinematic photography.`
               });
               const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
               if (part?.inlineData) imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
