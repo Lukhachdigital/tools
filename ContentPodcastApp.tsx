@@ -247,44 +247,35 @@ const ImageUploader = ({ uploadedImage, setUploadedImage, disabled, label }: { u
 const responseSchema = {
   type: Type.OBJECT,
   properties: {
-    title: { type: Type.STRING, description: "Tiêu đề của bài viết, là chủ đề do người dùng cung cấp với mỗi chữ cái đầu của từ được viết hoa." },
-    article: { type: Type.STRING, description: "Nội dung chính của bài viết, không bao gồm tiêu đề hay lời kêu gọi." },
-    engagementCall: { type: Type.STRING, description: "Lời cảm nghĩ ngắn gọn và lời kêu gọi tương tác (like, share, comment)." },
+    title: { type: Type.STRING, description: "Tiêu đề của bài viết." },
+    article: { type: Type.STRING, description: "Nội dung chính của bài viết." },
+    engagementCall: { type: Type.STRING, description: "Lời kêu gọi tương tác." },
   },
   required: ["title", "article", "engagementCall"],
 };
 
-const getSystemInstruction = (length: ArticleLength, seed: number, category: string) => {
+const getSystemInstruction = (length: ArticleLength, seed: number) => {
     const lengthInstruction = length === 'short'
-    ? 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI nằm trong khoảng 1500 đến 2200 ký tự.'
-    : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 8800 ký tự.';
+    ? 'Độ dài bài viết: 1500-2200 ký tự.'
+    : 'Độ dài bài viết: tối thiểu 8800 ký tự.';
 
-    return `Bạn là một chuyên gia sáng tạo nội dung Podcast.
-NHIỆM VỤ: Viết một bài chia sẻ sâu sắc về chủ đề được cung cấp.
-PHONG CÁCH: Sâu sắc, Cảm xúc, Storytelling, Gần gũi.
-MÃ NGẪU NHIÊN: ${seed}.
-YÊU CẦU:
+    return `Bạn là chuyên gia Content Podcast. 
+Nhiệm vụ: Viết bài chia sẻ sâu sắc.
+Yêu cầu:
 1. Tiêu đề: Viết hoa chữ cái đầu mỗi từ.
-2. Bài viết: ${lengthInstruction}. Trình bày rõ ràng, không icon, xuống dòng hợp lý.
-3. Câu cuối cùng của bài viết PHẢI là một câu hỏi hoặc lời mời tương tác trực tiếp với khán giả (Ví dụ: "Bạn nghĩ sao về điều này?", "Hãy để lại bình luận chia sẻ câu chuyện của bạn nhé").
-4. Lời kêu gọi: CTA ngắn gọn.
-Chỉ trả về JSON hợp lệ.`;
-};
-
-const postProcessText = (text: string): string => {
-    if (!text) return "";
-    return text.replace(/\b(im)\b/g, "Im");
+2. Bài viết: ${lengthInstruction}. Không icon.
+3. Luôn kết thúc bằng câu hỏi tương tác.
+4. Trả về JSON hợp lệ. Seed: ${seed}`;
 };
 
 const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, selectedModel: string): Promise<GeneratedContent> => {
     const seed = Date.now(); 
-    const systemInstruction = getSystemInstruction(length, seed, category);
-    const userContent = `LĨNH VỰC: ${category}\nCHỦ ĐỀ: "${topic}"\nMÃ NGẪU NHIÊN: ${seed}\nHãy viết bài Podcast sâu sắc dựa trên chủ đề này.`;
-    let finalError;
-    const CREATIVE_TEMP = 1.0; 
+    const systemInstruction = getSystemInstruction(length, seed);
+    const userContent = `Chủ đề: "${topic}". Lĩnh vực: ${category}.`;
+    
     let rawResult: GeneratedContent | null = null;
     
-    if ((selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
+    if (selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey)) {
         try {
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
@@ -293,48 +284,31 @@ const generateContentWithFallback = async (topic: string, category: string, leng
                     model: "gpt-4o",
                     messages: [{ role: "system", content: systemInstruction }, { role: "user", content: userContent }],
                     response_format: { type: "json_object" },
-                    temperature: CREATIVE_TEMP,
                 }),
             });
             if (response.ok) {
                 const data = await response.json();
                 rawResult = JSON.parse(data.choices[0].message.content);
             }
-        } catch (e) {
-            console.warn("OpenAI failed", e);
-            finalError = e;
-        }
+        } catch (e) { console.error(e); }
     }
 
-    if (!rawResult && (selectedModel === 'gemini' || (selectedModel === 'auto'))) {
-        try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const response = await ai.models.generateContent({
-                model: "gemini-3-pro-preview",
-                contents: userContent,
-                config: {
-                    systemInstruction: systemInstruction,
-                    responseMimeType: "application/json",
-                    responseSchema: responseSchema,
-                    temperature: CREATIVE_TEMP,
-                },
-            });
-            rawResult = JSON.parse(response.text.trim());
-        } catch (e) {
-            console.warn("Gemini failed", e);
-            finalError = e;
-        }
+    if (!rawResult && (selectedModel === 'gemini' || selectedModel === 'auto')) {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: userContent,
+            config: {
+                systemInstruction: systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: responseSchema,
+            },
+        });
+        rawResult = JSON.parse(response.text || "{}");
     }
 
-    if (rawResult) {
-        return {
-            title: rawResult.title,
-            article: postProcessText(rawResult.article),
-            engagementCall: postProcessText(rawResult.engagementCall)
-        };
-    }
-
-    throw finalError || new Error("Không thể tạo nội dung.");
+    if (rawResult) return rawResult;
+    throw new Error("Không thể tạo nội dung.");
 };
 
 // ==========================================
@@ -361,27 +335,17 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
 
   const generatePromptFromContent = async (content: GeneratedContent) => {
       setIsGeneratingPrompt(true);
-      setImagePrompt('');
-      const seed = Date.now();
+      setError(null);
       
-      const promptRequest = `Analyze the article title: "${content.title}" and content snippet: "${content.article.substring(0, 800)}".
+      const promptRequest = `Analyze this article title and content: "${content.title}. ${content.article.substring(0, 500)}".
       
-      **CRITICAL MISSION (MANDATORY RULES):**
-      1. **DETECT SUBJECTS:** 
-         - If keywords involve marriage (vợ chồng), love (tình yêu), or family (gia đình), you MUST include TWO subjects: a man and a woman in the prompt.
-         - If keywords involve personal growth, women, or men specifically, use ONE person.
-      2. **COSTUME (CONTEXT-AWARE):**
-         - If the topic is about intimacy, sex (tình dục), bedroom (phòng ngủ), or night (đêm), the character(s) MUST wear **luxury silk and lace evening loungewear/sleepwear** (đồ ngủ lụa cao cấp).
-         - If the topic is professional or social, use elegant modern attire.
-      3. **VISUAL STYLE:**
-         - Professional cinematic photography, 8k resolution, photorealistic.
-         - Use artistic terms: "statuesque silhouette", "atmospheric mood lighting", "soft bokeh background".
-         - Match the mood of the article (romantic, pensive, etc.).
-      4. **FACE MAPPING:** 
-         - If a reference image is used, strictly maintain that facial identity for the primary character.
+      MANDATORY RULES FOR IMAGE PROMPT (ENGLISH ONLY):
+      1. DETECT SUBJECTS: If keywords mention marriage (vợ chồng), love (tình yêu), or couple, describe TWO subjects (a man and a woman). Otherwise use 1 person.
+      2. DETECT COSTUME: If keywords mention bedroom (phòng ngủ), night (đêm), or intimacy, describe "luxury silk loungewear" or "elegant sleepwear".
+      3. STYLE: High-end editorial cinematic photography, 8k, photorealistic, atmospheric mood lighting, soft background blur.
+      4. Avoid explicit words. Use "artistic", "glamorous", "classic proportions".
       
-      Random Seed: ${seed}
-      Output ONLY the final English prompt text. No explanations.`;
+      Output ONLY the English prompt.`;
 
       try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -389,9 +353,15 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
               model: 'gemini-3-pro-preview',
               contents: promptRequest
           });
-          setImagePrompt(response.text.trim());
-      } catch (err) {
-          console.error("Error generating visual prompt:", err);
+          const text = response.text;
+          if (text) {
+              setImagePrompt(text.trim());
+          } else {
+              throw new Error("Không thể tạo Prompt ảnh.");
+          }
+      } catch (err: any) {
+          console.error("Visual Prompt Error:", err);
+          setError(`Lỗi tạo Prompt: ${err.message}`);
       } finally {
           setIsGeneratingPrompt(false);
       }
@@ -406,7 +376,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           const response = await ai.models.generateContent({
               model: 'gemini-2.5-flash-preview-tts',
-              contents: [{ parts: [{ text: textToSpeak.substring(0, 4000) }] }],
+              contents: [{ parts: [{ text: textToSpeak.substring(0, 3500) }] }],
               config: {
                   responseModalities: [Modality.AUDIO],
                   speechConfig: {
@@ -445,12 +415,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           let imageUrl = '';
           if (referenceImage) {
-               // Enhanced prompt for face identity with the custom context
-               const faceSwapPrompt = `Create a high-end cinematic professional photograph. 
-               Identity: Strictly preserve the facial features and identity of the person in the provided image for the main subject.
-               Scene & Costume: ${imagePrompt}.
-               Style: Photorealistic, 8k, cinematic lighting. Ensuring all characters and costumes described are accurately rendered.`;
-               
+               const faceSwapPrompt = `Maintain identity from reference image. Scene: ${imagePrompt}. High-end cinematic professional photograph. 8k. Realistic.`;
                const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
                   contents: { parts: [{ text: faceSwapPrompt }, { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }] }
@@ -460,7 +425,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           } else {
               const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
-                  contents: `${imagePrompt}. Photorealistic, ultra-realistic, cinematic professional style.`
+                  contents: `${imagePrompt}. Cinematic editorial style, 8k.`
               });
               const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
               if (part?.inlineData) imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
