@@ -358,20 +358,30 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
 
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [audioError, setAudioError] = useState<string | null>(null);
 
   const generatePromptFromContent = async (content: GeneratedContent) => {
       setIsGeneratingPrompt(true);
       setImagePrompt('');
       const seed = Date.now();
-      const promptRequest = `Create a detailed, safe, high-end professional fashion editorial prompt (in English) based on this content: "${content.title}". 
       
-      **CRITICAL STYLE RULES:**
-      1.  **Subject:** A stunning person with classical statuesque proportions and fit, athletic physique.
-      2.  **Attire:** Luxurious formal evening couture, fluid silk fabrics, elegant designer gown. 
-      3.  **Environment:** High-end studio background, cinematic lighting, editorial atmosphere.
-      4.  **Policy Compliance:** Use professional photography terms. Avoid suggestive adjectives. Focus on glamour and fashion. 
-      5.  **Output:** Only the prompt text. Seed: ${seed}`;
+      const promptRequest = `Analyze the article title: "${content.title}" and content snippet: "${content.article.substring(0, 800)}".
+      
+      **CRITICAL MISSION (MANDATORY RULES):**
+      1. **DETECT SUBJECTS:** 
+         - If keywords involve marriage (vợ chồng), love (tình yêu), or family (gia đình), you MUST include TWO subjects: a man and a woman in the prompt.
+         - If keywords involve personal growth, women, or men specifically, use ONE person.
+      2. **COSTUME (CONTEXT-AWARE):**
+         - If the topic is about intimacy, sex (tình dục), bedroom (phòng ngủ), or night (đêm), the character(s) MUST wear **luxury silk and lace evening loungewear/sleepwear** (đồ ngủ lụa cao cấp).
+         - If the topic is professional or social, use elegant modern attire.
+      3. **VISUAL STYLE:**
+         - Professional cinematic photography, 8k resolution, photorealistic.
+         - Use artistic terms: "statuesque silhouette", "atmospheric mood lighting", "soft bokeh background".
+         - Match the mood of the article (romantic, pensive, etc.).
+      4. **FACE MAPPING:** 
+         - If a reference image is used, strictly maintain that facial identity for the primary character.
+      
+      Random Seed: ${seed}
+      Output ONLY the final English prompt text. No explanations.`;
 
       try {
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -435,7 +445,12 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           let imageUrl = '';
           if (referenceImage) {
-               const faceSwapPrompt = `Professional cinematic portrait. Identity reference from image. Description: ${imagePrompt}. High-end photorealism, artistic high-fashion style. Policy-safe representation.`;
+               // Enhanced prompt for face identity with the custom context
+               const faceSwapPrompt = `Create a high-end cinematic professional photograph. 
+               Identity: Strictly preserve the facial features and identity of the person in the provided image for the main subject.
+               Scene & Costume: ${imagePrompt}.
+               Style: Photorealistic, 8k, cinematic lighting. Ensuring all characters and costumes described are accurately rendered.`;
+               
                const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
                   contents: { parts: [{ text: faceSwapPrompt }, { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }] }
@@ -445,7 +460,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
           } else {
               const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
-                  contents: `${imagePrompt}. Photorealistic, ultra-realistic, cinematic fashion style.`
+                  contents: `${imagePrompt}. Photorealistic, ultra-realistic, cinematic professional style.`
               });
               const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
               if (part?.inlineData) imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
