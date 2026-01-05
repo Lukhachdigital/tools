@@ -62,15 +62,18 @@ const audioBufferToWav = (buffer: AudioBuffer): Blob => {
   const length = buffer.length * numOfChan * 2 + 44;
   const bufferArray = new ArrayBuffer(length);
   const view = new DataView(bufferArray);
+  const channels: Float32Array[] = [];
+  let i: number, sample: number;
+  let offset = 0;
   let pos = 0;
 
   const setUint16 = (data: number) => { view.setUint16(pos, data, true); pos += 2; };
   const setUint32 = (data: number) => { view.setUint32(pos, data, true); pos += 4; };
 
-  setUint32(0x46464952); // "RIFF"
+  setUint32(0x46464952);
   setUint32(length - 8);
-  setUint32(0x45564157); // "WAVE"
-  setUint32(0x20746d66); // "fmt "
+  setUint32(0x45564157);
+  setUint32(0x20746d66);
   setUint32(16);
   setUint16(1);
   setUint16(numOfChan);
@@ -78,17 +81,21 @@ const audioBufferToWav = (buffer: AudioBuffer): Blob => {
   setUint32(buffer.sampleRate * 2 * numOfChan);
   setUint16(numOfChan * 2);
   setUint16(16);
-  setUint32(0x61746164); // "data"
+  setUint32(0x61746164);
   setUint32(length - pos - 4);
 
-  const dataPos = 44;
-  for (let i = 0; i < buffer.length; i++) {
-    for (let channel = 0; channel < numOfChan; channel++) {
-      let sample = buffer.getChannelData(channel)[i];
-      sample = Math.max(-1, Math.min(1, sample));
+  for (i = 0; i < numOfChan; i++) {
+    channels.push(buffer.getChannelData(i));
+  }
+
+  while (pos < length) {
+    for (i = 0; i < numOfChan; i++) {
+      sample = Math.max(-1, Math.min(1, channels[i][offset]));
       sample = (sample < 0 ? sample * 0x8000 : sample * 0x7fff) | 0;
-      view.setInt16(dataPos + (i * numOfChan + channel) * 2, sample, true);
+      view.setInt16(pos, sample, true);
+      pos += 2;
     }
+    offset++;
   }
 
   return new Blob([view], { type: 'audio/wav' });
@@ -273,7 +280,7 @@ const postProcessText = (text: string): string => {
     return text.replace(/\b(im)\b/g, "Im");
 };
 
-const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, openaiKey: string, selectedModel: string): Promise<GeneratedContent> => {
+const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, selectedModel: string): Promise<GeneratedContent> => {
     const seed = Date.now(); 
     const systemInstruction = getSystemInstruction(length, seed, category);
     const userContent = getUserContent(topic, category, seed);
@@ -281,9 +288,12 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     const CREATIVE_TEMP = 1.0; 
     let rawResult: GeneratedContent | null = null;
     
-    // 1. Try OpenAI (Priority if selected or Auto)
+    // Priority: OpenAI -> Gemini
+
+    // 1. Try OpenAI (Priority)
     if ((selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
         try {
+            if (!openaiKey) throw new Error("OpenAI Key chưa được cài đặt.");
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
@@ -307,10 +317,11 @@ const generateContentWithFallback = async (topic: string, category: string, leng
         }
     }
 
-    // 2. Try Gemini (Fallback if selected or Auto)
-    if (!rawResult && (selectedModel === 'gemini' || selectedModel === 'auto')) {
+    // 2. Try Gemini (Fallback)
+    if (!rawResult && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            if (!geminiKey) throw new Error("Gemini Key chưa được cài đặt.");
+            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
                 model: "gemini-3-pro-preview",
                 contents: userContent,
@@ -321,7 +332,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
                     temperature: CREATIVE_TEMP,
                 },
             });
-            rawResult = JSON.parse(response.text?.trim() || "{}");
+            rawResult = JSON.parse(response.text.trim());
         } catch (e) {
             console.warn("Gemini failed", e);
             finalError = e;
@@ -331,8 +342,8 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     if (rawResult) {
         return {
             title: rawResult.title,
-            article: postProcessText(rawResult.article),
-            engagementCall: postProcessText(rawResult.engagementCall)
+            article: rawResult.article,
+            engagementCall: rawResult.engagementCall
         };
     }
 
@@ -343,7 +354,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
 // 5. MAIN APP COMPONENT
 // ==========================================
 
-const ContentPodcastApp = ({ openaiApiKey, selectedAIModel }: { openaiApiKey: string, selectedAIModel: string }) => {
+const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }) => {
   const [topic, setTopic] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Tình yêu');
   const [articleLength, setArticleLength] = useState<ArticleLength>('short');
@@ -361,6 +372,7 @@ const ContentPodcastApp = ({ openaiApiKey, selectedAIModel }: { openaiApiKey: st
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [audioFormat, setAudioFormat] = useState<'mp3' | 'wav'>('mp3');
 
   const generatePromptFromContent = async (content: GeneratedContent) => {
       setIsGeneratingPrompt(true);
@@ -372,30 +384,37 @@ const ContentPodcastApp = ({ openaiApiKey, selectedAIModel }: { openaiApiKey: st
       **RANDOM SEED FOR VARIATION:** ${seed}
       
       **CRITICAL INSTRUCTIONS (MANDATORY):**
-      1.  **Contextual Visuals:** The setting, atmosphere, and characters MUST align perfectly with the theme of the article.
-      2.  **MARRIAGE / LOVE / RELATIONSHIPS THEME:** If the article is about marriage, love, or intimate connections, the prompt MUST feature a husband and wife (a couple) in a cozy, tastefully decorated bedroom setting.
-      3.  **COSTUME & APPEARANCE:** 
-          - The characters MUST wear appropriate, high-quality, and aesthetically pleasing clothing for the context (e.g., elegant and tasteful sleepwear for a bedroom scene).
-          - FOR EVERY GENERATION, create a COMPLETELY DIFFERENT and UNIQUE outfit (colors, textures, styles).
-          - **STRICT RULE:** IGNORE the outfit from any reference image. Do NOT repeat or reference the source image's clothing.
-      4.  **IDENTITY PRESERVATION:** If a reference face is provided, the character's face MUST strictly match that identity.
-      5.  **SAFETY & POLICY COMPLIANCE:** 
-          - Do NOT describe characters with excessively sexualized or overly provocative physical features. 
-          - Maintain artistic beauty, emotional depth, and realistic human proportions. 
-          - Focus on the romantic and pensive mood rather than explicit physical allure.
+      1.  **Analyze Content & Context:** Deeply analyze the article's topic and tone. The image MUST strictly represent the specific subject matter described in the article.
+      2.  **CHARACTERS & SETTING:**
+          - If the article is about marriage or intimate relationships, depict a loving husband and wife in a cozy, tasteful bedroom setting.
+          - For other topics, choose appropriate characters and settings that visually narrate the core message of the text.
+      3.  **COSTUME (CONTEXTUAL & UNIQUE):**
+          - The characters MUST wear outfits that are perfectly suited to the article's theme and setting.
+          - For marriage/bedroom topics, use high-quality, tasteful sleepwear (e.g., silk pajamas, elegant nightgowns).
+          - FOR EVERY GENERATION, create a COMPLETELY DIFFERENT and UNIQUE outfit and setting variation. Do not repeat previous designs.
+          - **STRICT RULE:** IGNORE the outfit from any reference image. Start completely fresh.
+      4.  **AESTHETIC & POLICY:**
+          - Maintain a professional, photorealistic, and cinematic aesthetic.
+          - **POLICY COMPLIANCE:** Describe characters with natural, realistic physiques. DO NOT use overly sexualized, provocative, or explicit body descriptions. Focus on artistic beauty and emotional connection.
       
       Title: "${content.title}"
-      Content Summary: "${content.article.substring(0, 1000)}..."
-      Style: Cinematic, 8k, photorealistic photography, professional lighting, depth of field.
+      Content: "${content.article.substring(0, 1500)}..."
+      Style: Cinematic, 8k, photorealistic photography, professional lighting.
       Output ONLY the prompt text. No explanations.`;
 
+      let providerKey = geminiApiKey;
+      if (!providerKey) {
+          setIsGeneratingPrompt(false);
+          return;
+      }
+
       try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+          const ai = new window.GoogleGenAI({ apiKey: providerKey });
           const response = await ai.models.generateContent({
               model: 'gemini-3-pro-preview',
               contents: promptRequest
           });
-          setImagePrompt(response.text?.trim() || "");
+          setImagePrompt(response.text.trim());
       } catch (err) {
           console.error("Error generating visual prompt:", err);
       } finally {
@@ -405,6 +424,10 @@ const ContentPodcastApp = ({ openaiApiKey, selectedAIModel }: { openaiApiKey: st
 
   const handleGenerateAudio = async (voice: 'male' | 'female') => {
       if (!generatedContent) return;
+      if (!geminiApiKey && !openaiApiKey) {
+          setAudioError("Vui lòng cài đặt API Key.");
+          return;
+      }
 
       setIsGeneratingAudio(true);
       setAudioError(null);
@@ -415,50 +438,65 @@ const ContentPodcastApp = ({ openaiApiKey, selectedAIModel }: { openaiApiKey: st
 
       let generatedAudio = false;
       
-      // Try Gemini TTS first
-      try {
-          const geminiVoiceName = voice === 'male' ? 'Puck' : 'Aoede';
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-          const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash-preview-tts',
-              contents: [{ parts: [{ text: safeText }] }],
-              config: {
-                  responseModalities: [Modality.AUDIO],
-                  speechConfig: {
-                      voiceConfig: { prebuiltVoiceConfig: { voiceName: geminiVoiceName } }
+      if (!generatedAudio && geminiApiKey) {
+          try {
+              const geminiVoiceName = voice === 'male' ? 'Puck' : 'Aoede';
+              const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+              const response = await ai.models.generateContent({
+                  model: 'gemini-2.5-flash-preview-tts',
+                  contents: [{ parts: [{ text: safeText }] }],
+                  config: {
+                      responseModalities: [window.GenAIModality.AUDIO],
+                      speechConfig: {
+                          voiceConfig: { prebuiltVoiceConfig: { voiceName: geminiVoiceName } }
+                      }
                   }
-              }
-          });
-          
-          const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-          if (base64Audio) {
-              const binaryString = window.atob(base64Audio);
-              const len = binaryString.length;
-              const bytes = new Uint8Array(len);
-              for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
+              });
               
-              const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-              const audioBuffer = await decodeAudioData(bytes, audioContext, 24000, 1);
-              const blob = audioBufferToWav(audioBuffer);
-              setAudioUrl(URL.createObjectURL(blob));
-              generatedAudio = true;
-          }
-      } catch (e) { console.warn("Gemini TTS failed", e); }
-
-      if (!generatedAudio) {
-        setAudioError("Không thể tạo audio. Vui lòng thử lại sau.");
+              const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+              if (base64Audio) {
+                  const binaryString = window.atob(base64Audio);
+                  const len = binaryString.length;
+                  const bytes = new Uint8Array(len);
+                  for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
+                  
+                  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+                  const audioBuffer = await decodeAudioData(bytes, audioContext, 24000, 1);
+                  const blob = audioBufferToWav(audioBuffer);
+                  setAudioUrl(URL.createObjectURL(blob));
+                  setAudioFormat('wav');
+                  generatedAudio = true;
+              }
+          } catch (e) { console.warn("Gemini TTS failed", e); }
       }
+
+      if (!generatedAudio && openaiApiKey) {
+          try {
+              const openAIVoice = voice === 'male' ? 'onyx' : 'shimmer';
+              const response = await fetch('https://api.openai.com/v1/audio/speech', {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ model: 'tts-1', input: safeText, voice: openAIVoice })
+              });
+              if (!response.ok) throw new Error("Failed to generate OpenAI audio");
+              const blob = await response.blob();
+              setAudioUrl(URL.createObjectURL(blob));
+              setAudioFormat('mp3');
+              generatedAudio = true;
+          } catch (err: any) { setAudioError(err.message); }
+      } 
       
       setIsGeneratingAudio(false);
   };
 
   const handleGenerateContent = async () => {
     if (!topic.trim()) { setError('Vui lòng nhập tiêu đề/chủ đề.'); return; }
+    if (!geminiApiKey && !openaiApiKey) { setError('Vui lòng nhập ít nhất một API Key.'); return; }
 
     setIsLoading(true); setError(null); setGeneratedContent(null); setGeneratedImageUrl(null); setImagePrompt(''); setAudioUrl(null); setAudioError(null);
 
     try {
-      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, openaiApiKey, selectedAIModel);
+      const result = await generateContentWithFallback(topic, selectedCategory, articleLength, geminiApiKey, openaiApiKey, selectedAIModel);
       setGeneratedContent(result);
       await generatePromptFromContent(result);
     } catch (err: any) {
@@ -470,32 +508,33 @@ const ContentPodcastApp = ({ openaiApiKey, selectedAIModel }: { openaiApiKey: st
 
   const handleGenerateImage = async () => {
       if (!imagePrompt) { setError('Chưa có prompt tạo ảnh.'); return; }
+      if (!geminiApiKey) { setError('Vui lòng cài đặt Gemini API Key để xử lý hình ảnh.'); return; }
 
       setIsGeneratingImage(true); setError(null); setGeneratedImageUrl(null);
 
       try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+          const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
           let imageUrl = '';
           
           if (referenceImage) {
                const faceSwapPrompt = `Generate a HIGH-QUALITY PHOTOREALISTIC photograph based on this description: ${imagePrompt}.
                **CRITICAL RULES:**
-               1. **PHYSICAL:** Characters should have realistic, fit, and aesthetically pleasing bodies. Avoid excessively provocative or sexualized descriptions to remain within safety boundaries.
-               2. **OUTFIT:** Use the contextually appropriate, unique clothing described in the prompt. BẮT BUỘC: DO NOT use the outfit from the reference image. Start with a fresh design.
-               3. **FACE:** The main character's face MUST strictly match the identity provided in the reference image.
-               4. **QUALITY:** Cinematic lighting, professional photography style, 8k resolution.`;
+               1. **FACE:** Face MUST MATCH the provided reference image identity strictly.
+               2. **OUTFIT:** Use the contextual outfit described in the prompt. DO NOT use reference outfit.
+               3. **QUALITY:** Cinematic lighting, 8k resolution, professional photography style. 
+               4. **SAFETY:** Maintain artistic realism. No explicit nudity.`;
                
                const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
                   contents: { parts: [{ text: faceSwapPrompt }, { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }] },
-                  config: { responseModalities: [Modality.IMAGE] }
+                  config: { responseModalities: [window.GenAIModality.IMAGE] }
                });
                const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
                if (imagePart?.inlineData) imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
           } else {
               const response = await ai.models.generateImages({
                   model: 'imagen-4.0-generate-001',
-                  prompt: `${imagePrompt}. Ultra-realistic, cinematic, professional photography.`,
+                  prompt: `${imagePrompt}. Ultra-realistic, cinematic.`,
                   config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: '16:9' }
               });
               if (response.generatedImages?.[0]?.image?.imageBytes) imageUrl = `data:image/png;base64,${response.generatedImages[0].image.imageBytes}`;
@@ -621,7 +660,6 @@ const ContentPodcastApp = ({ openaiApiKey, selectedAIModel }: { openaiApiKey: st
                             <button onClick={() => handleGenerateAudio('female')} disabled={isGeneratingAudio} className="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50">{isGeneratingAudio ? 'Đang tạo...' : 'Giọng Nữ'}</button>
                         </div>
                         {audioUrl && <div className="space-y-4 animate-fade-in"><audio controls src={audioUrl} className="w-full" /></div>}
-                        {audioError && <p className="text-red-400 text-sm">{audioError}</p>}
                     </div>
                 </div>
             ) : (!isLoading && <div className="flex items-center justify-center h-full text-slate-500 border-2 border-dashed border-slate-700 rounded-xl bg-gray-900/20 p-10"><p className="text-lg">Nội dung sẽ hiển thị ở đây</p></div>)}
