@@ -1,5 +1,6 @@
+
 import React, { useState, useRef } from 'react';
-import { GoogleGenAI, Type, Schema } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
 // --- Types ---
 interface SceneAnalysis {
@@ -29,65 +30,12 @@ enum AnalysisMode {
 
 // --- Icons ---
 const Icons = {
-  Lock: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
-  Unlock: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
   XMark: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
   Upload: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>,
-  Wand: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l1.183.394-1.183.394a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>,
+  Wand: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>,
   Clipboard: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" /></svg>,
   Check: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>,
   Alert: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>,
-};
-
-// --- Password Protection Component ---
-const PasswordProtection = ({ onUnlock, onClose }: { onUnlock: () => void, onClose: () => void }) => {
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState(false);
-
-    const handleUnlock = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (password === 'clonevideo') {
-            onUnlock();
-        } else {
-            setError(true);
-            setTimeout(() => setError(false), 2000);
-        }
-    };
-
-    return (
-        <div 
-            className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4"
-            onClick={onClose}
-        >
-            <div 
-                className="bg-slate-800 p-8 rounded-2xl border border-cyan-500/30 shadow-2xl max-w-md w-full flex flex-col items-center relative overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-cyan-600/5 rotate-45 pointer-events-none" />
-                <div className="w-20 h-20 bg-slate-700/50 rounded-full flex items-center justify-center mb-6 border border-slate-600 shadow-inner">
-                    <Icons.Lock className="w-10 h-10 text-cyan-400" />
-                </div>
-                <h2 className="text-2xl font-bold text-cyan-400 mb-2 uppercase tracking-wide text-center">Bảo Mật Ứng Dụng</h2>
-                <p className="text-slate-400 text-sm mb-8 text-center px-4">Nhập mã truy cập để sử dụng tính năng Clone Video.</p>
-                <form onSubmit={handleUnlock} className="w-full space-y-4 relative z-10">
-                    <div className="relative">
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Nhập mã truy cập..."
-                            className={`w-full bg-slate-900 border ${error ? 'border-red-500 animate-shake' : 'border-slate-600 focus:border-cyan-500'} rounded-lg py-3 px-4 text-center text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all duration-300 font-mono tracking-widest`}
-                            autoFocus
-                        />
-                        {error && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500"><Icons.XMark className="w-5 h-5"/></span>}
-                    </div>
-                    <button type="submit" className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform active:scale-95 shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-2 uppercase tracking-wide">
-                        <Icons.Unlock className="w-5 h-5" /> Mở Khóa
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
 };
 
 // --- Scene Card ---
@@ -228,7 +176,7 @@ const VideoUploader: React.FC<{ onAnalyze: (input: File | string, mode: Analysis
 
 // --- Main App Logic ---
 
-const analysisSchema: Schema = {
+const analysisSchema = {
     type: Type.OBJECT,
     properties: {
         unique_characters: {
@@ -269,20 +217,13 @@ const fileToGenerativePart = async (file: File): Promise<{ inlineData: { data: s
 };
 
 const CloneSceneVideoApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, selectedAIModel: string, onGoBack: () => void }> = ({ geminiApiKey, openaiApiKey, selectedAIModel, onGoBack }) => {
-    const [isUnlocked, setIsUnlocked] = useState(false);
     const [state, setState] = useState<AnalysisState>({ isLoading: false, error: null, data: null });
 
     const handleAnalyze = async (input: File | string, mode: AnalysisMode) => {
-        // Enforce Gemini API Key requirement - User requested ONLY Gemini.
-        if (!geminiApiKey) {
-            setState({ isLoading: false, error: "Vui lòng cài đặt Gemini API Key trong phần Cài đặt để sử dụng tính năng này.", data: null });
-            return;
-        }
-
         setState({ isLoading: true, error: null, data: null });
         
         try {
-            const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const modelId = "gemini-2.5-flash";
             const systemInstruction = `
                 Bạn là một chuyên gia biên tập và phân tích video (Video Editor & Analyst) tỉ mỉ đến từng khung hình.
@@ -333,15 +274,6 @@ const CloneSceneVideoApp: React.FC<{ geminiApiKey: string, openaiApiKey: string,
 
     return (
         <div className="relative w-full h-full p-4 flex flex-col bg-slate-900 text-slate-200 font-sans">
-            
-            {/* Password Overlay */}
-            {!isUnlocked && (
-                <PasswordProtection 
-                    onUnlock={() => setIsUnlocked(true)} 
-                    onClose={onGoBack}
-                />
-            )}
-
             {/* Main Content */}
             <div className="flex flex-col lg:flex-row gap-8 h-full">
                 
