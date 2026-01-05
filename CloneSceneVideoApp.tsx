@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, Schema } from '@google/genai';
 
 // --- Types ---
 interface SceneAnalysis {
@@ -30,6 +30,8 @@ enum AnalysisMode {
 
 // --- Icons ---
 const Icons = {
+  Lock: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
+  Unlock: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>,
   XMark: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
   Upload: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>,
   Wand: (props: any) => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>,
@@ -176,7 +178,7 @@ const VideoUploader: React.FC<{ onAnalyze: (input: File | string, mode: Analysis
 
 // --- Main App Logic ---
 
-const analysisSchema = {
+const analysisSchema: Schema = {
     type: Type.OBJECT,
     properties: {
         unique_characters: {
@@ -220,10 +222,15 @@ const CloneSceneVideoApp: React.FC<{ geminiApiKey: string, openaiApiKey: string,
     const [state, setState] = useState<AnalysisState>({ isLoading: false, error: null, data: null });
 
     const handleAnalyze = async (input: File | string, mode: AnalysisMode) => {
+        if (!geminiApiKey) {
+            setState({ isLoading: false, error: "Vui lòng cài đặt Gemini API Key trong phần Cài đặt để sử dụng tính năng này.", data: null });
+            return;
+        }
+
         setState({ isLoading: true, error: null, data: null });
         
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: geminiApiKey });
             const modelId = "gemini-2.5-flash";
             const systemInstruction = `
                 Bạn là một chuyên gia biên tập và phân tích video (Video Editor & Analyst) tỉ mỉ đến từng khung hình.
@@ -274,6 +281,7 @@ const CloneSceneVideoApp: React.FC<{ geminiApiKey: string, openaiApiKey: string,
 
     return (
         <div className="relative w-full h-full p-4 flex flex-col bg-slate-900 text-slate-200 font-sans">
+            
             {/* Main Content */}
             <div className="flex flex-col lg:flex-row gap-8 h-full">
                 
