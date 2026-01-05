@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -576,9 +577,9 @@ const App = () => {
         'seo_youtube', 
         'youtube_external',
         'content_podcast',
-        'food_review',
+        'clone_scene_video',
         'cinescript',
-        'clone_scene_video'
+        'food_review'
     ];
 
     const sidebarTools = orderedIds.map(id => allTools.find(tool => tool.id === id)).filter(Boolean);
@@ -688,7 +689,7 @@ const App = () => {
     }
     
     const mainTitle = "AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng";
-    const mainDescription = "Giải phóng tiềm năng, tự động hóa công việc và nâng tầm nội dung của bạn.";
+    const mainDescription = "Giải phóng tiềm năng, tự động hóa work và nâng tầm nội dung của bạn.";
     const currentTool = sidebarTools.find(tool => tool.id === currentView);
 
     const homeLinkProps = {
