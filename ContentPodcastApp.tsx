@@ -259,7 +259,7 @@ const getSystemInstruction = (length: ArticleLength, seed: number, category: str
     : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 8800 ký tự.';
 
     return `Bạn là một chuyên gia sáng tạo nội dung Podcast.
-NHIỆM VỤ: Viết một bài chia sẻ sâu sắc về chủ đề được cung cấp.
+NHIỆM VỤ: Viết một bài chia sẻ sâu sắc về chủ đề được cung cấp, không lấy bất cứ nhân vật nào để làm ví dụ.
 PHONG CÁCH: Sâu sắc, Cảm xúc, Storytelling, Gần gũi.
 MÃ NGẪU NHIÊN: ${seed}.
 YÊU CẦU:
