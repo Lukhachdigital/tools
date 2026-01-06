@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
@@ -277,7 +276,8 @@ const getUserContent = (topic: string, category: string, seed: number) => {
 
 const postProcessText = (text: string): string => {
     if (!text) return "";
-    return text.replace(/\b(im)\b/g, "Im");
+    // Chuyển đổi chuỗi "im" thành "Im" như yêu cầu
+    return text.replace(/im/g, "Im");
 };
 
 const generateContentWithFallback = async (topic: string, category: string, length: ArticleLength, geminiKey: string, openaiKey: string, selectedModel: string): Promise<GeneratedContent> => {
@@ -288,8 +288,6 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     const CREATIVE_TEMP = 1.0; 
     let rawResult: GeneratedContent | null = null;
     
-    // Priority: OpenAI -> Gemini
-
     // 1. Try OpenAI (Priority)
     if ((selectedModel === 'openai' || (selectedModel === 'auto' && openaiKey))) {
         try {
@@ -321,7 +319,7 @@ const generateContentWithFallback = async (topic: string, category: string, leng
     if (!rawResult && (selectedModel === 'gemini' || (selectedModel === 'auto' && geminiKey))) {
         try {
             if (!geminiKey) throw new Error("Gemini Key chưa được cài đặt.");
-            const ai = new window.GoogleGenAI({ apiKey: geminiKey });
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
             const response = await ai.models.generateContent({
                 model: "gemini-3-pro-preview",
                 contents: userContent,
@@ -341,9 +339,9 @@ const generateContentWithFallback = async (topic: string, category: string, leng
 
     if (rawResult) {
         return {
-            title: rawResult.title,
-            article: rawResult.article,
-            engagementCall: rawResult.engagementCall
+            title: postProcessText(rawResult.title),
+            article: postProcessText(rawResult.article),
+            engagementCall: postProcessText(rawResult.engagementCall)
         };
     }
 
@@ -409,7 +407,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       }
 
       try {
-          const ai = new window.GoogleGenAI({ apiKey: providerKey });
+          const ai = new GoogleGenAI({ apiKey: providerKey });
           const response = await ai.models.generateContent({
               model: 'gemini-3-pro-preview',
               contents: promptRequest
@@ -441,12 +439,12 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       if (!generatedAudio && geminiApiKey) {
           try {
               const geminiVoiceName = voice === 'male' ? 'Puck' : 'Aoede';
-              const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+              const ai = new GoogleGenAI({ apiKey: geminiApiKey });
               const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-preview-tts',
                   contents: [{ parts: [{ text: safeText }] }],
                   config: {
-                      responseModalities: [window.GenAIModality.AUDIO],
+                      responseModalities: [Modality.AUDIO],
                       speechConfig: {
                           voiceConfig: { prebuiltVoiceConfig: { voiceName: geminiVoiceName } }
                       }
@@ -513,7 +511,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       setIsGeneratingImage(true); setError(null); setGeneratedImageUrl(null);
 
       try {
-          const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
+          const ai = new GoogleGenAI({ apiKey: geminiApiKey });
           let imageUrl = '';
           
           if (referenceImage) {
@@ -527,7 +525,7 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
                const response = await ai.models.generateContent({
                   model: 'gemini-2.5-flash-image',
                   contents: { parts: [{ text: faceSwapPrompt }, { inlineData: { data: referenceImage.base64, mimeType: referenceImage.mimeType } }] },
-                  config: { responseModalities: [window.GenAIModality.IMAGE] }
+                  config: { responseModalities: [Modality.IMAGE] }
                });
                const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
                if (imagePart?.inlineData) imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
