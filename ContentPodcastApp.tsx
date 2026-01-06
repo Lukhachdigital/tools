@@ -259,7 +259,7 @@ const getSystemInstruction = (length: ArticleLength, seed: number, category: str
     : 'TUYỆT ĐỐI QUAN TRỌNG: Tổng độ dài của bài viết (article) PHẢI đạt tối thiểu 8800 ký tự.';
 
     return `Bạn là một chuyên gia sáng tạo nội dung Podcast.
-NHIỆM VỤ: Viết một bài chia sẻ sâu sắc về chủ đề được cung cấp, không lấy bất cứ nhân vật nào để làm ví dụ.
+NHIỆM VỤ: Viết một bài chia sẻ sâu sắc về chủ đề được cung cấp, tuyệt đối không lấy bất kỳ nhân vật cụ thể nào để làm ví dụ minh họa.
 PHONG CÁCH: Sâu sắc, Cảm xúc, Storytelling, Gần gũi.
 MÃ NGẪU NHIÊN: ${seed}.
 YÊU CẦU:
@@ -276,7 +276,7 @@ const getUserContent = (topic: string, category: string, seed: number) => {
 
 const postProcessText = (text: string): string => {
     if (!text) return "";
-    // Chuyển đổi chuỗi "im" thành "Im" như yêu cầu
+    // Tự động chuyển đổi chuỗi "im" thành "Im"
     return text.replace(/im/g, "Im");
 };
 
@@ -386,11 +386,12 @@ const ContentPodcastApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { ge
       2.  **CHARACTERS & SETTING:**
           - If the article is about marriage or intimate relationships, depict a loving husband and wife in a cozy, tasteful bedroom setting.
           - For other topics, choose appropriate characters and settings that visually narrate the core message of the text.
-      3.  **COSTUME (CONTEXTUAL & UNIQUE):**
-          - The characters MUST wear outfits that are perfectly suited to the article's theme and setting.
-          - For marriage/bedroom topics, use high-quality, tasteful sleepwear (e.g., silk pajamas, elegant nightgowns).
-          - FOR EVERY GENERATION, create a COMPLETELY DIFFERENT and UNIQUE outfit and setting variation. Do not repeat previous designs.
-          - **STRICT RULE:** IGNORE the outfit from any reference image. Start completely fresh.
+      3.  **COSTUME (MANDATORY & RADICAL VARIATION):**
+          - The characters MUST wear outfits perfectly suited to the article's theme.
+          - **STRICT RULE:** For EVERY generation, you MUST choose a COMPLETELY NEW and DIFFERENT outfit (style and color).
+          - **COLOR & MODEL:** You MUST explicitly specify a unique color palette and a specific clothing model (e.g., "emerald green silk pajamas", "charcoal grey oversized wool sweater", "lavender floral print sundress", "burgundy velvet evening gown"). 
+          - **DIVERSITY:** Avoid common defaults. Vary the colors radically (e.g., bright, pastel, dark, neon) and the styles (casual, formal, seasonal, traditional) so no two generations look similar.
+          - **IGNORE REFERENCE:** IGNORE the outfit from any reference image provided. Start completely fresh.
       4.  **AESTHETIC & POLICY:**
           - Maintain a professional, photorealistic, and cinematic aesthetic.
           - **POLICY COMPLIANCE:** Describe characters with natural, realistic physiques. DO NOT use overly sexualized, provocative, or explicit body descriptions. Focus on artistic beauty and emotional connection.
