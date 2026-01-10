@@ -274,13 +274,13 @@ ${characterInstruction}
     4.  **whiskPrompt**: ENGLISH prompt for Whisk AI.
         **STRICT RULES FOR CHARACTER WHISK PROMPT:**
         a. **Subject Only**: Describe ONLY the character's general appearance (gender, age group) and their clothing.
-        b. **NO FACIAL DETAILS**: ABSOLUTELY DO NOT describe detailed facial features (e.g., eye color, nose shape, lip thickness, face shape). This prompt is for a face-reference workflow.
+        b. **NO FACIAL DETAILS (CRITICAL)**: ABSOLUTELY DO NOT describe detailed facial features (e.g., eye color, nose shape, lip thickness, face structure). This prompt is for a face-reference workflow. Focus ONLY on the head shape, hair, and build.
         c. **No Accessories**: ABSOLUTELY NO handheld items, bags, weapons, or secondary objects.
         d. **Composition**: The character MUST be standing straight, facing the camera directly ('full-body shot', 'standing straight facing camera').
         e. **Background**: MUST be 'solid white background'.
         f. **Style**: ${whiskStyleInstruction}
         g. **Emotion**: Describe the character's general EMOTION (e.g., 'looking determined').
-        h. **User Suggestions**: You MUST strictly incorporate these additional user-provided appearance/style details into the description and whiskPrompt: "${userSuggestions}".
+        h. **User Suggestions**: You MUST strictly incorporate these additional user-provided appearance/style details into the description and whiskPrompt (excluding facial features): "${userSuggestions}".
 
 **Task 2: Context/Setting List**
 - Identify key recurring locations and create a list of contexts.
@@ -294,10 +294,10 @@ ${characterInstruction}
 - Generate exactly ${numberOfScenes} prompts.
 - **CRITICAL PROMPT REQUIREMENTS (MANDATORY FOR EVERY SINGLE PROMPT):**
     Every single prompt MUST describe in exhaustive detail:
-    a. **Character Emotion & Facial Expression**: Precise emotional state and facial reactions.
+    a. **Character Emotion & Expression (NO FACIAL FEATURES)**: Describe precise emotional states and facial reactions (e.g., "smiling broadly", "eyes widened in fear", "shouting angrily"). **STRICTLY PROHIBITED**: DO NOT describe facial features like eye color, nose shape, or lip size. Focus ONLY on the expression.
     b. **Character Action**: The exact movement or posture of the character in this scene.
-    c. **Setting & Environment Details**: You MUST detailedly describe the background context in EVERY prompt. If the script is set in a snowy area, EVERY single prompt MUST explicitly describe the snow, the frozen ground, the cold atmosphere, etc., to ensure visual consistency.
-    d. **Character Clothing & Appearance**: Repeat the character's appearance and clothing in every scene they appear. You MUST strictly apply these user suggestions: "${userSuggestions}".
+    c. **Setting & Environment Details (EXTREME DETAIL)**: You MUST detailedly describe the background context in EVERY prompt. If the script is set in a snowy area, EVERY single prompt MUST explicitly describe the snow, the frozen ground, the cold atmosphere, trees, lighting, etc., to ensure visual consistency.
+    d. **Character Clothing & Appearance**: Repeat the character's appearance and clothing in every scene they appear. You MUST strictly apply these user suggestions: "${userSuggestions}". **DO NOT describe facial features**.
     e. **Objects/Items**: Physical items appearing, shapes, colors.
 - Visual descriptions in ENGLISH.
 - ${voicePromptInstruction}
