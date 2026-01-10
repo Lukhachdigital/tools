@@ -278,10 +278,10 @@ ${characterInstruction}
     3.  **description**: Detailed VIETNAMESE description.
     4.  **whiskPrompt**: ENGLISH prompt for Whisk AI.
         **STRICT RULES FOR CHARACTER WHISK PROMPT:**
-        a. **Identity Accuracy**: You MUST use the exact entity mentioned in the Idea: "${videoIdea}". If the user says "girl", the character MUST be a "girl". DO NOT use terms like "explorer" if not explicitly requested.
+        a. **Identity Accuracy**: You MUST use the exact entity mentioned in the Idea: "${videoIdea}". If the idea says "girl", the character MUST be a "girl". DO NOT use other terms.
         b. **Full-Body Shot (MANDATORY)**: The prompt MUST explicitly describe the character from HEAD TO TOE. Describe hair, full clothing, and shoes. It MUST be a 'full-body shot' where the character is visible from head to toe.
         c. **Omit Facial Features (CRITICAL)**: Describe ONLY the head shape and hair style. DO NOT describe eyes, nose, mouth, skin texture of the face, or any facial detail. 
-        **IMPORTANT**: DO NOT write phrases like "no face", "without facial details", or "không mô tả mặt" in the generated prompt. Simply omit all face descriptions and proceed to describe the rest of the body.
+        **IMPORTANT**: DO NOT write phrases like "no face", "without facial details", or "không mô tả mặt" in the prompt. Simply stop describing once you reach the neck/hair and proceed to describe the rest of the body.
         d. **No Accessories**: ABSOLUTELY NO handheld items, bags, weapons, or secondary objects.
         e. **Background**: MUST be 'solid white background'.
         f. **Style**: ${whiskStyleInstruction}
@@ -300,9 +300,9 @@ ${characterInstruction}
 - **CRITICAL PROMPT REQUIREMENTS (MANDATORY):**
     Every single prompt MUST describe:
     a. **Character Identity**: Match the exact character from Task 1.
-    b. **Character Emotion & Action**: Focused expression and movement (but NO facial feature descriptions).
+    b. **Character Emotion & Action**: Focused expression and movement (but NEVER describe eyes/nose/mouth details).
     c. **Environment**: Extensive detail of the setting in EVERY prompt.
-    d. **Character Clothing**: Repeat the full-body outfit description exactly as defined in Task 1 for every scene they appear.
+    d. **Character Clothing**: Repeat the full-body outfit description exactly as defined in Task 1 for every scene.
 - Visual descriptions in ENGLISH.
 - ${voicePromptInstruction}
 `;
