@@ -257,7 +257,7 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
     const commonPrompt = `
 You are an expert director and prompt engineer. 
 
-**CREATIVITY MANDATE:** Generate completely new and unique story concepts, unique characters with original names for every request.
+**CREATIVITY MANDATE:** You MUST generate a COMPLETELY NEW and UNIQUE story concept, unique characters with original names, and a fresh sequence of events for EVERY request. Even if the user input is identical to a previous one, you MUST provide a radically different creative approach.
 
 **CRITICAL RULE: REALISM AND AUTHENTICITY**
 1. **ABSOLUTE REALISM:** Unless the style is "Viễn tưởng" (Sci-fi), everything generated—characters, items, actions, settings—MUST be strictly grounded in reality and present-day logic. ABSOLUTELY NO futuristic tech, magic, or fantasy elements for "Hiện đại", "Điện ảnh", "Tiền sử", "Hoạt hình", or "Hài hước". 
@@ -271,12 +271,13 @@ ${characterInstruction}
     3.  **description**: Detailed VIETNAMESE description.
     4.  **whiskPrompt**: ENGLISH prompt for Whisk AI.
         **STRICT RULES FOR CHARACTER WHISK PROMPT:**
-        a. **Subject Only**: Describe ONLY the character and their clothing.
-        b. **No Accessories**: ABSOLUTELY NO handheld items, bags, weapons, or secondary objects.
-        c. **Composition**: The character MUST be standing straight, facing the camera directly ('full-body shot', 'standing straight facing camera').
-        d. **Background**: MUST be 'solid white background'.
-        e. **Style**: ${whiskStyleInstruction}
-        f. **Emotion**: Describe the character's EMOTION (e.g., 'looking determined').
+        a. **Subject Only**: Describe ONLY the character's general appearance (gender, age group) and their clothing.
+        b. **NO FACIAL DETAILS**: ABSOLUTELY DO NOT describe detailed facial features (e.g., eye color, nose shape, lip thickness, face shape). This prompt is for a face-reference workflow.
+        c. **No Accessories**: ABSOLUTELY NO handheld items, bags, weapons, or secondary objects.
+        d. **Composition**: The character MUST be standing straight, facing the camera directly ('full-body shot', 'standing straight facing camera').
+        e. **Background**: MUST be 'solid white background'.
+        f. **Style**: ${whiskStyleInstruction}
+        g. **Emotion**: Describe the character's general EMOTION (e.g., 'looking determined').
 
 **Task 2: Context/Setting List**
 - Identify key recurring locations and create a list of contexts.
@@ -287,13 +288,13 @@ ${characterInstruction}
 
 **Task 3: Scene Prompts (VEO 3.1)**
 - Generate exactly ${numberOfScenes} prompts.
-- **CRITICAL PROMPT REQUIREMENTS:**
-    Every prompt MUST describe in detail:
-    a. **Character Emotion & Facial Expression**.
-    b. **Character Clothing** (consistent in every scene).
-    c. **Objects/Items** (physical items appearing, shapes, colors).
-    d. **Setting/Background Context** (where it happens).
-    e. **Environment/Atmosphere** (lighting, weather, mood).
+- **CRITICAL PROMPT REQUIREMENTS (MANDATORY FOR EVERY SINGLE PROMPT):**
+    Every single prompt MUST describe in exhaustive detail:
+    a. **Character Emotion & Facial Expression**: Precise emotional state and facial reactions.
+    b. **Character Action**: The exact movement or posture of the character in this scene.
+    c. **Setting & Environment Details**: You MUST detailedly describe the background context in EVERY prompt. If the script is set in a snowy area, EVERY single prompt MUST explicitly describe the snow, the frozen ground, the cold atmosphere, etc., to ensure visual consistency.
+    d. **Character Clothing**: Repeat the character's clothing description in every scene they appear.
+    e. **Objects/Items**: Physical items appearing, shapes, colors.
 - Visual descriptions in ENGLISH.
 - ${voicePromptInstruction}
 `;
@@ -302,6 +303,7 @@ ${characterInstruction}
 - Idea: "${videoIdea}"
 - Style: "${cinematicStyle}"
 - Duration: ${durationInMinutes} minutes.
+- Timestamp Seed: ${Date.now()}
 `;
     const systemPrompt = `${commonPrompt}\n\nGenerate JSON: { "characterList": [ ... ], "contextList": [ ... ], "prompts": [ ... ] }`;
 
