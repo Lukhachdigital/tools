@@ -267,7 +267,7 @@ You are an expert director and prompt engineer.
 Repetitive, similar, or formulaic responses are strictly prohibited.
 
 **CRITICAL RULE: REALISM AND AUTHENTICITY**
-1. **ABSOLUTE REALISM:** Unless the style is "Viễn tưởng" (Sci-fi), everything generated—characters, items, actions, settings—MUST be strictly grounded in reality and present-day logic. ABSOLUTELY NO futuristic tech, magic, or fantasy elements for "Hiện đại", "Điện ảnh", "Tiền sử", "Hoạt hình", or "Hài hước". 
+1. **ABSOLUTE REALISM:** Unless the style is "Viễn tưởng" (Sci-fi), everything generated—characters, items, actions, settings—MUST be strictly grounded in reality and present-day logic. ABSOLUTELY NO futuristic tech, magic, or fantasy elements.
 2. **THEMATIC CONSISTENCY:** Adhere deeply to the logic of "${cinematicStyle}".
 
 **Task 1: Character List & Whisk Prompts**
@@ -278,31 +278,31 @@ ${characterInstruction}
     3.  **description**: Detailed VIETNAMESE description.
     4.  **whiskPrompt**: ENGLISH prompt for Whisk AI.
         **STRICT RULES FOR CHARACTER WHISK PROMPT:**
-        a. **Subject Accuracy**: Focus ONLY on the specific entity mentioned in the User Idea: "${videoIdea}". If the idea mentions a "girl", the character MUST be a girl. Do NOT use generic roles like "explorer".
-        b. **Full-Body Head-to-Toe (MANDATORY)**: The prompt MUST explicitly describe the character from head to toe. Describe hair, clothing, and footwear in detail. The prompt MUST request a 'full-body shot' where the character is visible from head to toe, standing straight facing the camera.
-        c. **NO FACIAL DETAILS (CRITICAL)**: ABSOLUTELY DO NOT describe detailed facial features (e.g., eye color, nose shape, lip thickness, face structure). Focus ONLY on the head shape, hair style, and the rest of the body from the neck down.
+        a. **Identity Accuracy**: You MUST use the exact entity mentioned in the Idea: "${videoIdea}". If the user says "girl", the character MUST be a "girl". DO NOT use terms like "explorer" if not explicitly requested.
+        b. **Full-Body Shot (MANDATORY)**: The prompt MUST explicitly describe the character from HEAD TO TOE. Describe hair, full clothing, and shoes. It MUST be a 'full-body shot' where the character is visible from head to toe.
+        c. **Omit Facial Features (CRITICAL)**: Describe ONLY the head shape and hair style. DO NOT describe eyes, nose, mouth, skin texture of the face, or any facial detail. 
+        **IMPORTANT**: DO NOT write phrases like "no face", "without facial details", or "không mô tả mặt" in the generated prompt. Simply omit all face descriptions and proceed to describe the rest of the body.
         d. **No Accessories**: ABSOLUTELY NO handheld items, bags, weapons, or secondary objects.
         e. **Background**: MUST be 'solid white background'.
         f. **Style**: ${whiskStyleInstruction}
-        g. **User Suggestions**: You MUST strictly incorporate these additional user appearance details (excluding facial features): "${userSuggestions}".
+        g. **User Suggestions**: Strictly apply these additional appearance details (omitting facial features): "${userSuggestions}".
 
 **Task 2: Context/Setting List**
 - Identify key recurring locations and create a list of contexts.
 - For each context:
     1. **name**: Setting name.
     2. **description**: Detailed VIETNAMESE description.
-    3. **whiskPrompt**: ENGLISH prompt for Whisk AI describing the background/environment ONLY.
-    4. **User Suggestions**: Incorporate relevant user suggestions into settings if applicable: "${userSuggestions}".
+    3. **whiskPrompt**: ENGLISH prompt for Whisk AI describing the environment ONLY.
+    4. **User Suggestions**: Incorporate relevant suggestions: "${userSuggestions}".
 
 **Task 3: Scene Prompts (VEO 3.1)**
 - Generate exactly ${numberOfScenes} prompts.
-- **CRITICAL PROMPT REQUIREMENTS (MANDATORY FOR EVERY SINGLE PROMPT):**
-    Every single prompt MUST describe in exhaustive detail:
-    a. **Character Identity**: Use the exact character type from the idea ("girl", "man", etc.).
-    b. **Character Emotion & Expression (NO FACIAL FEATURES)**: Describe precise emotional states and facial reactions (e.g., "smiling broadly", "eyes widened in fear", "shouting angrily"). Focus ONLY on the expression, NEVER on the physical features of the face.
-    c. **Character Action**: The exact movement or posture of the character in this scene.
-    d. **Setting & Environment Details (EXTREME DETAIL)**: You MUST detailedly describe the background context in EVERY prompt to ensure visual consistency.
-    e. **Character Clothing & Appearance**: Repeat the character's full-body appearance and clothing in every scene they appear, exactly as described in Task 1.
+- **CRITICAL PROMPT REQUIREMENTS (MANDATORY):**
+    Every single prompt MUST describe:
+    a. **Character Identity**: Match the exact character from Task 1.
+    b. **Character Emotion & Action**: Focused expression and movement (but NO facial feature descriptions).
+    c. **Environment**: Extensive detail of the setting in EVERY prompt.
+    d. **Character Clothing**: Repeat the full-body outfit description exactly as defined in Task 1 for every scene they appear.
 - Visual descriptions in ENGLISH.
 - ${voicePromptInstruction}
 `;
@@ -504,7 +504,6 @@ ${characterInstruction}
 
   const handleDownload = () => {
       if(!generatedContent) return;
-      // Chỉ lấy danh sách prompt, mỗi cái cách nhau 2 dòng trống (tổng cộng 3 dấu \n), không chứa ký tự khác
       const text = generatedContent.prompts.join('\n\n\n');
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -545,11 +544,11 @@ ${characterInstruction}
                 React.createElement("div", { className: "space-y-4" },
                     React.createElement("div", null,
                         React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Ý tưởng Video"),
-                        React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white h-24", value: videoIdea, onChange: e => setVideoIdea(e.target.value), required: true, placeholder: "Ví dụ: Một cô gái đi lạc trong rừng hoa anh đào..." } as any)
+                        React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white h-24", value: videoIdea, onChange: e => setVideoIdea(e.target.value), required: true, placeholder: "Ví dụ: Một cô gái đang..." } as any)
                     ),
                     React.createElement("div", null,
                         React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Gợi ý / Nhắc nhở thêm"),
-                        React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white h-20", value: userSuggestions, onChange: e => setUserSuggestions(e.target.value), placeholder: "Ví dụ: Áo màu đỏ rực, có đội nón rộng vành, tóc búi cao..." } as any)
+                        React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white h-20", value: userSuggestions, onChange: e => setUserSuggestions(e.target.value), placeholder: "Ví dụ: Áo màu đỏ rực, tóc đen dài..." } as any)
                     ),
                     React.createElement("div", null,
                         React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Thời lượng (phút)"),
