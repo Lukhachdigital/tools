@@ -265,6 +265,8 @@ You are an expert director and prompt engineer.
 - **COLORS:** Use radically diverse and unique color palettes for costumes and environments in every response.
 Repetitive, similar, or formulaic responses are strictly prohibited.
 
+**NO EXPLANATIONS:** Your response MUST NOT contain any introductory remarks, explanations, labels like "Here is the prompt", or conversational filler within the prompt strings themselves.
+
 **CRITICAL RULE: REALISM AND AUTHENTICITY**
 1. **ABSOLUTE REALISM:** Unless the style is "Viễn tưởng" (Sci-fi), everything generated—characters, items, actions, settings—MUST be strictly grounded in reality and present-day logic. ABSOLUTELY NO futuristic tech, magic, or fantasy elements.
 2. **THEMATIC CONSISTENCY:** Adhere deeply to the logic of "${cinematicStyle}".
@@ -280,6 +282,7 @@ ${characterInstruction}
         a. **Subject Integrity**: You MUST use the exact entity type from the User Idea: "${videoIdea}". If the user says "girl", the character MUST be a "girl". DO NOT use generic roles like "explorer".
         b. **Full-Body Shot (MANDATORY)**: Describe the character from HEAD TO TOE. Include hair, facial features, full clothing, and specific footwear. The prompt MUST request a 'full-body shot' where the character is visible from head to toe.
         c. **Detailed Facial Features**: Describe the eyes, nose, mouth, and facial expression in detail. 
+        **NO META-TEXT**: Do NOT include labels like "Whisk Prompt:" or any instructions for the AI in the final string.
         d. **No Handheld Items**: ABSOLUTELY NO handheld items, bags, weapons, or secondary objects.
         e. **Background**: MUST be 'solid white background'.
         f. **Style**: ${whiskStyleInstruction}
@@ -297,6 +300,7 @@ ${characterInstruction}
 - Generate exactly ${numberOfScenes} prompts.
 - Visual descriptions in ENGLISH.
 - ${voicePromptInstruction}
+- **PURE PROMPTS**: Each prompt string MUST only contain the scene's visual description (and the Audio part if requested). DO NOT include "Scene X:" or any other metadata labels inside the prompt content strings.
 `;
 
     const userPrompt = `
@@ -495,7 +499,7 @@ ${characterInstruction}
 
   const handleDownload = () => {
       if(!generatedContent) return;
-      const text = generatedContent.prompts.join('\n\n\n');
+      const text = generatedContent.prompts.map((p, idx) => `Scene ${idx + 1}: ${p}`).join('\n\n\n');
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
