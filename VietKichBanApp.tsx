@@ -193,6 +193,7 @@ const cinematicStyles = [
 // --- APP COMPONENT ---
 const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }): React.ReactElement => {
   const [videoIdea, setVideoIdea] = useState('');
+  const [userSuggestions, setUserSuggestions] = useState('');
   const [duration, setDuration] = useState('');
   const [numMainCharacters, setNumMainCharacters] = useState('');
   const [numSupportingCharacters, setNumSupportingCharacters] = useState('');
@@ -209,6 +210,7 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
 
   const generateScript = useCallback(async (
     videoIdea: string,
+    userSuggestions: string,
     durationInMinutes: number,
     cinematicStyle: string,
     numMain: number | null,
@@ -278,6 +280,7 @@ ${characterInstruction}
         e. **Background**: MUST be 'solid white background'.
         f. **Style**: ${whiskStyleInstruction}
         g. **Emotion**: Describe the character's general EMOTION (e.g., 'looking determined').
+        h. **User Suggestions**: You MUST strictly incorporate these additional user-provided appearance/style details into the description and whiskPrompt: "${userSuggestions}".
 
 **Task 2: Context/Setting List**
 - Identify key recurring locations and create a list of contexts.
@@ -285,6 +288,7 @@ ${characterInstruction}
     1. **name**: Setting name.
     2. **description**: Detailed VIETNAMESE description.
     3. **whiskPrompt**: ENGLISH prompt for Whisk AI describing the background/environment ONLY.
+    4. **User Suggestions**: Incorporate relevant user suggestions into settings if applicable: "${userSuggestions}".
 
 **Task 3: Scene Prompts (VEO 3.1)**
 - Generate exactly ${numberOfScenes} prompts.
@@ -293,7 +297,7 @@ ${characterInstruction}
     a. **Character Emotion & Facial Expression**: Precise emotional state and facial reactions.
     b. **Character Action**: The exact movement or posture of the character in this scene.
     c. **Setting & Environment Details**: You MUST detailedly describe the background context in EVERY prompt. If the script is set in a snowy area, EVERY single prompt MUST explicitly describe the snow, the frozen ground, the cold atmosphere, etc., to ensure visual consistency.
-    d. **Character Clothing**: Repeat the character's clothing description in every scene they appear.
+    d. **Character Clothing & Appearance**: Repeat the character's appearance and clothing in every scene they appear. You MUST strictly apply these user suggestions: "${userSuggestions}".
     e. **Objects/Items**: Physical items appearing, shapes, colors.
 - Visual descriptions in ENGLISH.
 - ${voicePromptInstruction}
@@ -301,6 +305,7 @@ ${characterInstruction}
 
     const userPrompt = `
 - Idea: "${videoIdea}"
+- User Suggestions/Reminders: "${userSuggestions}"
 - Style: "${cinematicStyle}"
 - Duration: ${durationInMinutes} minutes.
 - Timestamp Seed: ${Date.now()}
@@ -484,7 +489,7 @@ ${characterInstruction}
           const numMain = numMainCharacters ? parseInt(numMainCharacters) : null;
           const numSup = numSupportingCharacters ? parseInt(numSupportingCharacters) : null;
           
-          const result = await generateScript(videoIdea, durationNum, selectedCinematicStyle, numMain, numSup, hasVoice, voiceLanguage);
+          const result = await generateScript(videoIdea, userSuggestions, durationNum, selectedCinematicStyle, numMain, numSup, hasVoice, voiceLanguage);
           setGeneratedContent(result);
       } catch (err: any) {
           setError(err.message);
@@ -537,6 +542,10 @@ ${characterInstruction}
                     React.createElement("div", null,
                         React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Ý tưởng Video"),
                         React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white h-24", value: videoIdea, onChange: e => setVideoIdea(e.target.value), required: true, placeholder: "Ví dụ: Cuộc phiêu lưu..." } as any)
+                    ),
+                    React.createElement("div", null,
+                        React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Gợi ý / Nhắc nhở thêm"),
+                        React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white h-20", value: userSuggestions, onChange: e => setUserSuggestions(e.target.value), placeholder: "Ví dụ: Áo màu tối, có đội nón, có râu quai nón, tóc dài..." } as any)
                     ),
                     React.createElement("div", null,
                         React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Thời lượng (phút)"),
