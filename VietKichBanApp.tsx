@@ -259,7 +259,12 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
     const commonPrompt = `
 You are an expert director and prompt engineer. 
 
-**CREATIVITY MANDATE:** You MUST generate a COMPLETELY NEW and UNIQUE story concept, unique characters with original names, and a fresh sequence of events for EVERY request. Even if the user input is identical to a previous one, you MUST provide a radically different creative approach.
+**CREATIVITY MANDATE (ABSOLUTE):** You MUST generate a COMPLETELY NEW and UNIQUE story concept, unique characters with original names, and a fresh sequence of events for EVERY request. 
+**RADICAL VARIATION REQUIRED:** Even if the user input is identical to a previous one, you MUST provide a radically different creative approach. This includes:
+- **PLOT & SCRIPT:** Entirely different narratives, twists, and structures.
+- **COSTUMES:** Every generation MUST feature completely different styles of clothing (e.g., from formal wear to casual beachwear to historical rags).
+- **COLORS:** Use radically diverse and unique color palettes for costumes and environments in every response.
+Repetitive, similar, or formulaic responses are strictly prohibited.
 
 **CRITICAL RULE: REALISM AND AUTHENTICITY**
 1. **ABSOLUTE REALISM:** Unless the style is "Viễn tưởng" (Sci-fi), everything generated—characters, items, actions, settings—MUST be strictly grounded in reality and present-day logic. ABSOLUTELY NO futuristic tech, magic, or fantasy elements for "Hiện đại", "Điện ảnh", "Tiền sử", "Hoạt hình", or "Hài hước". 
@@ -276,7 +281,7 @@ ${characterInstruction}
         a. **Subject Only**: Describe ONLY the character's general appearance (gender, age group) and their clothing.
         b. **NO FACIAL DETAILS (CRITICAL)**: ABSOLUTELY DO NOT describe detailed facial features (e.g., eye color, nose shape, lip thickness, face structure). This prompt is for a face-reference workflow. Focus ONLY on the head shape, hair, and build.
         c. **No Accessories**: ABSOLUTELY NO handheld items, bags, weapons, or secondary objects.
-        d. **Composition**: The character MUST be standing straight, facing the camera directly ('full-body shot', 'standing straight facing camera').
+        d. **Full-Body Shot (MANDATORY)**: The prompt MUST explicitly request a 'full-body shot' where the character is visible from head to toe, standing straight facing the camera.
         e. **Background**: MUST be 'solid white background'.
         f. **Style**: ${whiskStyleInstruction}
         g. **Emotion**: Describe the character's general EMOTION (e.g., 'looking determined').
@@ -440,7 +445,7 @@ ${characterInstruction}
              } catch(e) { console.warn("Gemini Image Gen failed", e); }
         }
 
-        if (openaiApiKey && !imageUrl && (selectedAIModel === 'openai' || selectedAIModel === 'auto')) {
+        if (openaiApiKey && !imageUrl && (selectedAIModel === 'openai' || (selectedAIModel === 'auto'))) {
              try {
                 const response = await fetch('https://api.openai.com/v1/images/generations', {
                     method: 'POST',
