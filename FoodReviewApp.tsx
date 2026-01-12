@@ -1,103 +1,147 @@
+
 import React, { useState, useRef } from 'react';
-import { GoogleGenAI, Modality } from "@google/genai";
 
-// ==========================================
-// 1. TYPES
-// ==========================================
-
+// --- TYPES ---
 export enum ThemeCategory {
-  AUTO = "Automatic (Tự động theo ý tưởng)",
+  GIANT = "Khổng lồ (Giant/Surreal)",
   LUXURY = "Sang chảnh (Luxury Dining)",
   STREET = "Đường phố (Street Food)",
-  COUNTRYSIDE = "Miền Quê (Countryside Cooking)",
-  WILD = "Hoang dã (Wild Cooking)",
-  FUTURISTIC = "Tương lai (Futuristic Food)"
+  COUNTRYSIDE = "Miền Quê (Countryside)",
+  FUTURISTIC = "Tương lai (Futuristic)"
 }
 
 export type ProcessingState = 'idle' | 'analyzing' | 'success' | 'error';
-export type OutfitMode = 'original' | 'auto';
+export type OutfitMode = 'original' | 'auto' | 'sexy';
 export type VoiceGender = 'male' | 'female';
 export type VoiceAccent = 'north' | 'south';
-export type FoodSize = 'normal' | 'giant';
 
 export interface GeneratedScenario {
-  part: number;
+  title: string;
   imagePrompt: string;
   videoPrompt: string;
-  characterPrompt: string;
+  description: string;
 }
 
-// ==========================================
-// 2. COMPONENTS (Inlined)
-// ==========================================
-
-const Button = ({ children, className = '', isLoading = false, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { isLoading?: boolean }) => (
-  <button
-    className={`bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg ${className}`}
-    disabled={isLoading || props.disabled}
-    {...props}
-  >
-    {isLoading && (
-      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-    )}
-    {children}
-  </button>
-);
-
-interface ImageUploadBoxProps {
-  label: string;
-  previewUrl: string | null;
-  onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onClear: () => void;
-  id: string;
-  placeholderText?: string;
-}
-
-const ImageUploadBox: React.FC<ImageUploadBoxProps> = ({ label, previewUrl, onFileSelect, onClear, id, placeholderText = "Tải ảnh lên" }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+// --- UI COMPONENTS ---
+const Button = ({ children, className = '', isLoading = false, variant = 'primary', ...props }: any) => {
+  const baseStyles = "px-4 py-2 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg";
+  const variants: any = {
+    primary: "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-orange-900/20",
+    secondary: "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700",
+    accent: "bg-indigo-600 hover:bg-indigo-700 text-white",
+  };
 
   return (
-    <div className="flex flex-col items-center w-full">
-      <h3 className="text-xs font-semibold text-slate-400 mb-2 self-start uppercase tracking-wider">{label}</h3>
-      <div 
-        className={`w-full aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer text-center relative overflow-hidden group transition-all ${
-          previewUrl 
-          ? 'border-orange-500/50 bg-slate-900' 
-          : 'border-slate-600 bg-slate-900 hover:border-orange-500/50 hover:bg-slate-800'
-        }`}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input 
-          type="file" 
-          id={id}
-          ref={fileInputRef} 
-          onChange={onFileSelect} 
-          accept="image/*" 
-          className="hidden" 
-        />
+    <button className={`${baseStyles} ${variants[variant]} ${className}`} disabled={isLoading} {...props}>
+      {isLoading && (
+        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      )}
+      {children}
+    </button>
+  );
+};
+
+const PromptCard = ({ index, scenario, onGenerateImage, imageUrl, isLoading, onViewLarge, onDownload }: any) => {
+  const [copiedType, setCopiedType] = useState<'image' | 'video' | null>(null);
+
+  const handleCopy = (text: string, type: 'image' | 'video') => {
+    navigator.clipboard.writeText(text);
+    setCopiedType(type);
+    setTimeout(() => setCopiedType(null), 2000);
+  };
+
+  return (
+    <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden hover:border-orange-500/30 transition-all duration-300 flex flex-col xl:flex-row min-h-[450px] shadow-xl">
+      {/* Prompts Section */}
+      <div className="flex-1 p-6 flex flex-col border-b xl:border-b-0 xl:border-r border-slate-800">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-3 py-1 rounded text-xs font-bold uppercase tracking-wider">
+            Part {index + 1}
+          </div>
+          <h3 className="font-bold text-lg text-white truncate">{scenario.title}</h3>
+        </div>
         
-        {previewUrl ? (
+        <p className="text-slate-400 italic text-sm mb-6 bg-slate-950/50 p-3 rounded-lg border-l-2 border-orange-500">
+          "{scenario.description}"
+        </p>
+
+        <div className="space-y-6 flex-1">
+          <div className="group/section">
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                Whisk AI Prompt (Image)
+              </label>
+              <button 
+                onClick={() => handleCopy(scenario.imagePrompt, 'image')}
+                className={`text-[10px] font-bold uppercase px-2 py-1 rounded border transition-all ${copiedType === 'image' ? 'bg-green-600 border-green-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300'}`}
+              >
+                {copiedType === 'image' ? 'Đã chép' : 'Copy'}
+              </button>
+            </div>
+            <div className="bg-black/40 p-4 rounded-xl text-xs text-slate-300 font-mono leading-relaxed select-all">
+              {scenario.imagePrompt}
+            </div>
+          </div>
+
+          <div className="group/section">
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-[10px] font-bold text-pink-500 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                Flow AI Prompt (Video)
+              </label>
+              <button 
+                onClick={() => handleCopy(scenario.videoPrompt, 'video')}
+                className={`text-[10px] font-bold uppercase px-2 py-1 rounded border transition-all ${copiedType === 'video' ? 'bg-green-600 border-green-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300'}`}
+              >
+                {copiedType === 'video' ? 'Đã chép' : 'Copy'}
+              </button>
+            </div>
+            <div className="bg-black/40 p-4 rounded-xl text-xs text-slate-300 font-mono leading-relaxed select-all">
+              {scenario.videoPrompt}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Image Preview Section */}
+      <div className="w-full xl:w-[450px] bg-black flex flex-col relative">
+        {imageUrl ? (
           <>
-            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-            <button
-                onClick={(e) => { e.stopPropagation(); onClear(); }}
-                className="absolute top-1 right-1 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100"
-                type="button"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-            </button>
+            <div className="flex-1 flex items-center justify-center p-4 cursor-zoom-in group/img" onClick={() => onViewLarge(imageUrl)}>
+              <img src={imageUrl} alt="Generated" className="max-w-full max-h-full object-contain rounded-lg" />
+              {isLoading && (
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                   <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                   <span className="text-[10px] font-bold text-orange-400 animate-pulse uppercase tracking-widest">Đang vẽ lại...</span>
+                </div>
+              )}
+            </div>
+            <div className="p-4 bg-slate-900 border-t border-slate-800 flex gap-2">
+              <button onClick={() => onDownload(imageUrl)} className="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-xs font-bold transition-all border border-slate-700">TẢI ẢNH</button>
+              <button onClick={onGenerateImage} className="flex-1 bg-orange-600 hover:bg-orange-500 py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-orange-900/20">VẼ LẠI</button>
+            </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center p-2">
-            <svg className="w-6 h-6 text-slate-500 group-hover:text-orange-400 mb-1 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="text-[10px] text-slate-400">{placeholderText}</span>
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900/50">
+            {isLoading ? (
+              <div className="flex flex-col items-center">
+                 <div className="w-14 h-14 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                 <p className="text-indigo-400 font-bold animate-pulse text-sm uppercase tracking-widest">Đang vẽ ảnh...</p>
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="w-20 h-20 bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-slate-700 text-slate-600">
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <h4 className="text-slate-300 font-bold mb-1">Visual Preview</h4>
+                <p className="text-slate-500 text-xs mb-6">Tạo ảnh minh họa cho phân cảnh</p>
+                <Button variant="secondary" className="px-10 py-2.5 text-xs" onClick={onGenerateImage}>TẠO ẢNH</Button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -105,867 +149,194 @@ const ImageUploadBox: React.FC<ImageUploadBoxProps> = ({ label, previewUrl, onFi
   );
 };
 
-interface PromptCardProps {
-  index: number;
-  scenario: GeneratedScenario;
-  onGenerateImage: () => void;
-  imageUrl?: string;
-  isLoading: boolean;
-  onViewLarge: (url: string) => void;
-  onDownload: (url: string) => void;
-}
-
-const PromptCard: React.FC<PromptCardProps> = ({ 
-  index, 
-  scenario, 
-  onGenerateImage, 
-  imageUrl, 
-  isLoading, 
-  onViewLarge, 
-  onDownload 
-}) => {
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-
-  const handleCopy = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 1500);
-  };
-
-  return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-lg hover:border-orange-500/50 transition-all duration-300 group">
-      <div className="flex flex-col xl:flex-row">
-        
-        {/* Left: Prompts Content */}
-        <div className="flex-1 p-5 space-y-4">
-          <div className="flex items-center justify-between">
-             <h3 className="text-lg font-bold text-orange-400 flex items-center gap-2">
-               <span className="bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded text-xs border border-orange-500/30">Scene {index + 1}</span>
-               Phân cảnh {index + 1}
-             </h3>
-          </div>
-
-          {/* Grid Layout for Prompts */}
-          <div className="grid grid-cols-1 gap-3">
-             
-             {/* Whisk Prompt */}
-             <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700 hover:border-orange-500/30 transition-colors relative group/prompt">
-                <div className="flex justify-between items-center mb-1">
-                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                      Whisk AI (Image)
-                   </span>
-                   <button 
-                     onClick={() => handleCopy(scenario.imagePrompt, 'image')}
-                     className="text-slate-500 hover:text-white transition-colors opacity-0 group-hover/prompt:opacity-100"
-                     title="Copy"
-                   >
-                     {copiedField === 'image' ? <span className="text-green-500 text-xs font-bold">Copied!</span> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
-                   </button>
-                </div>
-                <p className="text-xs text-slate-300 font-mono line-clamp-2 hover:line-clamp-none transition-all cursor-text select-all">{scenario.imagePrompt}</p>
-             </div>
-
-             {/* Flow Prompt */}
-             <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700 hover:border-blue-500/30 transition-colors relative group/prompt">
-                <div className="flex justify-between items-center mb-1">
-                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                      Flow AI (Video)
-                   </span>
-                   <button 
-                     onClick={() => handleCopy(scenario.videoPrompt, 'video')}
-                     className="text-slate-500 hover:text-white transition-colors opacity-0 group-hover/prompt:opacity-100"
-                     title="Copy"
-                   >
-                     {copiedField === 'video' ? <span className="text-green-500 text-xs font-bold">Copied!</span> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
-                   </button>
-                </div>
-                <p className="text-xs text-slate-300 font-mono line-clamp-2 hover:line-clamp-none transition-all cursor-text select-all">{scenario.videoPrompt}</p>
-             </div>
-
-             {/* Character Prompt */}
-             <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700 hover:border-green-500/30 transition-colors relative group/prompt">
-                <div className="flex justify-between items-center mb-1">
-                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                      Character
-                   </span>
-                   <button 
-                     onClick={() => handleCopy(scenario.characterPrompt, 'char')}
-                     className="text-slate-500 hover:text-white transition-colors opacity-0 group-hover/prompt:opacity-100"
-                     title="Copy"
-                   >
-                     {copiedField === 'char' ? <span className="text-green-500 text-xs font-bold">Copied!</span> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
-                   </button>
-                </div>
-                <p className="text-xs text-slate-300 font-mono line-clamp-1 hover:line-clamp-none transition-all cursor-text select-all">{scenario.characterPrompt}</p>
-             </div>
-          </div>
-        </div>
-
-        {/* Right: Image Generation (Square) */}
-        <div className="w-full xl:w-[300px] bg-slate-900/50 border-t xl:border-t-0 xl:border-l border-slate-700 flex flex-col items-center justify-center p-4 relative group/image">
-           {imageUrl ? (
-             <div className="relative w-full h-full min-h-[250px] flex items-center justify-center">
-                <img 
-                  src={imageUrl} 
-                  alt={`Generated scene ${index + 1}`} 
-                  className="w-full h-auto max-h-[280px] object-contain rounded-lg shadow-lg cursor-pointer hover:shadow-orange-500/20 transition-shadow"
-                  onClick={() => onViewLarge(imageUrl)}
-                />
-                
-                {/* Overlay Actions */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
-                   <button onClick={() => onViewLarge(imageUrl)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur transition-all transform hover:scale-110">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                   </button>
-                   <button onClick={() => onDownload(imageUrl)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur transition-all transform hover:scale-110">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                   </button>
-                </div>
-             </div>
-           ) : (
-             <div className="text-center p-6 w-full">
-                <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-3 border border-slate-700">
-                   <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                </div>
-                <p className="text-slate-500 text-xs mb-4">Chưa có ảnh minh họa</p>
-                <Button onClick={onGenerateImage} isLoading={isLoading} className="w-full py-2 text-xs bg-slate-700 hover:bg-slate-600 border border-slate-600 shadow-none from-transparent to-transparent text-slate-300 hover:text-white">
-                   Generate Image
-                </Button>
-             </div>
-           )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==========================================
-// 3. SERVICE LOGIC (Integrated)
-// ==========================================
-
-const generateCreativePrompts = async (
-  faceImageBase64: string,
-  productImageBase64: string | null,
-  category: ThemeCategory,
-  userIdea: string,
-  hasDialogue: boolean,
-  outfitMode: OutfitMode,
-  voiceGender: VoiceGender,
-  voiceAccent: VoiceAccent,
-  foodSize: FoodSize,
-  geminiApiKey: string,
-  openaiApiKey: string,
-  selectedModel: string
-): Promise<GeneratedScenario[]> => {
-  
-  const sizeInstruction = foodSize === 'giant'
-    ? "CRITICAL VISUAL REQUIREMENT: The food or product described MUST be SURREALISTICALLY GIANT (Huge, Oversized) relative to the human character. It should be the dominant visual element."
-    : "The food or product should be of NORMAL, REALISTIC size.";
-
-  const systemPrompt = `You are a professional Food Review Content Director. Your task is to generate a storyboard of 4 consecutive scenes based on a user's idea and uploaded reference images.
-
-  **INPUTS:**
-  1.  **Face Image (Image 1):** Use to identify the main character's gender, age, and approximate look.
-  ${productImageBase64 ? '2.  **Product Image (Image 2):** Analyze this image to identify the specific food or product being reviewed. You MUST describe this exact product in the prompts and make it the central focus.' : ''}
-  3.  **Theme:** ${category}
-  4.  **User Idea:** "${userIdea}"
-  5.  **Settings:**
-      - Food/Product Size: ${foodSize === 'giant' ? "GIANT / OVERSIZED" : "Normal"}
-      - Dialogue: ${hasDialogue ? "YES" : "NO"}
-      - Outfit Mode: ${outfitMode === 'original' ? "Keep original outfit from photo" : "Auto-generate outfit based on context"}
-      - Voice (if dialogue): ${voiceGender} voice, ${voiceAccent} accent.
-
-  **OUTPUT REQUIREMENTS:**
-  Generate exactly 4 scenes (Part 1, 2, 3, 4) telling a mini-story.
-  Return a valid JSON object with a key "scenarios" which is an array of objects.
-  Each object must have:
-  - "part": number (1-4)
-  - "imagePrompt": (For Whisk/Gemini Image) A detailed English prompt for a photorealistic image. Start with "A photorealistic portrait of [Character Description]...". Include details of the food/product, the environment (${category}), and the action. ${outfitMode === 'original' ? "Describe the outfit matching the uploaded image." : "Describe a creative outfit matching the food theme."} ${sizeInstruction}
-  - "videoPrompt": (For VEO/Sora) A detailed English prompt for an 8s video clip. Start with "Cinematic shot of...". Describe camera movement, lighting, and action.
-  - "characterPrompt": A consistent description of the main character to ensure consistency across scenes.
-
-  **IMPORTANT RULES:**
-  - If Dialogue is YES: Include a short, catchy voiceover line in Vietnamese in the "videoPrompt" formatted as: "Audio: Voiceover (${voiceGender}, ${voiceAccent} accent): '[Vietnamese text]'."
-  - If Dialogue is NO: Do NOT include any Audio/Voiceover instructions.
-  - Ensure continuity: The character should look consistent.
-  - The "Food/Product" must be the highlight. ${foodSize === 'giant' ? "Make sure the size is impressively large." : ""}
-  `;
-
-  // Priority: OpenAI -> Gemini for TEXT
-  let finalError;
-  let result: any = null;
-
-  // 1. Try Gemini (Multimodal) (Priority)
-  if ((selectedModel === 'gemini' || selectedModel === 'auto') && geminiApiKey) {
-      try {
-          const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-          
-          const parts = [
-              { text: systemPrompt + " Return JSON." },
-              { inlineData: { mimeType: "image/jpeg", data: faceImageBase64 } }
-          ];
-          if (productImageBase64) {
-              parts.push({ inlineData: { mimeType: "image/jpeg", data: productImageBase64 } });
-          }
-
-          const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: { parts },
-              config: { responseMimeType: "application/json" }
-          });
-          
-          result = JSON.parse(response.text);
-      } catch (e) {
-          console.warn("Gemini failed", e);
-          if (selectedModel === 'gemini') throw e;
-          finalError = e;
-      }
-  }
-
-  // 2. Try OpenAI (GPT-4o Multimodal) (Fallback)
-  if (!result && (selectedModel === 'openai' || selectedModel === 'auto') && openaiApiKey) {
-      try {
-          const content = [
-              { type: "text", text: systemPrompt },
-              { type: "image_url", image_url: { url: `data:image/jpeg;base64,${faceImageBase64}` } }
-          ];
-          if (productImageBase64) {
-              content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${productImageBase64}` } });
-          }
-
-          const response = await fetch("https://api.openai.com/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${openaiApiKey}`
-              },
-              body: JSON.stringify({
-                  model: "gpt-4o",
-                  messages: [
-                      { role: "user", content: content }
-                  ],
-                  response_format: { type: "json_object" }
-              })
-          });
-          const data = await response.json();
-          result = JSON.parse(data.choices[0].message.content);
-      } catch (e) {
-          console.warn("OpenAI failed", e);
-          finalError = e;
-      }
-  }
-
-  if (result && result.scenarios) {
-      return result.scenarios;
-  }
-
-  throw finalError || new Error("Failed to generate prompts from any provider.");
-};
-
-const generateImageVariation = async (
-  faceImageBase64: string,
-  productImageBase64: string | null,
-  prompt: string,
-  geminiApiKey: string,
-  openaiApiKey: string,
-  selectedModel: string
-): Promise<string> => {
-  
-  // Priority: Gemini -> OpenAI for IMAGE
-  let finalError;
-  let imageUrl: string | null = null;
-
-  // 1. Try Gemini (Gemini 2.5 Flash Image - Face Swap/Variation capable)
-  if ((selectedModel === 'gemini' || selectedModel === 'auto') && geminiApiKey) {
-      try {
-          const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-          const parts = [
-              { text: `Generate a photorealistic image based on this prompt: ${prompt}. \n\nIMPORTANT: Use the face from the first provided image source as the reference for the main character. Maintain the identity strictly.` },
-              { inlineData: { mimeType: "image/jpeg", data: faceImageBase64 } }
-          ];
-          if (productImageBase64) {
-              parts.push({ inlineData: { mimeType: "image/jpeg", data: productImageBase64 } });
-              parts[0].text += " Also, use the second provided image as the reference for the product/food. The character should be interacting with this specific product.";
-          }
-
-          const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash-image',
-              contents: { parts },
-              config: { responseModalities: [window.GenAIModality.IMAGE] }
-          });
-          
-          const imagePart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData);
-          if (imagePart && imagePart.inlineData) {
-              imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-          }
-      } catch (e) {
-          console.warn("Gemini Image Gen failed", e);
-          if (selectedModel === 'gemini') throw e;
-          finalError = e;
-      }
-  }
-
-  // 2. Try OpenAI (DALL-E 3 - Text to Image only, fallback drops face reference)
-  if (!imageUrl && (selectedModel === 'openai' || selectedModel === 'auto') && openaiApiKey) {
-      try {
-          const response = await fetch("https://api.openai.com/v1/images/generations", {
-              method: "POST",
-              headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${openaiApiKey}`
-              },
-              body: JSON.stringify({
-                  model: "dall-e-3",
-                  prompt: prompt, // DALL-E 3 doesn't support inline image reference for variation in this API endpoint easily
-                  n: 1,
-                  size: "1024x1024",
-                  response_format: "b64_json",
-                  quality: "hd",
-                  style: "natural"
-              })
-          });
-          if (!response.ok) throw new Error("OpenAI DALL-E failed");
-          const data = await response.json();
-          imageUrl = `data:image/png;base64,${data.data[0].b64_json}`;
-      } catch (e) {
-          console.warn("OpenAI Image Gen failed", e);
-          finalError = e;
-      }
-  }
-
-  if (imageUrl) return imageUrl;
-  throw finalError || new Error("Failed to generate image.");
-};
-
-
-// ==========================================
-// 4. MAIN APP
-// ==========================================
-
+// --- MAIN APP COMPONENT ---
 const FoodReviewApp: React.FC<{ geminiApiKey: string, openaiApiKey: string, selectedAIModel: string }> = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
-  // State for Face Image
-  const [faceImageBase64, setFaceImageBase64] = useState<string | null>(null);
-  const [facePreviewUrl, setFacePreviewUrl] = useState<string | null>(null);
-
-  // State for Product Image
-  const [productImageBase64, setProductImageBase64] = useState<string | null>(null);
-  const [productPreviewUrl, setProductPreviewUrl] = useState<string | null>(null);
-  
-  const [category, setCategory] = useState<ThemeCategory>(ThemeCategory.AUTO);
-  const [userIdea, setUserIdea] = useState<string>("");
-  const [hasDialogue, setHasDialogue] = useState<boolean>(false);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [category, setCategory] = useState<ThemeCategory>(ThemeCategory.GIANT);
   const [outfitMode, setOutfitMode] = useState<OutfitMode>('auto');
-  
+  const [hasDialogue, setHasDialogue] = useState(false);
   const [voiceGender, setVoiceGender] = useState<VoiceGender>('female');
   const [voiceAccent, setVoiceAccent] = useState<VoiceAccent>('south');
-  const [foodSize, setFoodSize] = useState<FoodSize>('normal');
+  const [userIdea, setUserIdea] = useState("");
   
   const [scenarios, setScenarios] = useState<GeneratedScenario[]>([]);
-  
   const [generatedImages, setGeneratedImages] = useState<{[key: number]: string}>({});
   const [loadingImages, setLoadingImages] = useState<{[key: number]: boolean}>({});
-  
-  const [modalImage, setModalImage] = useState<string | null>(null);
-  
   const [status, setStatus] = useState<ProcessingState>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [modalImage, setModalImage] = useState<string | null>(null);
 
-  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handlers for Face Upload
-  const handleFaceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setFacePreviewUrl(URL.createObjectURL(file));
+      setPreviewUrl(URL.createObjectURL(file));
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        setFaceImageBase64(base64String.split(',')[1]);
+        setImageBase64(base64String.split(',')[1]);
       };
       reader.readAsDataURL(file);
-      // Reset scenarios when main character changes
       setScenarios([]);
       setGeneratedImages({});
-      setErrorMsg(null);
     }
-  };
-
-  const handleFaceClear = () => {
-      setFacePreviewUrl(null);
-      setFaceImageBase64(null);
-  };
-
-  // Handlers for Product Upload
-  const handleProductFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setProductPreviewUrl(URL.createObjectURL(file));
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setProductImageBase64(base64String.split(',')[1]);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleProductClear = () => {
-      setProductPreviewUrl(null);
-      setProductImageBase64(null);
   };
 
   const handleGeneratePrompts = async () => {
-    if (!geminiApiKey && !openaiApiKey) {
-        setErrorMsg("Vui lòng cài đặt ít nhất một API Key.");
-        return;
-    }
-    if (!faceImageBase64) {
-      setErrorMsg("Vui lòng tải ảnh khuôn mặt lên trước.");
-      return;
-    }
-    if (!userIdea.trim()) {
-      setErrorMsg("Vui lòng nhập ý tưởng của bạn.");
-      return;
-    }
+    if (!imageBase64) return setErrorMsg("Vui lòng tải ảnh khuôn mặt.");
+    if (!userIdea.trim()) return setErrorMsg("Vui lòng nhập ý tưởng.");
+    if (!geminiApiKey && !openaiApiKey) return setErrorMsg("Chưa cấu hình API Key.");
 
     setStatus('analyzing');
     setErrorMsg(null);
     setScenarios([]);
-    setGeneratedImages({});
+    
+    const randomSeed = Math.random().toString(36).substring(7) + Date.now().toString().slice(-4);
+    const isGiant = category === ThemeCategory.GIANT;
+    const isSexy = outfitMode === 'sexy';
+
+    let outfitInstruction = outfitMode === 'original' 
+      ? "- TRANG PHỤC: Giữ nguyên bộ đồ trong ảnh gốc." 
+      : `- TRANG PHỤC MỚI (Seed ${randomSeed}): Thiết kế bộ đồ ${isSexy ? 'gợi cảm, quyến rũ' : 'sành điệu, độc đáo'} khác hoàn toàn ảnh gốc, giữ nhất quán 8 part.`;
+
+    const promptText = `
+      ROLE: Food Review Content Director.
+      TASK: Tạo 8 phân cảnh liên kết (8 Parts) cho ý tưởng: "${userIdea}".
+      THEME: ${category}.
+      RULES: 
+      - Nhất quán: Bối cảnh và trang phục phải giống hệt nhau trong 8 imagePrompt.
+      - Sự khác biệt: Chỉ thay đổi góc máy, hành động nếm thử món ăn và biểu cảm.
+      - ${outfitInstruction}
+      - ${hasDialogue ? `Lời thoại: Nhân vật nói tiếng Việt tự nhiên (${voiceGender}, miền ${voiceAccent === 'north' ? 'Bắc' : 'Nam'}).` : 'Không lời thoại.'}
+
+      DỊCH SANG JSON:
+      { "scenarios": [ { "title": "Part title", "imagePrompt": "Detailed Whisk Prompt", "videoPrompt": "Detailed Flow Prompt", "description": "Tóm tắt cảnh" } ] }
+      Lưu ý: Tạo đúng 8 phần.
+    `;
 
     try {
-      const results = await generateCreativePrompts(
-        faceImageBase64, 
-        productImageBase64,
-        category, 
-        userIdea, 
-        hasDialogue, 
-        outfitMode,
-        voiceGender,
-        voiceAccent,
-        foodSize,
-        geminiApiKey,
-        openaiApiKey,
-        selectedAIModel
-      );
-      setScenarios(results);
+      const ai = new (window as any).GoogleGenAI({ apiKey: geminiApiKey || openaiApiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: { parts: [{ inlineData: { mimeType: "image/jpeg", data: imageBase64 } }, { text: promptText }] },
+        config: { responseMimeType: "application/json" }
+      });
+      const data = JSON.parse(response.text);
+      setScenarios(data.scenarios);
       setStatus('success');
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to generate prompts.");
+      setErrorMsg("Lỗi phân tích: " + err.message);
       setStatus('error');
     }
   };
 
-  const handleGenerateSingleImage = async (index: number, prompt: string) => {
-    if (!faceImageBase64) return;
-    if (!geminiApiKey && !openaiApiKey) {
-        setErrorMsg("Vui lòng cài đặt API Key.");
-        return;
-    }
-    
+  const handleGenerateImage = async (index: number, prompt: string) => {
+    if (!geminiApiKey) return alert("Cần API Key Gemini để tạo ảnh.");
     setLoadingImages(prev => ({ ...prev, [index]: true }));
-    
     try {
-      const resultBase64 = await generateImageVariation(
-          faceImageBase64,
-          productImageBase64,
-          prompt,
-          geminiApiKey,
-          openaiApiKey,
-          selectedAIModel
-      );
-      setGeneratedImages(prev => ({ ...prev, [index]: resultBase64 }));
-    } catch (err: any) {
-      alert("Failed to generate image: " + err.message);
-    } finally {
-      setLoadingImages(prev => ({ ...prev, [index]: false }));
-    }
-  };
-
-  const handleDownloadImage = (base64Data: string) => {
-    const link = document.createElement('a');
-    link.href = base64Data;
-    link.download = `foodreview-scene-${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleCopyAll = (type: 'image' | 'video' | 'character') => {
-    if (scenarios.length === 0) return;
-
-    const content = scenarios.map(s => {
-      if (type === 'image') return s.imagePrompt;
-      if (type === 'video') return s.videoPrompt;
-      if (type === 'character') return s.characterPrompt;
-      return '';
-    }).join('\n\n');
-
-    navigator.clipboard.writeText(content);
-    
-    let feedbackMsg = "";
-    if (type === 'image') feedbackMsg = "Đã chép tất cả Whisk Prompts!";
-    if (type === 'video') feedbackMsg = "Đã chép tất cả Flow Prompts!";
-    if (type === 'character') feedbackMsg = "Đã chép tất cả Character Prompts!";
-    
-    setCopyFeedback(feedbackMsg);
-    setTimeout(() => setCopyFeedback(null), 2000);
-  };
-
-  const handleDownloadAllImages = () => {
-    const indices = Object.keys(generatedImages);
-    if (indices.length === 0) return;
-
-    indices.forEach((indexStr, i) => {
-      setTimeout(() => {
-        const index = parseInt(indexStr);
-        const url = generatedImages[index];
-        if (url) {
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `foodreview-part-${index + 1}-${Date.now()}.jpg`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      }, i * 500);
-    });
+      const ai = new (window as any).GoogleGenAI({ apiKey: geminiApiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-image",
+        contents: { parts: [{ inlineData: { mimeType: "image/jpeg", data: imageBase64 } }, { text: `PHOTOREALISTIC, 8K, FACE IDENTITY MATCH: ${prompt}` }] }
+      });
+      const imgPart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData);
+      if (imgPart) setGeneratedImages(prev => ({ ...prev, [index]: `data:${imgPart.inlineData.mimeType};base64,${imgPart.inlineData.data}` }));
+    } catch (e: any) { alert("Lỗi vẽ ảnh: " + e.message); }
+    finally { setLoadingImages(prev => ({ ...prev, [index]: false })); }
   };
 
   return (
-    <div className="w-full h-full p-4 flex flex-col lg:flex-row gap-8">
-        
-        {/* Left Sidebar: Controls */}
-        <div className="w-full lg:w-1/3 flex-shrink-0 space-y-6">
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 flex flex-col gap-6">
-              
-              {/* Dual Image Upload Area */}
-              <div className="flex flex-row gap-3">
-                  <div className="flex-1">
-                      <ImageUploadBox 
-                          id="face-upload"
-                          label="Ảnh Face (Khuôn mặt)"
-                          previewUrl={facePreviewUrl}
-                          onFileSelect={handleFaceFileChange}
-                          onClear={handleFaceClear}
-                          placeholderText="Tải ảnh mặt"
-                      />
-                  </div>
-                  <div className="flex-1">
-                      <ImageUploadBox 
-                          id="product-upload"
-                          label="Ảnh Sản phẩm (Tùy chọn)"
-                          previewUrl={productPreviewUrl}
-                          onFileSelect={handleProductFileChange}
-                          onClear={handleProductClear}
-                          placeholderText="Tải ảnh SP"
-                      />
-                  </div>
+    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-[360px] flex-none bg-slate-900/90 border-r border-slate-800 flex flex-col h-full shadow-2xl z-20">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
+            <h2 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-red-500 uppercase tracking-tighter">FoodReview Studio</h2>
+            
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase mb-2 block">Nhân vật</label>
+                <div onClick={() => fileInputRef.current?.click()} className={`aspect-square border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer transition-all ${previewUrl ? 'border-orange-500/50 bg-slate-950' : 'border-slate-700 bg-slate-900 hover:bg-slate-800'}`}>
+                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover rounded-lg" /> : <span className="text-[10px] text-slate-600">Tải ảnh mặt</span>}
+                  <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                </div>
               </div>
-
-              {/* Size Selector */}
-              <div className="flex gap-2">
-                  <button
-                    onClick={() => setFoodSize('normal')}
-                    className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                      foodSize === 'normal' 
-                        ? 'bg-blue-600/20 border-blue-500 text-blue-400' 
-                        : 'bg-slate-900 border-slate-700 text-slate-500'
-                    }`}
-                  >
-                    Bình thường
-                  </button>
-                  <button
-                    onClick={() => setFoodSize('giant')}
-                    className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                      foodSize === 'giant' 
-                        ? 'bg-purple-600/20 border-purple-500 text-purple-400' 
-                        : 'bg-slate-900 border-slate-700 text-slate-500'
-                    }`}
-                  >
-                    Khổng lồ
-                  </button>
+              <div className="flex-1 space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase block">Chủ đề</label>
+                {Object.values(ThemeCategory).map(cat => (
+                  <button key={cat} onClick={() => setCategory(cat)} className={`w-full py-1.5 rounded-lg text-[10px] font-bold border transition-all ${category === cat ? 'bg-orange-600/20 text-orange-400 border-orange-500/50' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>{cat.split('(')[0]}</button>
+                ))}
               </div>
+            </div>
 
-              {/* Theme Category */}
-              <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Chủ đề (Theme)</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
-                      {Object.values(ThemeCategory).map((cat) => (
-                        <button
-                          key={cat}
-                          onClick={() => setCategory(cat)}
-                          className={`w-full rounded-lg text-[10px] font-bold border transition-all flex items-center justify-center px-1 py-2 text-center ${
-                            category === cat 
-                            ? 'bg-orange-600/20 text-orange-400 border-orange-500/50' 
-                            : 'bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-700'
-                          }`}
-                        >
-                          {cat.split('(')[0].trim()}
-                        </button>
-                      ))}
-                  </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase block">Trang phục</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setOutfitMode('original')} className={`py-2 rounded-lg text-[10px] font-bold border ${outfitMode === 'original' ? 'bg-pink-600/20 text-pink-400 border-pink-500/50' : 'bg-slate-800 text-slate-500'}`}>Gốc</button>
+                <button onClick={() => setOutfitMode('auto')} className={`py-2 rounded-lg text-[10px] font-bold border ${outfitMode === 'auto' ? 'bg-pink-600/20 text-pink-400 border-pink-500/50' : 'bg-slate-800 text-slate-500'}`}>Auto</button>
+                <button onClick={() => setOutfitMode('sexy')} className={`col-span-2 py-2 rounded-lg text-[10px] font-bold border ${outfitMode === 'sexy' ? 'bg-pink-600/30 text-pink-300 border-pink-500' : 'bg-slate-800 text-slate-500'}`}>Quyến rũ (Sexy)</button>
               </div>
+            </div>
 
-              {/* Options Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Outfit Mode */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">Trang phục</label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setOutfitMode('original')}
-                        className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                          outfitMode === 'original'
-                            ? 'bg-pink-600/20 border-pink-500 text-pink-400' 
-                            : 'bg-slate-900 border-slate-700 text-slate-500'
-                        }`}
-                      >
-                        Gốc
-                      </button>
-                      <button
-                        onClick={() => setOutfitMode('auto')}
-                        className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                          outfitMode === 'auto' 
-                            ? 'bg-pink-600/20 border-pink-500 text-pink-400' 
-                            : 'bg-slate-900 border-slate-700 text-slate-500'
-                        }`}
-                      >
-                        Auto
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Dialogue */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">Lời thoại</label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setHasDialogue(false)}
-                        className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                          !hasDialogue 
-                            ? 'bg-slate-600 border-slate-500 text-white' 
-                            : 'bg-slate-900 border-slate-700 text-slate-500'
-                        }`}
-                      >
-                        Tắt
-                      </button>
-                      <button
-                        onClick={() => setHasDialogue(true)}
-                        className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                          hasDialogue 
-                            ? 'bg-green-600/20 border-green-500 text-green-400' 
-                            : 'bg-slate-900 border-slate-700 text-slate-500'
-                        }`}
-                      >
-                        Bật
-                      </button>
-                    </div>
-                  </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase block">Thoại</label>
+              <div className="flex gap-2 mb-2">
+                <button onClick={() => setHasDialogue(false)} className={`flex-1 py-2 rounded-lg text-[10px] font-bold border ${!hasDialogue ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500' : 'bg-slate-800 text-slate-500'}`}>Im lặng</button>
+                <button onClick={() => setHasDialogue(true)} className={`flex-1 py-2 rounded-lg text-[10px] font-bold border ${hasDialogue ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500' : 'bg-slate-800 text-slate-500'}`}>Có thoại</button>
               </div>
-              
-              {/* Voice Settings (Conditional) */}
               {hasDialogue && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
-                      <div>
-                          <label className="block text-sm font-semibold text-slate-300 mb-2">Giọng</label>
-                          <div className="flex gap-2">
-                              <button
-                                onClick={() => setVoiceGender('male')}
-                                className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                                  voiceGender === 'male' 
-                                    ? 'bg-blue-600/20 border-blue-500 text-blue-400' 
-                                    : 'bg-slate-900 border-slate-700 text-slate-500'
-                                }`}
-                              >
-                                Nam
-                              </button>
-                              <button
-                                onClick={() => setVoiceGender('female')}
-                                className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                                  voiceGender === 'female' 
-                                    ? 'bg-pink-600/20 border-pink-500 text-pink-400' 
-                                    : 'bg-slate-900 border-slate-700 text-slate-500'
-                                }`}
-                              >
-                                Nữ
-                              </button>
-                          </div>
-                      </div>
-                      <div>
-                          <label className="block text-sm font-semibold text-slate-300 mb-2">Vùng miền</label>
-                          <div className="flex gap-2">
-                              <button
-                                onClick={() => setVoiceAccent('north')}
-                                className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                                  voiceAccent === 'north' 
-                                    ? 'bg-amber-600/20 border-amber-500 text-amber-400' 
-                                    : 'bg-slate-900 border-slate-700 text-slate-500'
-                                }`}
-                              >
-                                Bắc
-                              </button>
-                              <button
-                                onClick={() => setVoiceAccent('south')}
-                                className={`flex-1 py-2 rounded text-xs font-bold border transition-all ${
-                                  voiceAccent === 'south' 
-                                    ? 'bg-amber-600/20 border-amber-500 text-amber-400' 
-                                    : 'bg-slate-900 border-slate-700 text-slate-500'
-                                }`}
-                              >
-                                Nam
-                              </button>
-                          </div>
-                      </div>
-                  </div>
-              )}
-
-              {/* Idea Input */}
-              <div className="flex-1 flex flex-col">
-                <label className="block text-sm font-semibold text-slate-300 mb-2">Ý tưởng của bạn</label>
-                <textarea
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all resize-none leading-relaxed h-24"
-                  placeholder="Ví dụ: Ăn cua hoàng đế trên đỉnh núi tuyết, review quán ốc vỉa hè..."
-                  value={userIdea}
-                  onChange={(e) => setUserIdea(e.target.value)}
-                />
-              </div>
-
-              {/* Action Button */}
-              <Button 
-                  className="w-full py-3 text-base font-bold shadow-xl tracking-wide uppercase" 
-                  onClick={handleGeneratePrompts}
-                  isLoading={status === 'analyzing'}
-                  disabled={!faceImageBase64}
-                >
-                  TẠO KỊCH BẢN & PROMPT
-              </Button>
-              {errorMsg && (
-                  <p className="text-xs text-red-400 text-center bg-red-900/20 p-2 rounded border border-red-900/50">{errorMsg}</p>
+                <div className="grid grid-cols-2 gap-2 animate-fade-in">
+                  <button onClick={() => setVoiceGender('female')} className={`py-1.5 rounded-lg text-[10px] font-bold border ${voiceGender === 'female' ? 'bg-amber-600/20 text-amber-400 border-amber-500' : 'bg-slate-800 text-slate-500'}`}>Nữ</button>
+                  <button onClick={() => setVoiceGender('male')} className={`py-1.5 rounded-lg text-[10px] font-bold border ${voiceGender === 'male' ? 'bg-amber-600/20 text-amber-400 border-amber-500' : 'bg-slate-800 text-slate-500'}`}>Nam</button>
+                  <button onClick={() => setVoiceAccent('south')} className={`py-1.5 rounded-lg text-[10px] font-bold border ${voiceAccent === 'south' ? 'bg-amber-600/20 text-amber-400 border-amber-500' : 'bg-slate-800 text-slate-500'}`}>Nam Bộ</button>
+                  <button onClick={() => setVoiceAccent('north')} className={`py-1.5 rounded-lg text-[10px] font-bold border ${voiceAccent === 'north' ? 'bg-amber-600/20 text-amber-400 border-amber-500' : 'bg-slate-800 text-slate-500'}`}>Bắc Bộ</button>
+                </div>
               )}
             </div>
-        </div>
 
-        {/* Right Content: Scenarios & Images */}
-        <div className="w-full lg:w-2/3 flex flex-col h-full overflow-hidden">
-           
-           {/* Results Container */}
-           <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2">
-               
-               {status === 'idle' && (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-500 border-2 border-dashed border-slate-700 rounded-xl bg-slate-800/20 p-10 min-h-[400px]">
-                     <div className="w-24 h-24 rounded-full bg-slate-800/50 flex items-center justify-center mb-6 border border-slate-700">
-                        <svg className="w-10 h-10 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                     </div>
-                     <p className="text-xl font-light uppercase tracking-wider">Bắt đầu sáng tạo</p>
-                     <p className="text-sm mt-2">Tải ảnh khuôn mặt và nhập ý tưởng để bắt đầu</p>
-                  </div>
-               )}
+            <div className="flex-1 flex flex-col min-h-0">
+              <label className="text-[10px] font-bold text-slate-500 uppercase mb-2 block">Ý tưởng review</label>
+              <textarea className="w-full flex-1 bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-white resize-none focus:border-orange-500/50 outline-none" placeholder="Ví dụ: Ăn cua hoàng đế trên đỉnh Everest..." value={userIdea} onChange={e => setUserIdea(e.target.value)} />
+            </div>
 
-               {status === 'analyzing' && (
-                  <div className="h-full flex flex-col items-center justify-center min-h-[400px]">
-                    <div className="relative">
-                       <div className="w-20 h-20 border-4 border-orange-600/30 rounded-full"></div>
-                       <div className="w-20 h-20 border-4 border-orange-500 border-t-transparent rounded-full animate-spin absolute inset-0"></div>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mt-6 mb-1 tracking-wide">ĐANG PHÂN TÍCH...</h3>
-                    <p className="text-slate-500 text-sm">AI đang viết 4 phân cảnh liên kết</p>
-                  </div>
-                )}
+            <Button className="w-full py-4 text-xs tracking-widest uppercase" onClick={handleGeneratePrompts} isLoading={status === 'analyzing'}>Tạo kịch bản (8 Part)</Button>
+          </div>
+        </aside>
 
-                {scenarios.length > 0 && (
-                  <div className="space-y-6 pb-20">
-                     
-                     {/* Results Header + Bulk Actions */}
-                     <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            <span className="text-orange-500 text-2xl">❖</span> Story Sequence
-                          </h2>
-                          <span className="text-slate-400 text-sm font-medium bg-slate-900/50 px-2 py-1 rounded">(4 Scenes)</span>
-                        </div>
-
-                        {/* Bulk Action Buttons */}
-                        <div className="flex flex-wrap items-center gap-2">
-                           <button 
-                             onClick={() => handleCopyAll('image')}
-                             className="px-3 py-1.5 bg-slate-700 border border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white rounded text-xs font-bold transition-all"
-                           >
-                             Copy All Whisk
-                           </button>
-                           <button 
-                             onClick={() => handleCopyAll('video')}
-                             className="px-3 py-1.5 bg-slate-700 border border-slate-600 text-slate-300 hover:bg-slate-600 hover:text-white rounded text-xs font-bold transition-all"
-                           >
-                             Copy All Flow
-                           </button>
-                           <div className="w-px h-6 bg-slate-700 mx-1 hidden md:block"></div>
-                           <button 
-                             onClick={handleDownloadAllImages}
-                             className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-bold transition-all flex items-center gap-1 shadow-md"
-                           >
-                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                             Download All
-                           </button>
-                        </div>
-
-                        {/* Feedback Toast */}
-                        {copyFeedback && (
-                          <div className="absolute top-4 left-1/2 -translate-x-1/2 mt-2 bg-green-600 text-white text-xs px-3 py-1 rounded-full shadow-lg animate-bounce z-50">
-                            {copyFeedback}
-                          </div>
-                        )}
-                     </div>
-                     
-                     {scenarios.map((scenario, index) => (
-                        <PromptCard 
-                          key={index}
-                          index={index}
-                          scenario={scenario} 
-                          onGenerateImage={() => handleGenerateSingleImage(index, scenario.imagePrompt)}
-                          imageUrl={generatedImages[index]}
-                          isLoading={loadingImages[index] || false}
-                          onViewLarge={(url) => setModalImage(url)}
-                          onDownload={(url) => handleDownloadImage(url)}
-                        />
-                      ))}
-                  </div>
-                )}
-           </div>
-        </div>
-
-      {/* Full Screen Image Modal */}
-      {modalImage && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-fade-in cursor-pointer"
-          onClick={() => setModalImage(null)}
-        >
-           <button 
-              onClick={() => setModalImage(null)}
-              className="absolute top-6 right-6 text-white/50 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all"
-           >
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-           </button>
-           
-           <div className="relative w-full h-full flex flex-col items-center justify-center">
-              <img 
-                src={modalImage} 
-                alt="Full size" 
-                className="max-h-[85vh] max-w-[95vw] object-contain rounded-lg shadow-2xl border border-white/10" 
-                onClick={(e) => e.stopPropagation()} 
-              />
-              <div className="mt-6 flex gap-4" onClick={(e) => e.stopPropagation()}>
-                 <Button onClick={() => handleDownloadImage(modalImage)} className="bg-white text-black hover:bg-slate-200 px-8 py-3 border-none">
-                    Download High Res
-                 </Button>
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto custom-scrollbar bg-black p-6 space-y-8">
+          {scenarios.length > 0 ? (
+            <div className="max-w-6xl mx-auto space-y-10 pb-20">
+              <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-md py-4 border-b border-slate-800 flex justify-between items-center -mx-6 px-6">
+                <h2 className="text-xl font-bold uppercase tracking-tighter">8-Part Sequence Storyboard</h2>
+                <div className="flex gap-2">
+                   <button onClick={() => navigator.clipboard.writeText(scenarios.map(s => s.imagePrompt).join('\n\n'))} className="px-3 py-1.5 bg-indigo-900/30 border border-indigo-500/50 text-indigo-400 rounded-lg text-[10px] font-bold hover:bg-indigo-600 hover:text-white transition-all">Copy All Whisk</button>
+                   <button onClick={() => navigator.clipboard.writeText(scenarios.map(s => s.videoPrompt).join('\n\n'))} className="px-3 py-1.5 bg-pink-900/30 border border-pink-500/50 text-pink-400 rounded-lg text-[10px] font-bold hover:bg-pink-600 hover:text-white transition-all">Copy All Flow</button>
+                </div>
               </div>
-           </div>
+              {scenarios.map((s, idx) => (
+                <PromptCard key={idx} index={idx} scenario={s} imageUrl={generatedImages[idx]} isLoading={loadingImages[idx]} onGenerateImage={() => handleGenerateImage(idx, s.imagePrompt)} onViewLarge={setModalImage} onDownload={url => { const a = document.createElement('a'); a.href = url; a.download = `scene-${idx+1}.jpg`; a.click(); }} />
+              ))}
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center opacity-20 select-none">
+              <svg className="w-24 h-24 mb-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+              <h3 className="text-2xl font-light uppercase tracking-widest">Sẵn sàng để sáng tạo</h3>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {modalImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4 animate-fade-in cursor-pointer" onClick={() => setModalImage(null)}>
+          <img src={modalImage} className="max-h-[90vh] max-w-full rounded-lg shadow-2xl border border-white/10" onClick={e => e.stopPropagation()} />
+          <button className="absolute top-6 right-6 text-white bg-white/10 hover:bg-white/20 p-2 rounded-full" onClick={() => setModalImage(null)}>
+             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
       )}
-
     </div>
   );
 };
