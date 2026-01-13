@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 
 // Import các ứng dụng
@@ -695,30 +694,6 @@ const App = () => {
             )
         );
     }
-
-    if (!isVerified) {
-        return (
-            React.createElement('div', { className: "min-h-screen bg-slate-900 flex items-center justify-center" },
-                React.createElement('form', {
-                    onSubmit: (e) => e.preventDefault(),
-                    className: "relative"
-                },
-                    React.createElement('input', {
-                        type: "password",
-                        className: "bg-slate-800 text-center text-white border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 w-64 tracking-widest placeholder-slate-600 transition-all shadow-xl",
-                        placeholder: "••••••••",
-                        onChange: (e) => {
-                            if (e.target.value === '88888888') {
-                                localStorage.setItem(ACCESS_CODE_KEY, '88888888');
-                                setIsVerified(true);
-                            }
-                        },
-                        autoFocus: true
-                    })
-                )
-            )
-        );
-    }
     
     const mainTitle = "AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng";
     const mainDescription = "Giải phóng tiềm năng, tự động hóa work và nâng tầm nội dung của bạn.";
@@ -744,13 +719,43 @@ const App = () => {
 
     return (
         React.createElement(React.Fragment, null,
-            showApiKeyModal && React.createElement(ApiKeyModal, { 
-                onClose: () => setShowApiKeyModal(false),
-                onSave: handleApiKeySave,
-                initialGeminiKey: geminiApiKey,
-                initialOpenAIKey: openaiApiKey
-             }),
-            React.createElement('div', { className: "min-h-screen bg-slate-900 flex flex-col" },
+            // Security Overlay
+            !isVerified && React.createElement('div', { className: "fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/20 backdrop-blur-sm" }, // Lighter background for better visibility
+                React.createElement('div', { className: "flex flex-col items-center p-8 rounded-2xl" },
+                    // Yellow text, bigger, glowing
+                    React.createElement('h2', { className: "text-3xl md:text-5xl font-extrabold text-yellow-400 mb-10 uppercase tracking-widest text-center drop-shadow-[0_0_15px_rgba(250,204,21,0.8)] animate-pulse" }, "Nhập mã bảo mật"),
+                    React.createElement('form', {
+                        onSubmit: (e: React.FormEvent) => e.preventDefault(),
+                        className: "relative group"
+                    } as React.FormHTMLAttributes<HTMLFormElement>,
+                        // Input with thick white border, white text, and white glow
+                        React.createElement('input', {
+                            type: "password",
+                            className: "bg-slate-900/90 text-center text-white text-4xl border-4 border-white rounded-2xl px-8 py-6 focus:outline-none focus:border-white w-80 sm:w-96 tracking-[0.5em] placeholder-slate-600 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.4)] focus:shadow-[0_0_60px_rgba(255,255,255,0.7)]",
+                            placeholder: "••••••••",
+                            onChange: (e) => {
+                                if (e.target.value === '88888888') {
+                                    localStorage.setItem(ACCESS_CODE_KEY, '88888888');
+                                    setIsVerified(true);
+                                }
+                            },
+                            autoFocus: true
+                        })
+                    )
+                )
+            ),
+
+            // Main App Content (Dimmed and disabled if not verified)
+            React.createElement('div', { 
+                // opacity-80 ensures dashboard is clearly visible (80% clear) behind the overlay
+                className: `min-h-screen bg-slate-900 flex flex-col transition-all duration-500 ${!isVerified ? 'opacity-80 pointer-events-none h-screen overflow-hidden' : ''}` 
+            },
+                showApiKeyModal && React.createElement(ApiKeyModal, { 
+                    onClose: () => setShowApiKeyModal(false),
+                    onSave: handleApiKeySave,
+                    initialGeminiKey: geminiApiKey,
+                    initialOpenAIKey: openaiApiKey
+                }),
                 React.createElement('header', { className: "flex flex-col md:flex-row justify-between items-center gap-4 w-full mb-1 p-2 sm:p-4" },
                      React.createElement('div', { className: "flex flex-col items-start gap-2 sm:gap-3" },
                         React.createElement('div', { className: "flex items-center gap-3 sm:gap-4" },
