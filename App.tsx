@@ -534,9 +534,11 @@ const App = () => {
     const [geminiApiKey, setGeminiApiKey] = useState('');
     const [openaiApiKey, setOpenaiApiKey] = useState('');
     const [selectedAIModel, setSelectedAIModel] = useState('auto'); // 'auto', 'gemini', 'openai'
+    const [isVerified, setIsVerified] = useState(false);
     
     const GEMINI_API_KEY = 'GEMINI_API_KEY';
     const OPENAI_API_KEY = 'OPENAI_API_KEY';
+    const ACCESS_CODE_KEY = 'ACCESS_CODE';
 
     const allTools = [
         { id: 'dashboard', text: 'Bảng điều khiển', title: 'AICreators - Bộ Công Cụ Sáng Tạo Tối Thượng', icon: React.createElement(IconDashboard), description: 'Tổng quan các công cụ sáng tạo' },
@@ -598,6 +600,12 @@ const App = () => {
         if (savedGeminiKey) setGeminiApiKey(savedGeminiKey);
         const savedOpenAIKey = localStorage.getItem(OPENAI_API_KEY);
         if (savedOpenAIKey) setOpenaiApiKey(savedOpenAIKey);
+        
+        // Check for existing access code
+        const savedAccessCode = localStorage.getItem(ACCESS_CODE_KEY);
+        if (savedAccessCode === '88888888') {
+            setIsVerified(true);
+        }
 
         setIsLoading(false);
     }, []);
@@ -684,6 +692,30 @@ const App = () => {
         return (
             React.createElement('div', { className: "min-h-screen bg-slate-900 flex items-center justify-center" },
                 React.createElement('p', { className: "text-slate-400 text-lg animate-pulse" }, "Đang tải ứng dụng...")
+            )
+        );
+    }
+
+    if (!isVerified) {
+        return (
+            React.createElement('div', { className: "min-h-screen bg-slate-900 flex items-center justify-center" },
+                React.createElement('form', {
+                    onSubmit: (e) => e.preventDefault(),
+                    className: "relative"
+                },
+                    React.createElement('input', {
+                        type: "password",
+                        className: "bg-slate-800 text-center text-white border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 w-64 tracking-widest placeholder-slate-600 transition-all shadow-xl",
+                        placeholder: "••••••••",
+                        onChange: (e) => {
+                            if (e.target.value === '88888888') {
+                                localStorage.setItem(ACCESS_CODE_KEY, '88888888');
+                                setIsVerified(true);
+                            }
+                        },
+                        autoFocus: true
+                    })
+                )
             )
         );
     }
