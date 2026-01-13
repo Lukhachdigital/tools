@@ -602,7 +602,7 @@ const App = () => {
         
         // Check for existing access code
         const savedAccessCode = localStorage.getItem(ACCESS_CODE_KEY);
-        if (savedAccessCode === '88888888') {
+        if (savedAccessCode === '********') {
             setIsVerified(true);
         }
 
@@ -734,8 +734,8 @@ const App = () => {
                             className: "bg-slate-900/90 text-center text-white text-4xl border-4 border-white rounded-2xl px-8 py-6 focus:outline-none focus:border-white w-80 sm:w-96 tracking-[0.5em] placeholder-slate-600 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.4)] focus:shadow-[0_0_60px_rgba(255,255,255,0.7)]",
                             placeholder: "••••••••",
                             onChange: (e) => {
-                                if (e.target.value === '88888888') {
-                                    localStorage.setItem(ACCESS_CODE_KEY, '88888888');
+                                if (e.target.value === '********') {
+                                    localStorage.setItem(ACCESS_CODE_KEY, '********');
                                     setIsVerified(true);
                                 }
                             },
