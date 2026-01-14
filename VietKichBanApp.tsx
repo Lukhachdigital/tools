@@ -33,11 +33,11 @@ const cleanJsonString = (text: string) => {
 };
 
 // --- COMPONENTS ---
-const Loader = (): React.ReactElement => {
+const Loader = ({ message = "AI đang viết kịch bản..." }: { message?: string }): React.ReactElement => {
   return (
-    React.createElement("div", { className: "flex items-center justify-center p-4" },
-      React.createElement("div", { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" }),
-      React.createElement("p", { className: "ml-3 text-gray-300" }, "AI đang viết kịch bản...")
+    React.createElement("div", { className: "flex flex-col items-center justify-center p-8 bg-gray-800/30 rounded-2xl border border-dashed border-gray-700" },
+      React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mb-4" }),
+      React.createElement("p", { className: "text-cyan-300 font-medium animate-pulse text-center" }, message)
     )
   );
 };
@@ -55,12 +55,12 @@ const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void
     };
   
     const outerDivProps: React.HTMLAttributes<HTMLDivElement> = {
-      className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm",
+      className: "fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md",
       onClick: onClose
     };
 
     const innerDivProps: React.HTMLAttributes<HTMLDivElement> = {
-      className: "relative w-full max-w-4xl max-h-[90vh] p-4",
+      className: "relative w-full max-w-5xl max-h-[95vh] p-4 flex flex-col items-center",
       onClick: (e) => e.stopPropagation()
     };
 
@@ -69,15 +69,15 @@ const Lightbox = ({ imageUrl, onClose }: { imageUrl: string; onClose: () => void
         outerDivProps,
         React.createElement("div",
           innerDivProps,
-          React.createElement("img", { src: imageUrl, alt: "Generated Content", className: "w-full h-full object-contain rounded-lg shadow-2xl" }),
-          React.createElement("div", { className: "absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4" },
+          React.createElement("img", { src: imageUrl, alt: "Generated Content", className: "max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl mb-6 border border-white/10" }),
+          React.createElement("div", { className: "flex gap-4" },
               React.createElement("button", {
                   onClick: handleSave,
-                  className: "px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors shadow-lg"
-              }, "Lưu ảnh"),
+                  className: "px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-full transition-all shadow-lg flex items-center gap-2"
+              }, "Tải ảnh về"),
               React.createElement("button", {
                   onClick: onClose,
-                  className: "px-6 py-2 bg-gray-700 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors shadow-lg"
+                  className: "px-8 py-2.5 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-full transition-all shadow-lg"
               }, "Đóng")
           )
         )
@@ -111,50 +111,59 @@ const ResultCard = ({ title, role, description, whiskPrompt, index, onGenerateIm
   const imageContainerAspectRatio = aspectRatio === '16:9' ? 'aspect-video' : 'aspect-[9/16]';
 
   return (
-    React.createElement("div", { className: "bg-gray-900/50 p-4 rounded-lg border border-gray-700" },
-       React.createElement("div", { className: "flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3" },
+    React.createElement("div", { className: "bg-gray-900/50 p-5 rounded-xl border border-gray-700 hover:border-gray-600 transition-colors" },
+       React.createElement("div", { className: "flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4" },
          React.createElement("div", { className: "flex items-center gap-3" },
            React.createElement("h4", { className: "text-lg font-bold text-gray-100" }, title),
            role && React.createElement("span", {
-               className: `text-xs font-semibold px-2.5 py-1 rounded-full ${role === 'Nhân vật chính' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-gray-600/50 text-gray-300'}`
+               className: `text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded ${role === 'Nhân vật chính' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'bg-gray-700/50 text-gray-400 border border-gray-600'}`
            }, role)
          ),
          React.createElement("div", { className: "flex items-center gap-2 flex-shrink-0" },
-            React.createElement("button", { onClick: () => setAspectRatio('16:9'), className: `px-3 py-1.5 text-xs rounded-md font-semibold transition ${aspectRatio === '16:9' ? 'bg-blue-600 text-white' : 'bg-gray-600 hover:bg-gray-500 text-gray-300'}` }, "Ngang"),
-            React.createElement("button", { onClick: () => setAspectRatio('9:16'), className: `px-3 py-1.5 text-xs rounded-md font-semibold transition ${aspectRatio === '9:16' ? 'bg-blue-600 text-white' : 'bg-gray-600 hover:bg-gray-500 text-gray-300'}` }, "Dọc"),
+            React.createElement("button", { onClick: () => setAspectRatio('16:9'), className: `px-3 py-1.5 text-xs rounded-md font-semibold transition ${aspectRatio === '16:9' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-800 hover:bg-gray-700 text-gray-400'}` }, "Ngang"),
+            React.createElement("button", { onClick: () => setAspectRatio('9:16'), className: `px-3 py-1.5 text-xs rounded-md font-semibold transition ${aspectRatio === '9:16' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-800 hover:bg-gray-700 text-gray-400'}` }, "Dọc"),
             React.createElement("button", {
                 onClick: () => onGenerateImage(index, whiskPrompt, aspectRatio),
                 disabled: isGenerating,
-                className: "bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-1.5 px-4 rounded-md disabled:opacity-50 disabled:cursor-wait transition"
+                className: "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white text-xs font-bold py-1.5 px-4 rounded-md disabled:opacity-50 disabled:cursor-wait transition shadow-lg ml-2"
             }, isGenerating ? "Đang tạo..." : "Tạo ảnh")
          )
        ),
-       React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-4" },
-         React.createElement("div", null,
-           React.createElement("p", { className: "text-gray-300 text-sm mb-4" }, description),
-           React.createElement("div", null,
-             React.createElement("p", { className: "font-semibold text-sm text-indigo-300 mb-2" }, "Prompt tạo ảnh (Whisk AI):"),
-             React.createElement("div", { className: "relative bg-gray-700 p-3 rounded-md border border-gray-600" },
-               React.createElement("p", { className: "text-gray-200 text-xs break-words pr-24" }, whiskPrompt),
+       React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" },
+         React.createElement("div", { className: "flex flex-col" },
+           React.createElement("p", { className: "text-gray-300 text-sm mb-4 leading-relaxed italic border-l-2 border-gray-700 pl-3" }, description),
+           React.createElement("div", { className: "mt-auto" },
+             React.createElement("p", { className: "font-bold text-[10px] uppercase tracking-widest text-indigo-400 mb-2" }, "Whisk Reference Prompt:"),
+             React.createElement("div", { className: "relative bg-slate-950 p-3 rounded-lg border border-gray-700/50" },
+               React.createElement("p", { className: "text-gray-400 text-xs break-words pr-24 font-mono leading-relaxed" }, whiskPrompt),
                React.createElement("button", {
                  onClick: () => copyToClipboard(whiskPrompt),
-                 className: `absolute top-2 right-2 px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none disabled:bg-green-600 ${copied ? 'bg-green-600' : ''}`,
+                 className: `absolute top-2 right-2 px-3 py-1 bg-indigo-600/20 border border-indigo-500/50 text-indigo-400 text-[10px] font-bold rounded hover:bg-indigo-600 hover:text-white transition-all ${copied ? 'bg-green-600 border-green-500 text-white' : ''}`,
                }, copied ? 'Đã sao chép' : 'Sao chép')
              )
            )
          ),
-         React.createElement("div", { className: `w-full ${imageContainerAspectRatio} bg-gray-800/50 rounded-lg flex items-center justify-center overflow-hidden border border-gray-700 transition-all` },
-            isGenerating && React.createElement("div", { className: "animate-spin rounded-full h-6 w-6 border-b-2 border-green-400" }),
-            error && React.createElement("p", { className: "text-red-400 text-xs text-center p-2" }, error),
+         React.createElement("div", { className: `w-full ${imageContainerAspectRatio} bg-black/40 rounded-xl flex items-center justify-center overflow-hidden border border-gray-800 shadow-inner group/img relative` },
+            isGenerating && React.createElement("div", { className: "flex flex-col items-center gap-2" },
+                React.createElement("div", { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" }),
+                React.createElement("span", { className: "text-[10px] text-green-500 font-bold animate-pulse uppercase" }, "Processing")
+            ),
+            error && React.createElement("div", { className: "p-4 text-center" }, 
+                React.createElement("p", { className: "text-red-500 text-xs font-bold mb-1" }, "LỖI TẠO ẢNH"),
+                React.createElement("p", { className: "text-gray-500 text-[10px]" }, error)
+            ),
             imageUrl && !isGenerating && !error && (
                 React.createElement("img", {
                     src: imageUrl,
                     alt: `Generated result`,
-                    className: "w-full h-full object-cover rounded-md cursor-pointer hover:scale-105 transition-transform duration-300",
+                    className: "w-full h-full object-contain cursor-pointer transition-transform duration-500 group-hover/img:scale-105",
                     onClick: () => onImageClick(imageUrl)
                 })
             ),
-            !isGenerating && !error && !imageUrl && React.createElement("p", { className: "text-gray-500 text-xs" }, "Ảnh sẽ hiện ở đây")
+            !isGenerating && !error && !imageUrl && React.createElement("div", { className: "text-center opacity-20" }, 
+                React.createElement("svg", { className: "w-12 h-12 mx-auto mb-2", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" }, <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />),
+                React.createElement("p", { className: "text-[10px] font-bold uppercase tracking-widest" }, "Preview")
+            )
          )
        )
     )
@@ -174,13 +183,15 @@ const PromptCard = ({ prompt, promptNumber }: { prompt: string; promptNumber: nu
   };
 
   return (
-    React.createElement("div", { className: "relative bg-gray-700 p-4 rounded-md border border-gray-600 mb-4" },
-      React.createElement("h4", { className: "text-cyan-400 font-bold text-xs mb-1" }, `Cảnh ${promptNumber}`),
-      React.createElement("p", { className: "text-gray-200 text-sm break-words pr-24" }, prompt),
-      React.createElement("button", {
-        onClick: () => copyToClipboard(prompt),
-        className: `absolute top-2 right-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:bg-green-600 ${copied ? 'bg-green-600' : ''}`,
-      }, copied ? 'Đã sao chép' : 'Sao chép')
+    React.createElement("div", { className: "relative bg-slate-800/80 p-5 rounded-xl border border-gray-700 mb-4 group hover:border-cyan-500/30 transition-all shadow-md" },
+      React.createElement("div", { className: "flex justify-between items-center mb-3" },
+          React.createElement("h4", { className: "text-cyan-500 font-black text-xs uppercase tracking-widest" }, `Cảnh ${promptNumber}`),
+          React.createElement("button", {
+            onClick: () => copyToClipboard(prompt),
+            className: `px-4 py-1.5 bg-indigo-600/10 border border-indigo-500/50 text-indigo-400 text-xs font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm ${copied ? 'bg-green-600 border-green-500 text-white' : ''}`,
+          }, copied ? 'Đã sao chép' : 'Sao chép Prompt')
+      ),
+      React.createElement("p", { className: "text-gray-300 text-sm leading-relaxed font-mono whitespace-pre-wrap select-all" }, prompt)
     )
   );
 };
@@ -197,6 +208,7 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
   const [numMainCharacters, setNumMainCharacters] = useState('');
   const [numSupportingCharacters, setNumSupportingCharacters] = useState('');
   const [selectedCinematicStyle, setSelectedCinematicStyle] = useState('Hiện đại');
+  
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -207,159 +219,97 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
   const [hasVoice, setHasVoice] = useState(false);
   const [voiceLanguage, setVoiceLanguage] = useState<'Vietnamese' | 'English'>('Vietnamese');
 
-  const generateScript = useCallback(async (
-    videoIdea: string,
-    userSuggestions: string,
-    durationInMinutes: number,
-    cinematicStyle: string,
-    numMain: number | null,
-    numSupporting: number | null,
-    hasVoice: boolean,
-    voiceLanguage: string
+  // Pagination State
+  const [currentPart, setCurrentPart] = useState(1);
+  const [totalParts, setTotalParts] = useState(1);
+  const [pendingPart, setPendingPart] = useState(1); // Tracks actual part being generated for loader
+  const [globalCharacterList, setGlobalCharacterList] = useState<Character[]>([]);
+  const [globalContextList, setGlobalContextList] = useState<ContextItem[]>([]);
+  const [lastSceneSummary, setLastSceneSummary] = useState<string>("");
+
+  const generateScriptChunk = useCallback(async (
+    targetPart: number,
+    totalPartCount: number,
+    numScenes: number,
+    prevCharacters: Character[],
+    prevContexts: ContextItem[],
+    prevLastScene: string
   ): Promise<GeneratedContent> => {
     
-    const numberOfScenes = Math.ceil((durationInMinutes * 60) / 8);
+    const isFirstPart = targetPart === 1;
+    const isFinalPart = targetPart === totalPartCount;
 
-    const whiskStyleInstruction = cinematicStyle === "Hoạt hình"
-      ? "The style MUST be animated."
-      : "The style MUST be photorealistic and NOT animated.";
+    let characterTask = isFirstPart 
+        ? `TASK 1: Create a list of characters based on: "${videoIdea}" and "${userSuggestions}". Define their names, roles, and detailed visual prompts for Whisk AI (Isolated on white background, head-to-toe, NO objects).`
+        : `TASK 1: REUSE these established characters for consistency: ${JSON.stringify(prevCharacters)}. DO NOT invent new characters unless absolutely necessary for the plot.`;
 
-    let mainCharInstruction = '';
-    if (numMain !== null && !isNaN(numMain) && numMain >= 0) {
-      mainCharInstruction = `You MUST create exactly ${numMain} main character(s) ('Nhân vật chính').`;
-    }
-
-    let supCharInstruction = '';
-    if (numSupporting !== null && !isNaN(numSupporting) && numSupporting >= 0) {
-      supCharInstruction = `You MUST create exactly ${numSupporting} supporting character(s) ('Nhân vật phụ').`;
-    }
-
-    let characterInstruction;
-    if (mainCharInstruction || supCharInstruction) {
-      characterInstruction = `- Create a list of characters. ${[mainCharInstruction, supCharInstruction].filter(Boolean).join(' ')}`;
-    } else {
-      characterInstruction = "- Create a list of characters, identifying main and supporting roles.";
-    }
-
-    let voicePromptInstruction = "";
-    if (hasVoice) {
-        voicePromptInstruction = `
-        **Dialogue/Voiceover**: Include dialogue or voiceover for appropriate scenes.
-           - Format: Visual description... Audio: [Character Name/Voiceover]: '[Dialogue text]'.
-           - Spoken language MUST BE **${voiceLanguage === 'Vietnamese' ? 'VIETNAMESE' : 'ENGLISH'}**.
-           - Rest of the prompt MUST remain in ENGLISH.
-        `;
-    } else {
-        voicePromptInstruction = `
-        **Dialogue/Voiceover**: NO DIALOGUE. Do NOT include spoken words or "Audio:" tags.
-        `;
-    }
+    let contextTask = isFirstPart
+        ? `TASK 2: Define key recurring environments/contexts for the story. Create detailed visual prompts for Whisk AI (Landscape, environment only).`
+        : `TASK 2: REUSE these established contexts: ${JSON.stringify(prevContexts)}.`;
 
     const commonPrompt = `
-You are an expert director and prompt engineer. 
+You are a High-End Film Director and Senior Prompt Engineer for VEO 3.1. 
+Your goal is to write PART ${targetPart} of a ${totalPartCount}-part cinematic script. 
 
-**CREATIVITY MANDATE (ABSOLUTE):** You MUST generate a COMPLETELY NEW and UNIQUE story concept, unique characters with original names, and a fresh sequence of events for EVERY request. 
-**RADICAL VARIATION REQUIRED:** Even if the user input is identical to a previous one, you MUST provide a radically different creative approach. This includes:
-- **PLOT & SCRIPT:** Entirely different narratives, twists, and structures.
-- **COSTUMES:** Every generation MUST feature completely different styles of clothing (e.g., from formal wear to casual beachwear to historical rags).
-- **COLORS:** Use radically diverse and unique color palettes for costumes and environments in every response.
-Repetitive, similar, or formulaic responses are strictly prohibited.
+**STRICT RULE: EXTREME DETAIL (MANDATORY)**
+Every scene prompt MUST include:
+1. **Characters Outfit:** For EACH character appearing, describe their outfit in detail (Material, color, style, accessories). This description MUST be 100% consistent throughout the entire part.
+2. **Expressions:** Describe the precise facial expression and emotional state of each character.
+3. **Environment:** Describe the background lighting, textures, and atmosphere.
+4. **Objects & Equipment:** List and describe ALL items, tools, or vehicles appearing.
+5. **Atomic Logic:** Every prompt must be independent. DO NOT use pronouns.
 
-**NO EXPLANATIONS:** Your response MUST NOT contain any introductory remarks, explanations, labels like "Here is the prompt", or conversational filler within the prompt strings themselves.
+**STRICT RULE: NO META-TEXT OR LABELS**
+- DO NOT include any explanatory text, scene titles, or sequence labels in the prompts array (e.g., AVOID "Final wide shot of Part 1", "End of scene", "Camera setup:").
+- Each string in the "prompts" array MUST ONLY contain the raw visual description for the AI generator.
 
-**CRITICAL RULE: REALISM AND AUTHENTICITY**
-1. **ABSOLUTE REALISM:** Unless the style is "Viễn tưởng" (Sci-fi), everything generated—characters, items, actions, settings—MUST be strictly grounded in reality and present-day logic. ABSOLUTELY NO futuristic tech, magic, or fantasy elements.
-2. **THEMATIC CONSISTENCY:** Adhere deeply to the logic of "${cinematicStyle}".
+**STRICT RULE: NARRATIVE CONTINUITY**
+- ${!isFinalPart ? "This is NOT the final part. The kịch bản MUST NOT END. Ensure the last scene of this part is an ongoing action or a transition that leads directly into the next part. NO 'THE END', NO resolution." : "This IS the final part. You MUST provide a satisfying conclusion to the entire story."}
+- ${!isFirstPart ? `This part continues smoothly from the last scene: "${prevLastScene}".` : "This is the start of the story."}
 
-**Task 1: Character List & Whisk Prompts**
-${characterInstruction}
-- For each character:
-    1.  **name**: Character name.
-    2.  **role**: 'Nhân vật chính' or 'Nhân vật phụ'.
-    3.  **description**: Detailed VIETNAMESE description.
-    4.  **whiskPrompt**: ENGLISH prompt for Whisk AI.
-        **STRICT RULES FOR CHARACTER WHISK PROMPT:**
-        a. **Subject Integrity**: You MUST use the exact entity type from the User Idea: "${videoIdea}". If the user says "girl", the character MUST be a "girl". DO NOT use generic roles like "explorer".
-        b. **Full-Body Shot (MANDATORY)**: Describe the character from HEAD TO TOE. Include hair, facial features, full clothing, and specific footwear. The prompt MUST request a 'full-body shot' where the character is visible from head to toe.
-        c. **Detailed Facial Features**: Describe the eyes, nose, mouth, and facial expression in detail. 
-        **NO META-TEXT**: Do NOT include labels like "Whisk Prompt:" or any instructions for the AI in the final string.
-        d. **No Handheld Items**: ABSOLUTELY NO handheld items, bags, weapons, or secondary objects.
-        e. **Background**: MUST be 'solid white background'.
-        f. **Style**: ${whiskStyleInstruction}
-        g. **User Suggestions**: Strictly incorporate these additional appearance details: "${userSuggestions}".
+**TECHNICAL SPECS:**
+- Generate EXACTLY ${numScenes} prompts.
+- Prompts in ENGLISH.
+- Scene summaries/descriptions in VIETNAMESE.
+- Return ONLY a valid JSON object.
 
-**Task 2: Context/Setting List**
-- Identify key recurring locations and create a list of contexts.
-- For each context:
-    1. **name**: Setting name.
-    2. **description**: Detailed VIETNAMESE description.
-    3. **whiskPrompt**: ENGLISH prompt for Whisk AI describing the environment ONLY.
-    4. **User Suggestions**: Incorporate relevant suggestions: "${userSuggestions}".
-
-**Task 3: Scene Prompts (VEO 3.1)**
-- Generate exactly ${numberOfScenes} prompts.
-- Visual descriptions in ENGLISH.
-- ${voicePromptInstruction}
-- **PURE PROMPTS**: Each prompt string MUST only contain the scene's visual description (and the Audio part if requested). DO NOT include "Scene X:" or any other metadata labels inside the prompt content strings.
+JSON Schema:
+{
+  "characterList": [ { "name": "", "role": "", "description": "VN", "whiskPrompt": "EN" } ],
+  "contextList": [ { "name": "", "description": "VN", "whiskPrompt": "EN" } ],
+  "prompts": [ "Pure Visual Description 1", "Pure Visual Description 2", ... ]
+}
 `;
 
     const userPrompt = `
+- Part Number: ${targetPart}
+- Total Parts: ${totalPartCount}
+- Scenes to Generate: ${numScenes}
+- Cinematic Style: ${selectedCinematicStyle}
 - Idea: "${videoIdea}"
-- User Suggestions: "${userSuggestions}"
-- Style: "${cinematicStyle}"
-- Duration: ${durationInMinutes} minutes.
+- Suggestions: "${userSuggestions}"
 `;
-    const systemPrompt = `${commonPrompt}\n\nGenerate JSON: { "characterList": [ ... ], "contextList": [ ... ], "prompts": [ ... ] }`;
 
     let finalError: unknown;
     let result: GeneratedContent | null = null;
 
     if ((selectedAIModel === 'gemini' || selectedAIModel === 'auto') && geminiApiKey) {
         try {
-            if (!geminiApiKey) throw new Error("Gemini API Key chưa được cài đặt.");
             const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
-            const schema = {
-                type: window.GenAIType.OBJECT,
-                properties: {
-                    characterList: {
-                        type: window.GenAIType.ARRAY,
-                        items: {
-                            type: window.GenAIType.OBJECT,
-                            properties: {
-                                name: { type: window.GenAIType.STRING },
-                                role: { type: window.GenAIType.STRING },
-                                description: { type: window.GenAIType.STRING },
-                                whiskPrompt: { type: window.GenAIType.STRING }
-                            },
-                            required: ["name", "role", "description", "whiskPrompt"]
-                        }
-                    },
-                    contextList: {
-                        type: window.GenAIType.ARRAY,
-                        items: {
-                            type: window.GenAIType.OBJECT,
-                            properties: {
-                                name: { type: window.GenAIType.STRING },
-                                description: { type: window.GenAIType.STRING },
-                                whiskPrompt: { type: window.GenAIType.STRING }
-                            },
-                            required: ["name", "description", "whiskPrompt"]
-                        }
-                    },
-                    prompts: {
-                        type: window.GenAIType.ARRAY,
-                        items: { type: window.GenAIType.STRING },
-                    }
-                },
-                required: ["characterList", "contextList", "prompts"]
-            };
-
             const response = await ai.models.generateContent({
                 model: "gemini-3-pro-preview",
-                contents: `${commonPrompt}\n\n**User Input:**\n${userPrompt}`,
+                contents: `${commonPrompt}\n\n${characterTask}\n${contextTask}\n\n**USER INPUT:**\n${userPrompt}`,
                 config: {
                     responseMimeType: "application/json",
-                    responseSchema: schema,
+                    responseSchema: {
+                        type: window.GenAIType.OBJECT,
+                        properties: {
+                            characterList: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.OBJECT, properties: { name: { type: window.GenAIType.STRING }, role: { type: window.GenAIType.STRING }, description: { type: window.GenAIType.STRING }, whiskPrompt: { type: window.GenAIType.STRING } }, required: ["name", "role", "description", "whiskPrompt"] } },
+                            contextList: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.OBJECT, properties: { name: { type: window.GenAIType.STRING }, description: { type: window.GenAIType.STRING }, whiskPrompt: { type: window.GenAIType.STRING } }, required: ["name", "description", "whiskPrompt"] } },
+                            prompts: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } }
+                        },
+                        required: ["characterList", "contextList", "prompts"]
+                    }
                 },
             });
             result = JSON.parse(cleanJsonString(response.text)) as GeneratedContent;
@@ -372,13 +322,15 @@ ${characterInstruction}
 
     if (!result && (selectedAIModel === 'openai' || selectedAIModel === 'auto') && openaiApiKey) {
         try {
-            if (!openaiApiKey) throw new Error("OpenAI API Key chưa được cài đặt.");
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
                 body: JSON.stringify({
                     model: 'gpt-4o',
-                    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+                    messages: [
+                        { role: 'system', content: commonPrompt + "\n" + characterTask + "\n" + contextTask },
+                        { role: 'user', content: userPrompt }
+                    ],
                     response_format: { type: 'json_object' }
                 })
             });
@@ -392,10 +344,87 @@ ${characterInstruction}
     }
 
     if (result) return result;
-    throw finalError || new Error("Không thể tạo kịch bản. Vui lòng kiểm tra API Key.");
+    throw finalError || new Error("Không thể tạo kịch bản.");
+  }, [videoIdea, userSuggestions, selectedCinematicStyle, hasVoice, voiceLanguage, geminiApiKey, openaiApiKey, selectedAIModel]);
 
-  }, [geminiApiKey, openaiApiKey, selectedAIModel]);
-  
+  const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const durationNum = parseFloat(duration);
+      if (isNaN(durationNum) || durationNum <= 0) {
+          alert("Vui lòng nhập thời lượng hợp lệ.");
+          return;
+      }
+
+      setPendingPart(1);
+      setLoading(true);
+      setError(null);
+      setGeneratedContent(null);
+      setCharacterImages({});
+      
+      // Calculate Pagination (3 minutes per part)
+      const totalSeconds = durationNum * 60;
+      const totalScenesNeeded = Math.ceil(totalSeconds / 8);
+      const scenesPerPart = 23; // 3 minutes = 180s. 180 / 8 = 22.5. Use 23.
+      const partsNeeded = Math.ceil(totalScenesNeeded / scenesPerPart);
+      
+      setTotalParts(partsNeeded);
+      setCurrentPart(1);
+
+      try {
+          const numScenesInFirstPart = Math.min(scenesPerPart, totalScenesNeeded);
+          const result = await generateScriptChunk(1, partsNeeded, numScenesInFirstPart, [], [], "");
+          
+          setGeneratedContent(result);
+          setGlobalCharacterList(result.characterList);
+          setGlobalContextList(result.contextList);
+          if (result.prompts.length > 0) {
+              setLastSceneSummary(result.prompts[result.prompts.length - 1]);
+          }
+      } catch (err: any) {
+          setError(err.message);
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  const handleNextPart = async () => {
+    if (currentPart >= totalParts) return;
+    
+    const nextP = currentPart + 1;
+    setPendingPart(nextP);
+    setLoading(true);
+    setError(null);
+    setGeneratedContent(null);
+    
+    const durationNum = parseFloat(duration);
+    const totalScenesNeeded = Math.ceil((durationNum * 60) / 8);
+    const scenesPerPart = 23; // 3 minutes
+    const scenesSoFar = currentPart * scenesPerPart;
+    const remainingScenes = totalScenesNeeded - scenesSoFar;
+    const scenesForThisPart = Math.min(scenesPerPart, remainingScenes);
+
+    try {
+        const result = await generateScriptChunk(
+            nextP, 
+            totalParts, 
+            scenesForThisPart, 
+            globalCharacterList, 
+            globalContextList, 
+            lastSceneSummary
+        );
+        
+        setGeneratedContent(result);
+        setCurrentPart(nextP);
+        if (result.prompts.length > 0) {
+            setLastSceneSummary(result.prompts[result.prompts.length - 1]);
+        }
+    } catch (err: any) {
+        setError(err.message);
+    } finally {
+        setLoading(false);
+    }
+  };
+
   const handleGenerateImage = useCallback(async (type: string, id: string | number, prompt: string, aspectRatio: '16:9' | '9:16') => {
     if (!geminiApiKey && !openaiApiKey) {
         setError("Vui lòng cài đặt ít nhất một API Key.");
@@ -408,14 +437,13 @@ ${characterInstruction}
         [key]: { isGenerating: true, error: undefined, imageUrl: prev[key]?.imageUrl }
     }));
 
-    let finalPrompt = prompt;
-    if (selectedCinematicStyle !== 'Hoạt hình') {
-        finalPrompt = `ultra photorealistic, realistic photograph, cinematic shot. ${prompt}. The final image must be absolutely realistic, not animated, not 3D, not a cartoon, not fantasy.`;
-    }
-    
     try {
         let imageUrl = '';
-        if (geminiApiKey && !imageUrl && (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
+        const finalPrompt = selectedCinematicStyle !== 'Hoạt hình' 
+            ? `Extremely detailed, high-end cinematic photograph, 8k resolution. ${prompt}`
+            : `Vibrant 3D animation style, Pixar inspired, detailed render. ${prompt}`;
+
+        if (geminiApiKey && (selectedAIModel === 'gemini' || selectedAIModel === 'auto')) {
              try {
                 const ai = new window.GoogleGenAI({ apiKey: geminiApiKey });
                 const response = await ai.models.generateContent({
@@ -426,20 +454,11 @@ ${characterInstruction}
                 const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
                 if (imagePart && imagePart.inlineData) {
                     imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-                } else {
-                     const responseImagen = await ai.models.generateImages({
-                        model: 'imagen-4.0-generate-001',
-                        prompt: finalPrompt,
-                        config: { numberOfImages: 1, outputMimeType: 'image/png', aspectRatio: aspectRatio },
-                    });
-                    if (responseImagen.generatedImages?.[0]?.image?.imageBytes) {
-                        imageUrl = `data:image/png;base64,${responseImagen.generatedImages[0].image.imageBytes}`;
-                    }
                 }
              } catch(e) { console.warn("Gemini Image Gen failed", e); }
         }
 
-        if (openaiApiKey && !imageUrl && (selectedAIModel === 'openai' || (selectedAIModel === 'auto'))) {
+        if (!imageUrl && openaiApiKey && (selectedAIModel === 'openai' || (selectedAIModel === 'auto'))) {
              try {
                 const response = await fetch('https://api.openai.com/v1/images/generations', {
                     method: 'POST',
@@ -450,8 +469,6 @@ ${characterInstruction}
                         n: 1,
                         size: '1024x1024', 
                         response_format: 'b64_json',
-                        quality: 'hd',
-                        style: 'vivid'
                     })
                 });
                 if (response.ok) {
@@ -461,7 +478,7 @@ ${characterInstruction}
              } catch(e) { console.warn("OpenAI Image Gen failed", e); }
         }
 
-        if (!imageUrl) throw new Error("Không thể tạo ảnh.");
+        if (!imageUrl) throw new Error("Không thể tạo ảnh. Vui lòng thử lại.");
 
         setCharacterImages(prev => ({
             ...prev,
@@ -476,35 +493,14 @@ ${characterInstruction}
     }
   }, [geminiApiKey, openaiApiKey, selectedCinematicStyle, selectedAIModel]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setLoading(true);
-      setError(null);
-      setGeneratedContent(null);
-      setCharacterImages({});
-
-      try {
-          const durationNum = parseFloat(duration) || 5;
-          const numMain = numMainCharacters ? parseInt(numMainCharacters) : null;
-          const numSup = numSupportingCharacters ? parseInt(numSupportingCharacters) : null;
-          
-          const result = await generateScript(videoIdea, userSuggestions, durationNum, selectedCinematicStyle, numMain, numSup, hasVoice, voiceLanguage);
-          setGeneratedContent(result);
-      } catch (err: any) {
-          setError(err.message);
-      } finally {
-          setLoading(false);
-      }
-  };
-
   const handleDownload = () => {
       if(!generatedContent) return;
-      const text = generatedContent.prompts.map((p, idx) => `Scene ${idx + 1}: ${p}`).join('\n\n\n');
+      const text = generatedContent.prompts.map((p, idx) => `Scene ${idx + 1}: ${p}`).join('\n\n');
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'kich_ban_veo.txt';
+      a.download = `Part_${currentPart}_KichBan.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -523,65 +519,88 @@ ${characterInstruction}
     React.createElement("div", { className: "w-full h-full p-4" },
       lightboxImage && React.createElement(Lightbox, { imageUrl: lightboxImage, onClose: () => setLightboxImage(null) }),
       React.createElement("div", { className: "flex flex-col lg:flex-row gap-8" },
+        // Left Column (Form)
         React.createElement("div", { className: "lg:w-1/3 space-y-6" },
-            React.createElement("form", { onSubmit: handleSubmit, className: "bg-gray-800 p-6 rounded-lg border border-gray-700" },
-                React.createElement("div", { className: "flex flex-wrap items-center gap-3 mb-4" },
+            React.createElement("form", { onSubmit: handleSubmit, className: "bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl" },
+                React.createElement("div", { className: "flex flex-wrap items-center gap-3 mb-6" },
                     React.createElement("h3", { className: "text-xl font-bold text-white whitespace-nowrap" }, "Thiết lập Kịch bản"),
-                    React.createElement("div", { className: "flex bg-gray-700 rounded p-1" },
-                        React.createElement("button", { type: "button", onClick: () => setHasVoice(false), className: `px-3 py-1 text-xs rounded transition font-semibold ${!hasVoice ? 'bg-red-600 text-white' : 'text-gray-300 hover:text-white'}` }, "Không thoại"),
-                        React.createElement("button", { type: "button", onClick: () => setHasVoice(true), className: `px-3 py-1 text-xs rounded transition font-semibold ${hasVoice ? 'bg-green-600 text-white' : 'text-gray-300 hover:text-white'}` }, "Có thoại")
-                    ),
-                    React.createElement("div", { className: `flex bg-gray-700 rounded p-1 transition-opacity ${!hasVoice ? 'opacity-50 pointer-events-none' : 'opacity-100'}` },
-                        React.createElement("button", { type: "button", onClick: () => setVoiceLanguage('Vietnamese'), className: `px-3 py-1 text-xs rounded transition font-semibold ${voiceLanguage === 'Vietnamese' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'}` }, "Tiếng Việt"),
-                        React.createElement("button", { type: "button", onClick: () => setVoiceLanguage('English'), className: `px-3 py-1 text-xs rounded transition font-semibold ${voiceLanguage === 'English' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'}` }, "Tiếng Anh")
+                    React.createElement("div", { className: "flex bg-gray-900 rounded p-1" },
+                        React.createElement("button", { type: "button", onClick: () => setHasVoice(false), className: `px-3 py-1 text-[10px] uppercase tracking-wider rounded transition font-bold ${!hasVoice ? 'bg-red-600 text-white' : 'text-gray-500 hover:text-white'}` }, "Im lặng"),
+                        React.createElement("button", { type: "button", onClick: () => setHasVoice(true), className: `px-3 py-1 text-[10px] uppercase tracking-wider rounded transition font-bold ${hasVoice ? 'bg-green-600 text-white' : 'text-gray-500 hover:text-white'}` }, "Lồng tiếng")
                     )
                 ),
-                React.createElement("div", { className: "space-y-4" },
+                React.createElement("div", { className: "space-y-5" },
                     React.createElement("div", null,
-                        React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Ý tưởng Video"),
-                        React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white h-24", value: videoIdea, onChange: e => setVideoIdea(e.target.value), required: true, placeholder: "Ví dụ: Một cô gái đang..." } as any)
+                        React.createElement("label", { className: "block text-sm font-bold text-gray-400 mb-2" }, "Ý tưởng cốt truyện"),
+                        React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white h-28 focus:border-cyan-500 outline-none transition-all", value: videoIdea, onChange: e => setVideoIdea(e.target.value), required: true, placeholder: "Ví dụ: Một phi hành gia lạc trên hành tinh kỳ lạ..." } as any)
                     ),
                     React.createElement("div", null,
-                        React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Gợi ý / Nhắc nhở thêm"),
-                        React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white h-20", value: userSuggestions, onChange: e => setUserSuggestions(e.target.value), placeholder: "Ví dụ: Áo màu đỏ rực, tóc đen dài..." } as any)
+                        React.createElement("label", { className: "block text-sm font-bold text-gray-400 mb-2" }, "Chi tiết bổ sung"),
+                        React.createElement("textarea", { className: "w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white h-20 focus:border-cyan-500 outline-none transition-all", value: userSuggestions, onChange: e => setUserSuggestions(e.target.value), placeholder: "Trang phục, tính cách nhân vật..." } as any)
                     ),
                     React.createElement("div", null,
-                        React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Thời lượng (phút)"),
-                        React.createElement("input", { type: "number", className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white", value: duration, onChange: e => setDuration(e.target.value), required: true, placeholder: "5" } as any)
+                        React.createElement("label", { className: "block text-sm font-bold text-gray-400 mb-2" }, "Thời lượng Video (Phút)"),
+                        React.createElement("div", { className: "relative" },
+                            React.createElement("input", { type: "number", step: "0.1", className: "w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-white focus:border-cyan-500 outline-none transition-all", value: duration, onChange: e => setDuration(e.target.value), required: true, placeholder: "5" } as any),
+                            React.createElement("span", { className: "absolute right-3 top-3 text-gray-600 text-xs font-bold" }, "PHÚT")
+                        )
                     ),
                     React.createElement("div", { className: "grid grid-cols-2 gap-4" },
                         React.createElement("div", null,
-                            React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Số nhân vật chính"),
-                            React.createElement("input", { type: "number", className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white", value: numMainCharacters, onChange: e => setNumMainCharacters(e.target.value), placeholder: "Tùy chọn" } as any)
+                            React.createElement("label", { className: "block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1" }, "Số NV chính"),
+                            React.createElement("input", { type: "number", className: "w-full bg-gray-900 border border-gray-700 rounded-xl p-2 text-white focus:border-cyan-500 outline-none", value: numMainCharacters, onChange: e => setNumMainCharacters(e.target.value), placeholder: "Auto" } as any)
                         ),
                         React.createElement("div", null,
-                            React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Số nhân vật phụ"),
-                            React.createElement("input", { type: "number", className: "w-full bg-gray-900 border border-gray-600 rounded p-2 text-white", value: numSupportingCharacters, onChange: e => setNumSupportingCharacters(e.target.value), placeholder: "Tùy chọn" } as any)
+                            React.createElement("label", { className: "block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1" }, "Số NV phụ"),
+                            React.createElement("input", { type: "number", className: "w-full bg-gray-900 border border-gray-700 rounded-xl p-2 text-white focus:border-cyan-500 outline-none", value: numSupportingCharacters, onChange: e => setNumSupportingCharacters(e.target.value), placeholder: "Auto" } as any)
                         )
                     ),
                     React.createElement("div", null,
-                        React.createElement("label", { className: "block text-sm font-medium text-gray-300 mb-1" }, "Phong cách"),
-                        React.createElement("div", { className: "flex flex-wrap gap-2" },
+                        React.createElement("label", { className: "block text-sm font-bold text-gray-400 mb-2" }, "Phong cách phim"),
+                        React.createElement("div", { className: "grid grid-cols-3 gap-2" },
                             cinematicStyles.map(style => (
-                                React.createElement("button", { key: style, type: "button", onClick: () => setSelectedCinematicStyle(style), className: `px-3 py-1 rounded text-sm border transition ${selectedCinematicStyle === style ? 'bg-blue-600 border-blue-500 text-white' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'}` }, style)
+                                React.createElement("button", { key: style, type: "button", onClick: () => setSelectedCinematicStyle(style), className: `py-2 rounded text-[10px] font-black uppercase border transition-all ${selectedCinematicStyle === style ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg' : 'bg-gray-900 border-gray-700 text-gray-500 hover:border-gray-500'}` }, style)
                             ))
                         )
                     ),
-                    React.createElement("button", { type: "submit", disabled: loading, className: "w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition disabled:opacity-50" }, loading ? "Đang tạo..." : "Tạo Kịch Bản")
+                    React.createElement("button", { type: "submit", disabled: loading, className: "w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black py-4 px-4 rounded-xl transition-all disabled:opacity-50 shadow-xl uppercase tracking-widest text-sm" }, loading ? "Đang xử lý..." : "Bắt đầu tạo kịch bản")
                 )
             )
         ),
-        React.createElement("div", { className: "lg:w-2/3" },
-            loading && React.createElement(Loader),
-            error && React.createElement("div", { className: "bg-red-900/50 border border-red-500 text-red-200 p-4 rounded mb-4" }, error),
+
+        // Right Column (Results)
+        React.createElement("div", { className: "lg:w-2/3 min-w-0" },
+            loading && React.createElement(Loader, { message: `Đang tạo Phần ${pendingPart}... Vui lòng đợi.` }),
+            error && React.createElement("div", { className: "bg-red-900/20 border border-red-500 text-red-400 p-5 rounded-2xl mb-6 flex items-center gap-3" }, 
+                React.createElement("span", { className: "text-2xl" }, "⚠️"),
+                React.createElement("div", null,
+                    React.createElement("p", { className: "font-bold" }, "Lỗi hệ thống"),
+                    React.createElement("p", { className: "text-sm" }, error)
+                )
+            ),
             generatedContent && (
-                React.createElement("div", { className: "space-y-8 h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar pr-2" },
-                    React.createElement("div", { className: "flex gap-4" },
-                        React.createElement("button", { onClick: handleDownload, className: "flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded font-bold" }, "Tải xuống (.txt)"),
-                        React.createElement("button", { onClick: handleCopyAll, className: "flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-bold" }, copiedAll ? "Đã sao chép toàn bộ" : "Sao chép toàn bộ Prompt")
+                React.createElement("div", { className: "space-y-10 h-[calc(100vh-120px)] overflow-y-auto custom-scrollbar pr-4 pb-20" },
+                    
+                    // Header Actions
+                    React.createElement("div", { className: "sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-gray-800 shadow-2xl flex flex-wrap justify-between items-center gap-4" },
+                        React.createElement("div", null,
+                            React.createElement("h2", { className: "text-lg font-black text-white uppercase tracking-tighter" }, `PHẦN ${currentPart} / ${totalParts}`),
+                            React.createElement("p", { className: "text-[10px] text-gray-500 font-bold uppercase" }, "Chi tiết & Liên kết kịch bản")
+                        ),
+                        React.createElement("div", { className: "flex gap-3" },
+                            React.createElement("button", { onClick: handleDownload, className: "bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 border border-gray-700 transition-all" }, "Tải .txt"),
+                            React.createElement("button", { onClick: handleCopyAll, className: `px-4 py-2 rounded-lg font-bold text-xs transition-all shadow-lg ${copiedAll ? 'bg-green-600 text-white' : 'bg-cyan-600 hover:bg-cyan-500 text-white'}` }, 
+                                copiedAll ? "Đã sao chép" : "Chép hết"
+                            )
+                        )
                     ),
+
+                    // Character List
                     React.createElement("div", null,
-                        React.createElement("h3", { className: "text-xl font-bold text-yellow-400 mb-4" }, "Danh sách Nhân vật"),
+                        React.createElement("h3", { className: "text-sm font-black text-yellow-500 mb-5 flex items-center gap-2 uppercase tracking-[0.2em]" }, 
+                            React.createElement("span", { className: "w-2 h-4 bg-yellow-500 rounded-full" }),
+                            "Thiết kế nhân vật"
+                        ),
                         React.createElement("div", { className: "space-y-4" },
                             generatedContent.characterList.map((char, idx) => (
                                 React.createElement(ResultCard, {
@@ -598,8 +617,13 @@ ${characterInstruction}
                             ))
                         )
                     ),
+
+                    // Context List
                     React.createElement("div", null,
-                        React.createElement("h3", { className: "text-xl font-bold text-green-400 mb-4" }, "Danh sách Bối cảnh"),
+                        React.createElement("h3", { className: "text-sm font-black text-green-500 mb-5 flex items-center gap-2 uppercase tracking-[0.2em]" }, 
+                            React.createElement("span", { className: "w-2 h-4 bg-green-500 rounded-full" }),
+                            "Thiết kế bối cảnh"
+                        ),
                         React.createElement("div", { className: "space-y-4" },
                             generatedContent.contextList.map((ctx, idx) => (
                                 React.createElement(ResultCard, {
@@ -615,12 +639,31 @@ ${characterInstruction}
                             ))
                         )
                     ),
+
+                    // Video Prompts
                     React.createElement("div", null,
-                        React.createElement("h3", { className: "text-xl font-bold text-cyan-400 mb-4" }, "Chuỗi Prompt Video (VEO 3.1)"),
+                        React.createElement("h3", { className: "text-sm font-black text-cyan-500 mb-5 flex items-center gap-2 uppercase tracking-[0.2em]" }, 
+                            React.createElement("span", { className: "w-2 h-4 bg-cyan-500 rounded-full" }),
+                            "Chuỗi Prompt Video (VEO 3.1)"
+                        ),
                         React.createElement("div", null,
                             generatedContent.prompts.map((p, idx) => (
                                 React.createElement(PromptCard, { key: idx, prompt: p, promptNumber: idx + 1 })
                             ))
+                        )
+                    ),
+
+                    // Pagination Footer
+                    currentPart < totalParts && (
+                        React.createElement("div", { className: "pt-10 pb-20 border-t border-gray-800" },
+                            React.createElement("button", { 
+                                onClick: handleNextPart,
+                                className: "w-full py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-black rounded-2xl shadow-2xl transition-all transform hover:scale-[1.02] active:scale-95 uppercase tracking-widest flex items-center justify-center gap-4"
+                            }, 
+                                React.createElement("span", { className: "text-xl" }, "✨"),
+                                `Tiếp tục tạo PHẦN ${currentPart + 1} / ${totalParts}`,
+                                React.createElement("span", { className: "text-xl" }, "✨")
+                            )
                         )
                     )
                 )
