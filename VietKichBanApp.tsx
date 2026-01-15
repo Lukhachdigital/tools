@@ -251,34 +251,28 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
 You are a High-End Film Director and Senior Prompt Engineer for VEO 3.1. 
 Your goal is to write PART ${targetPart} of a ${totalPartCount}-part cinematic script. 
 
-**STRICT RULE: EXTREME DETAIL (MANDATORY)**
-Every scene prompt MUST include:
-1. **Characters Outfit:** For EACH character appearing, describe their outfit in detail (Material, color, style, accessories). This description MUST be 100% consistent throughout the entire part.
-2. **Expressions:** Describe the precise facial expression and emotional state of each character.
-3. **Environment:** Describe the background lighting, textures, and atmosphere.
-4. **Objects & Equipment:** List and describe ALL items, tools, or vehicles appearing.
-5. **Atomic Logic:** Every prompt must be independent. DO NOT use pronouns.
-
-**STRICT RULE: NO META-TEXT OR LABELS**
-- DO NOT include any explanatory text, scene titles, or sequence labels in the prompts array (e.g., AVOID "Final wide shot of Part 1", "End of scene", "Camera setup:").
-- Each string in the "prompts" array MUST ONLY contain the raw visual description for the AI generator.
+**STRICT RULE: HYPER-DETAILED & OBSESSIVELY CONSISTENT (MANDATORY)**
+Every scene prompt MUST be an exhaustive visual world. You MUST describe:
+1. **Characters & Action:** Describe specific movements, gestures, and the rhythm of action. Describe characters' faces, hair, and physique.
+2. **Outfits (Consistency Anchor):** For EACH character, describe their outfit with extreme precision (e.g., "a weathered dark brown leather aviator jacket with brass zippers, worn over a charcoal grey cotton t-shirt"). This MUST stay identical in every scene of this part.
+3. **Environment & Atmosphere:** Describe the background meticulously. Floor textures, wall colors, sky conditions, lighting sources (e.g., "warm golden hour sunlight filtering through dust motes").
+4. **Object Precision (CRITICAL):** NO generic nouns. 
+   - Instead of "a tent", describe: "a large triangular olive-green canvas military tent with heavy-duty ropes and silver metallic stakes".
+   - Instead of "a car", describe: "a classic midnight blue 1967 Ford Mustang with polished chrome bumpers and cream leather interior".
+   - Instead of "a table", describe: "a rustic rectangular dark mahogany wooden table with carved legs and a polished surface".
+   Apply this level of detail to EVERY object (weapons, tools, food, etc.).
+5. **Atomic Independence:** Every prompt must contain all necessary visual details to stand alone. DO NOT use pronouns like "he" or "she"; use specific descriptions or names.
+6. **NO META-TEXT:** Return ONLY visual prompt content. Avoid "Final shot", "End of Part", etc.
 
 **STRICT RULE: NARRATIVE CONTINUITY**
-- ${!isFinalPart ? "This is NOT the final part. The kịch bản MUST NOT END. Ensure the last scene of this part is an ongoing action or a transition that leads directly into the next part. NO 'THE END', NO resolution." : "This IS the final part. You MUST provide a satisfying conclusion to the entire story."}
-- ${!isFirstPart ? `This part continues smoothly from the last scene: "${prevLastScene}".` : "This is the start of the story."}
+- ${!isFinalPart ? "This is NOT the final part. The script MUST NOT end. Ensure the last scene is an ongoing action or a transition." : "This IS the final part. Provide a satisfying conclusion."}
+- ${!isFirstPart ? `Smoothly continue from: "${prevLastScene}".` : "Start the story."}
 
 **TECHNICAL SPECS:**
 - Generate EXACTLY ${numScenes} prompts.
 - Prompts in ENGLISH.
-- Scene summaries/descriptions in VIETNAMESE.
+- Scene summaries in VIETNAMESE.
 - Return ONLY a valid JSON object.
-
-JSON Schema:
-{
-  "characterList": [ { "name": "", "role": "", "description": "VN", "whiskPrompt": "EN" } ],
-  "contextList": [ { "name": "", "description": "VN", "whiskPrompt": "EN" } ],
-  "prompts": [ "Pure Visual Description 1", "Pure Visual Description 2", ... ]
-}
 `;
 
     const userPrompt = `
@@ -306,7 +300,7 @@ JSON Schema:
                         properties: {
                             characterList: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.OBJECT, properties: { name: { type: window.GenAIType.STRING }, role: { type: window.GenAIType.STRING }, description: { type: window.GenAIType.STRING }, whiskPrompt: { type: window.GenAIType.STRING } }, required: ["name", "role", "description", "whiskPrompt"] } },
                             contextList: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.OBJECT, properties: { name: { type: window.GenAIType.STRING }, description: { type: window.GenAIType.STRING }, whiskPrompt: { type: window.GenAIType.STRING } }, required: ["name", "description", "whiskPrompt"] } },
-                            prompts: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } }
+                            prompts: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING, description: "Hyper-detailed English video prompts" } }
                         },
                         required: ["characterList", "contextList", "prompts"]
                     }
@@ -364,7 +358,7 @@ JSON Schema:
       // Calculate Pagination (3 minutes per part)
       const totalSeconds = durationNum * 60;
       const totalScenesNeeded = Math.ceil(totalSeconds / 8);
-      const scenesPerPart = 23; // 3 minutes = 180s. 180 / 8 = 22.5. Use 23.
+      const scenesPerPart = 23; 
       const partsNeeded = Math.ceil(totalScenesNeeded / scenesPerPart);
       
       setTotalParts(partsNeeded);
@@ -398,7 +392,7 @@ JSON Schema:
     
     const durationNum = parseFloat(duration);
     const totalScenesNeeded = Math.ceil((durationNum * 60) / 8);
-    const scenesPerPart = 23; // 3 minutes
+    const scenesPerPart = 23; 
     const scenesSoFar = currentPart * scenesPerPart;
     const remainingScenes = totalScenesNeeded - scenesSoFar;
     const scenesForThisPart = Math.min(scenesPerPart, remainingScenes);
@@ -559,7 +553,7 @@ JSON Schema:
                         React.createElement("label", { className: "block text-sm font-bold text-gray-400 mb-2" }, "Phong cách phim"),
                         React.createElement("div", { className: "grid grid-cols-3 gap-2" },
                             cinematicStyles.map(style => (
-                                React.createElement("button", { key: style, type: "button", onClick: () => setSelectedCinematicStyle(style), className: `py-2 rounded text-[10px] font-black uppercase border transition-all ${selectedCinematicStyle === style ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg' : 'bg-gray-900 border-gray-700 text-gray-500 hover:border-gray-500'}` }, style)
+                                React.createElement("button", { key: style, type: "button", onClick: () => setSelectedCinematicStyle(style), className: `py-2 rounded text-[10px] font-black uppercase border transition-all ${selectedCinematicStyle === style ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-900/40' : 'bg-gray-900 border-gray-700 text-gray-500 hover:border-gray-500'}` }, style)
                             ))
                         )
                     ),
