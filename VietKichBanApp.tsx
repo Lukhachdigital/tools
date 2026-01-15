@@ -172,6 +172,7 @@ const ResultCard = ({ title, role, description, whiskPrompt, index, onGenerateIm
 
 const PromptCard = ({ prompt, promptNumber }: { prompt: string; promptNumber: number }): React.ReactElement => {
   const [copied, setCopied] = useState(false);
+  const formattedPrompt = `Scene ${promptNumber}: ${prompt}`;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -187,11 +188,11 @@ const PromptCard = ({ prompt, promptNumber }: { prompt: string; promptNumber: nu
       React.createElement("div", { className: "flex justify-between items-center mb-3" },
           React.createElement("h4", { className: "text-cyan-500 font-black text-xs uppercase tracking-widest" }, `Cảnh ${promptNumber}`),
           React.createElement("button", {
-            onClick: () => copyToClipboard(prompt),
+            onClick: () => copyToClipboard(formattedPrompt),
             className: `px-4 py-1.5 bg-indigo-600/10 border border-indigo-500/50 text-indigo-400 text-xs font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm ${copied ? 'bg-green-600 border-green-500 text-white' : ''}`,
           }, copied ? 'Đã sao chép' : 'Sao chép Prompt')
       ),
-      React.createElement("p", { className: "text-gray-300 text-sm leading-relaxed font-mono whitespace-pre-wrap select-all" }, prompt)
+      React.createElement("p", { className: "text-gray-300 text-sm leading-relaxed font-mono whitespace-pre-wrap select-all" }, formattedPrompt)
     )
   );
 };
@@ -227,6 +228,8 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
   const [globalContextList, setGlobalContextList] = useState<ContextItem[]>([]);
   const [lastSceneSummary, setLastSceneSummary] = useState<string>("");
 
+  const SCENES_PER_PART = 23; // 3 mins per part
+
   const generateScriptChunk = useCallback(async (
     targetPart: number,
     totalPartCount: number,
@@ -253,38 +256,40 @@ You are a High-End Film Director and Senior Prompt Engineer for VEO 3.1.
 Your goal is to write PART ${targetPart} of a ${totalPartCount}-part cinematic script. 
 
 **CREATIVITY MANDATE (SEED: ${randomSalt}):**
-Every time you are asked, you MUST provide a completely new and unique interpretation of the story idea. DO NOT repeat themes or structures from previous generations. Explore different sub-genres, moods, and visual aesthetics for the same idea.
+FOR EVERY GENERATION, YOU MUST EXPLORE A COMPLETELY UNIQUE ARTISTIC DIRECTION. 
+- Even if the idea is the same, change the setting's era, the characters' fashion style, the color palette, and the specific sequence of actions. 
 
 **STRICT RULE: OBSESSIVE VISUAL DETAIL (MANDATORY)**
-Every scene prompt MUST be a masterclass in description. Generic nouns are strictly FORBIDDEN.
+Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictly FORBIDDEN.
 1. **Characters & Action:** Describe exact muscle movements, the texture of skin/hair, and the precise velocity of action.
-2. **Outfits (Consistency Anchor):** For EACH character, describe their outfit with granular detail (Material, color shade, wear-and-tear, specific buckles/accessories). This description MUST remain 100% identical in every scene of this part where the character appears.
-3. **Environment & Atmosphere:** Describe floor textures (cracked concrete, damp moss), wall materials (red brick with white mortar, polished chrome), lighting sources (flickering fluorescent, golden hour rim lighting), and air quality (dust motes, morning mist).
+2. **Outfits (Consistency Anchor):** For EACH character, describe their outfit with granular detail (Material, color shade, wear-and-tear, specific buckles/accessories). This description MUST remain 100% identical in every scene of this part.
+3. **Environment & Atmosphere:** Describe floor textures (cracked concrete, damp moss), wall materials (red brick, polished chrome), lighting sources (golden hour rim lighting), and air quality (dust motes, morning mist).
 4. **Object Precision:** 
    - Instead of "a car", describe "a matte black 1970 Dodge Charger with silver racing stripes and visible rust on the fenders".
-   - Instead of "a laptop", describe "a futuristic slim silver magnesium-alloy laptop with glowing cyan glyphs on the lid".
-   - Apply this to EVERY object (weapons, tools, food, furniture).
-5. **Atomic Logic:** No pronouns like "he" or "she". Use full specific descriptions in every prompt.
+   - Apply this to EVERY object.
+5. **Atomic Independence:** No pronouns like "he" or "she". Use full specific descriptions in every prompt.
 
-**STRICT RULE: NO META-TEXT OR LABELS**
-- DO NOT include explanatory text like "End of scene", "Final shot of Part ${targetPart}", "Transition to...". 
-- Return ONLY the raw visual prompt content for the AI.
+**STRICT RULE: NO TRANSLATIONS, NO HEADERS, NO META-TEXT**
+- EACH element in the "prompts" array MUST ONLY contain the RAW ENGLISH visual description.
+- DO NOT start with "Scene X" or "Cảnh X" inside the string.
+- DO NOT include Vietnamese translations or bracketed text like "[Cảnh 1: ...]" inside the prompt content.
+- Return ONLY the clean, hyper-detailed English prompt.
 
 **STRICT RULE: NARRATIVE CONTINUITY**
-- ${!isFinalPart ? "This is NOT the final part. The script MUST NOT END. The last scene of this part MUST be an ongoing cliffhanger or a seamless transition that leads directly into the next part. NO resolution, NO 'The End'." : "This IS the final part. Provide a meaningful and satisfying conclusion to the story."}
-- ${!isFirstPart ? `Continuity: This part starts exactly after: "${prevLastScene}".` : "This is the very beginning of the story."}
+- ${!isFinalPart ? "This is NOT the final part. The script MUST NOT END. The last scene MUST be a cliffhanger or transition." : "This IS the final part. Provide a satisfying conclusion."}
+- ${!isFirstPart ? `Smoothly continue from: "${prevLastScene}".` : "Start the story."}
 
 **TECHNICAL SPECS:**
 - Generate EXACTLY ${numScenes} prompts.
-- Prompts in ENGLISH.
-- Scene summaries in VIETNAMESE.
+- Prompts in ENGLISH ONLY.
+- Scene summaries/descriptions in VIETNAMESE (inside the logic, but the prompt strings themselves must be pure English).
 - Return ONLY a valid JSON object.
 `;
 
     const userPrompt = `
 - Part Number: ${targetPart}
 - Total Parts: ${totalPartCount}
-- Scenes: ${numScenes}
+- Scenes to Generate: ${numScenes}
 - Idea: "${videoIdea}"
 - Suggestions: "${userSuggestions}"
 - Style: ${selectedCinematicStyle}
@@ -332,7 +337,7 @@ Every scene prompt MUST be a masterclass in description. Generic nouns are stric
                         { role: 'user', content: userPrompt }
                     ],
                     response_format: { type: 'json_object' },
-                    temperature: 1.0 // Max randomness
+                    temperature: 1.0
                 })
             });
             if (!response.ok) throw new Error('OpenAI failed');
@@ -364,14 +369,13 @@ Every scene prompt MUST be a masterclass in description. Generic nouns are stric
       
       const totalSeconds = durationNum * 60;
       const totalScenesNeeded = Math.ceil(totalSeconds / 8);
-      const scenesPerPart = 23; 
-      const partsNeeded = Math.ceil(totalScenesNeeded / scenesPerPart);
+      const partsNeeded = Math.ceil(totalScenesNeeded / SCENES_PER_PART);
       
       setTotalParts(partsNeeded);
       setCurrentPart(1);
 
       try {
-          const numScenesInFirstPart = Math.min(scenesPerPart, totalScenesNeeded);
+          const numScenesInFirstPart = Math.min(SCENES_PER_PART, totalScenesNeeded);
           const result = await generateScriptChunk(1, partsNeeded, numScenesInFirstPart, [], [], "");
           
           setGeneratedContent(result);
@@ -398,10 +402,9 @@ Every scene prompt MUST be a masterclass in description. Generic nouns are stric
     
     const durationNum = parseFloat(duration);
     const totalScenesNeeded = Math.ceil((durationNum * 60) / 8);
-    const scenesPerPart = 23; 
-    const scenesSoFar = currentPart * scenesPerPart;
+    const scenesSoFar = currentPart * SCENES_PER_PART;
     const remainingScenes = totalScenesNeeded - scenesSoFar;
-    const scenesForThisPart = Math.min(scenesPerPart, remainingScenes);
+    const scenesForThisPart = Math.min(SCENES_PER_PART, remainingScenes);
 
     try {
         const result = await generateScriptChunk(
@@ -495,7 +498,8 @@ Every scene prompt MUST be a masterclass in description. Generic nouns are stric
 
   const handleDownload = () => {
       if(!generatedContent) return;
-      const text = generatedContent.prompts.map((p, idx) => `Scene ${idx + 1}: ${p}`).join('\n\n');
+      const baseNum = (currentPart - 1) * SCENES_PER_PART;
+      const text = generatedContent.prompts.map((p, idx) => `Scene ${baseNum + idx + 1}: ${p}`).join('\n\n');
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -508,7 +512,8 @@ Every scene prompt MUST be a masterclass in description. Generic nouns are stric
 
   const handleCopyAll = () => {
       if (!generatedContent) return;
-      const allText = generatedContent.prompts.map((p, idx) => `Scene ${idx + 1}: ${p}`).join('\n\n\n');
+      const baseNum = (currentPart - 1) * SCENES_PER_PART;
+      const allText = generatedContent.prompts.map((p, idx) => `Scene ${baseNum + idx + 1}: ${p}`).join('\n\n\n');
       navigator.clipboard.writeText(allText).then(() => {
           setCopiedAll(true);
           setTimeout(() => setCopiedAll(false), 2000);
@@ -648,7 +653,11 @@ Every scene prompt MUST be a masterclass in description. Generic nouns are stric
                         ),
                         React.createElement("div", null,
                             generatedContent.prompts.map((p, idx) => (
-                                React.createElement(PromptCard, { key: idx, prompt: p, promptNumber: idx + 1 })
+                                React.createElement(PromptCard, { 
+                                    key: idx, 
+                                    prompt: p, 
+                                    promptNumber: ((currentPart - 1) * SCENES_PER_PART) + idx + 1 
+                                })
                             ))
                         )
                     ),
