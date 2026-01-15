@@ -222,7 +222,7 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
   // Pagination State
   const [currentPart, setCurrentPart] = useState(1);
   const [totalParts, setTotalParts] = useState(1);
-  const [pendingPart, setPendingPart] = useState(1); // Tracks actual part being generated for loader
+  const [pendingPart, setPendingPart] = useState(1);
   const [globalCharacterList, setGlobalCharacterList] = useState<Character[]>([]);
   const [globalContextList, setGlobalContextList] = useState<ContextItem[]>([]);
   const [lastSceneSummary, setLastSceneSummary] = useState<string>("");
@@ -238,6 +238,7 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
     
     const isFirstPart = targetPart === 1;
     const isFinalPart = targetPart === totalPartCount;
+    const randomSalt = Math.random().toString(36).substring(7) + Date.now();
 
     let characterTask = isFirstPart 
         ? `TASK 1: Create a list of characters based on: "${videoIdea}" and "${userSuggestions}". Define their names, roles, and detailed visual prompts for Whisk AI (Isolated on white background, head-to-toe, NO objects).`
@@ -251,22 +252,27 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
 You are a High-End Film Director and Senior Prompt Engineer for VEO 3.1. 
 Your goal is to write PART ${targetPart} of a ${totalPartCount}-part cinematic script. 
 
-**STRICT RULE: HYPER-DETAILED & OBSESSIVELY CONSISTENT (MANDATORY)**
-Every scene prompt MUST be an exhaustive visual world. You MUST describe:
-1. **Characters & Action:** Describe specific movements, gestures, and the rhythm of action. Describe characters' faces, hair, and physique.
-2. **Outfits (Consistency Anchor):** For EACH character, describe their outfit with extreme precision (e.g., "a weathered dark brown leather aviator jacket with brass zippers, worn over a charcoal grey cotton t-shirt"). This MUST stay identical in every scene of this part.
-3. **Environment & Atmosphere:** Describe the background meticulously. Floor textures, wall colors, sky conditions, lighting sources (e.g., "warm golden hour sunlight filtering through dust motes").
-4. **Object Precision (CRITICAL):** NO generic nouns. 
-   - Instead of "a tent", describe: "a large triangular olive-green canvas military tent with heavy-duty ropes and silver metallic stakes".
-   - Instead of "a car", describe: "a classic midnight blue 1967 Ford Mustang with polished chrome bumpers and cream leather interior".
-   - Instead of "a table", describe: "a rustic rectangular dark mahogany wooden table with carved legs and a polished surface".
-   Apply this level of detail to EVERY object (weapons, tools, food, etc.).
-5. **Atomic Independence:** Every prompt must contain all necessary visual details to stand alone. DO NOT use pronouns like "he" or "she"; use specific descriptions or names.
-6. **NO META-TEXT:** Return ONLY visual prompt content. Avoid "Final shot", "End of Part", etc.
+**CREATIVITY MANDATE (SEED: ${randomSalt}):**
+Every time you are asked, you MUST provide a completely new and unique interpretation of the story idea. DO NOT repeat themes or structures from previous generations. Explore different sub-genres, moods, and visual aesthetics for the same idea.
+
+**STRICT RULE: OBSESSIVE VISUAL DETAIL (MANDATORY)**
+Every scene prompt MUST be a masterclass in description. Generic nouns are strictly FORBIDDEN.
+1. **Characters & Action:** Describe exact muscle movements, the texture of skin/hair, and the precise velocity of action.
+2. **Outfits (Consistency Anchor):** For EACH character, describe their outfit with granular detail (Material, color shade, wear-and-tear, specific buckles/accessories). This description MUST remain 100% identical in every scene of this part where the character appears.
+3. **Environment & Atmosphere:** Describe floor textures (cracked concrete, damp moss), wall materials (red brick with white mortar, polished chrome), lighting sources (flickering fluorescent, golden hour rim lighting), and air quality (dust motes, morning mist).
+4. **Object Precision:** 
+   - Instead of "a car", describe "a matte black 1970 Dodge Charger with silver racing stripes and visible rust on the fenders".
+   - Instead of "a laptop", describe "a futuristic slim silver magnesium-alloy laptop with glowing cyan glyphs on the lid".
+   - Apply this to EVERY object (weapons, tools, food, furniture).
+5. **Atomic Logic:** No pronouns like "he" or "she". Use full specific descriptions in every prompt.
+
+**STRICT RULE: NO META-TEXT OR LABELS**
+- DO NOT include explanatory text like "End of scene", "Final shot of Part ${targetPart}", "Transition to...". 
+- Return ONLY the raw visual prompt content for the AI.
 
 **STRICT RULE: NARRATIVE CONTINUITY**
-- ${!isFinalPart ? "This is NOT the final part. The script MUST NOT end. Ensure the last scene is an ongoing action or a transition." : "This IS the final part. Provide a satisfying conclusion."}
-- ${!isFirstPart ? `Smoothly continue from: "${prevLastScene}".` : "Start the story."}
+- ${!isFinalPart ? "This is NOT the final part. The script MUST NOT END. The last scene of this part MUST be an ongoing cliffhanger or a seamless transition that leads directly into the next part. NO resolution, NO 'The End'." : "This IS the final part. Provide a meaningful and satisfying conclusion to the story."}
+- ${!isFirstPart ? `Continuity: This part starts exactly after: "${prevLastScene}".` : "This is the very beginning of the story."}
 
 **TECHNICAL SPECS:**
 - Generate EXACTLY ${numScenes} prompts.
@@ -278,10 +284,10 @@ Every scene prompt MUST be an exhaustive visual world. You MUST describe:
     const userPrompt = `
 - Part Number: ${targetPart}
 - Total Parts: ${totalPartCount}
-- Scenes to Generate: ${numScenes}
-- Cinematic Style: ${selectedCinematicStyle}
+- Scenes: ${numScenes}
 - Idea: "${videoIdea}"
 - Suggestions: "${userSuggestions}"
+- Style: ${selectedCinematicStyle}
 `;
 
     let finalError: unknown;
@@ -300,7 +306,7 @@ Every scene prompt MUST be an exhaustive visual world. You MUST describe:
                         properties: {
                             characterList: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.OBJECT, properties: { name: { type: window.GenAIType.STRING }, role: { type: window.GenAIType.STRING }, description: { type: window.GenAIType.STRING }, whiskPrompt: { type: window.GenAIType.STRING } }, required: ["name", "role", "description", "whiskPrompt"] } },
                             contextList: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.OBJECT, properties: { name: { type: window.GenAIType.STRING }, description: { type: window.GenAIType.STRING }, whiskPrompt: { type: window.GenAIType.STRING } }, required: ["name", "description", "whiskPrompt"] } },
-                            prompts: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING, description: "Hyper-detailed English video prompts" } }
+                            prompts: { type: window.GenAIType.ARRAY, items: { type: window.GenAIType.STRING } }
                         },
                         required: ["characterList", "contextList", "prompts"]
                     }
@@ -325,7 +331,8 @@ Every scene prompt MUST be an exhaustive visual world. You MUST describe:
                         { role: 'system', content: commonPrompt + "\n" + characterTask + "\n" + contextTask },
                         { role: 'user', content: userPrompt }
                     ],
-                    response_format: { type: 'json_object' }
+                    response_format: { type: 'json_object' },
+                    temperature: 1.0 // Max randomness
                 })
             });
             if (!response.ok) throw new Error('OpenAI failed');
@@ -339,7 +346,7 @@ Every scene prompt MUST be an exhaustive visual world. You MUST describe:
 
     if (result) return result;
     throw finalError || new Error("Không thể tạo kịch bản.");
-  }, [videoIdea, userSuggestions, selectedCinematicStyle, hasVoice, voiceLanguage, geminiApiKey, openaiApiKey, selectedAIModel]);
+  }, [videoIdea, userSuggestions, selectedCinematicStyle, geminiApiKey, openaiApiKey, selectedAIModel]);
 
   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -355,7 +362,6 @@ Every scene prompt MUST be an exhaustive visual world. You MUST describe:
       setGeneratedContent(null);
       setCharacterImages({});
       
-      // Calculate Pagination (3 minutes per part)
       const totalSeconds = durationNum * 60;
       const totalScenesNeeded = Math.ceil(totalSeconds / 8);
       const scenesPerPart = 23; 
