@@ -189,7 +189,7 @@ const PromptCard = ({ prompt, promptNumber }: { prompt: string; promptNumber: nu
           React.createElement("h4", { className: "text-cyan-500 font-black text-xs uppercase tracking-widest" }, `Cảnh ${promptNumber}`),
           React.createElement("button", {
             onClick: () => copyToClipboard(formattedPrompt),
-            className: `px-4 py-1.5 bg-indigo-600/10 border border-indigo-500/50 text-indigo-400 text-xs font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm ${copied ? 'bg-green-600 border-green-500 text-white' : ''}`,
+            className: `px-4 py-1.5 bg-indigo-600/10 border border-indigo-500/50 text-indigo-400 text-xs font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm ${copied ? 'bg-green-600 border-green-500 text-white' : 'bg-indigo-600/20 border border-indigo-500/50 text-indigo-400 text-xs font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-all'}`,
           }, copied ? 'Đã sao chép' : 'Sao chép Prompt')
       ),
       React.createElement("p", { className: "text-gray-300 text-sm leading-relaxed font-mono whitespace-pre-wrap select-all" }, formattedPrompt)
@@ -255,9 +255,12 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
 You are a High-End Film Director and Senior Prompt Engineer for VEO 3.1. 
 Your goal is to write PART ${targetPart} of a ${totalPartCount}-part cinematic script. 
 
-**CREATIVITY MANDATE (SEED: ${randomSalt}):**
+**CREATIVITY & CONTEXTUAL FASHION MANDATE (SEED: ${randomSalt}):**
 FOR EVERY GENERATION, YOU MUST EXPLORE A COMPLETELY UNIQUE ARTISTIC DIRECTION. 
-- Even if the idea is the same, change the setting's era, the characters' fashion style, the color palette, and the specific sequence of actions. 
+- **OUTFIT DESIGN:** You MUST design outfits that are contextually perfect for the story idea. 
+  * If the idea is "Camping", choose rugged, strong, or sexy outdoor wear (e.g., "distressed denim shorts with a tactical multi-pocket vest", "heavy-duty waterproof hiking gear", or "sexy athletic-wear suited for mountain air").
+  * If the idea is "Luxury", choose high-fashion, sleek, or elegant attire.
+  * Adjust the outfit's "vibe" (sexy, powerful, mysterious, rugged) to match the cinematic style and story mood.
 
 **STRICT RULE: OBSESSIVE VISUAL DETAIL (MANDATORY)**
 Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictly FORBIDDEN.
@@ -266,6 +269,7 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
 3. **Environment & Atmosphere:** Describe floor textures (cracked concrete, damp moss), wall materials (red brick, polished chrome), lighting sources (golden hour rim lighting), and air quality (dust motes, morning mist).
 4. **Object Precision:** 
    - Instead of "a car", describe "a matte black 1970 Dodge Charger with silver racing stripes and visible rust on the fenders".
+   - Instead of "a tent", describe "a heavy-duty triangular olive-drab canvas tent with reinforced leather straps and weathered wooden poles".
    - Apply this to EVERY object.
 5. **Atomic Independence:** No pronouns like "he" or "she". Use full specific descriptions in every prompt.
 
@@ -282,7 +286,6 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
 **TECHNICAL SPECS:**
 - Generate EXACTLY ${numScenes} prompts.
 - Prompts in ENGLISH ONLY.
-- Scene summaries/descriptions in VIETNAMESE (inside the logic, but the prompt strings themselves must be pure English).
 - Return ONLY a valid JSON object.
 `;
 
