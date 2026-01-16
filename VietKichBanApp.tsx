@@ -242,6 +242,7 @@ const VietKichBanApp = ({ geminiApiKey, openaiApiKey, selectedAIModel }: { gemin
     const isFirstPart = targetPart === 1;
     const isFinalPart = targetPart === totalPartCount;
     const randomSalt = Math.random().toString(36).substring(7) + Date.now();
+    const resultLanguage = (hasVoice && voiceLanguage === 'English') ? 'ENGLISH' : 'VIETNAMESE';
 
     let characterTask = isFirstPart 
         ? `TASK 1: Create a list of characters based on: "${videoIdea}" and "${userSuggestions}". Define their names, roles, and detailed visual prompts for Whisk AI (Isolated on white background, head-to-toe, NO objects).`
@@ -258,26 +259,26 @@ Your goal is to write PART ${targetPart} of a ${totalPartCount}-part cinematic s
 **CREATIVITY & CONTEXTUAL FASHION MANDATE (SEED: ${randomSalt}):**
 FOR EVERY GENERATION, YOU MUST EXPLORE A COMPLETELY UNIQUE ARTISTIC DIRECTION. 
 - **OUTFIT DESIGN:** You MUST design outfits that are contextually perfect for the story idea. 
-  * If the idea is "Camping", choose rugged, strong, or sexy outdoor wear (e.g., "distressed denim shorts with a tactical multi-pocket vest", "heavy-duty waterproof hiking gear", or "sexy athletic-wear suited for mountain air").
+  * If the idea is "Camping", choose rugged, strong, or sexy outdoor wear (e.g., "distressed denim shorts with a tactical multi-pocket vest").
   * If the idea is "Luxury", choose high-fashion, sleek, or elegant attire.
-  * Adjust the outfit's "vibe" (sexy, powerful, mysterious, rugged) to match the cinematic style and story mood.
 
 **STRICT RULE: OBSESSIVE VISUAL DETAIL (MANDATORY)**
 Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictly FORBIDDEN.
 1. **Characters & Action:** Describe exact muscle movements, the texture of skin/hair, and the precise velocity of action.
-2. **Outfits (Consistency Anchor):** For EACH character, describe their outfit with granular detail (Material, color shade, wear-and-tear, specific buckles/accessories). This description MUST remain 100% identical in every scene of this part.
-3. **Environment & Atmosphere:** Describe floor textures (cracked concrete, damp moss), wall materials (red brick, polished chrome), lighting sources (golden hour rim lighting), and air quality (dust motes, morning mist).
-4. **Object Precision:** 
-   - Instead of "a car", describe "a matte black 1970 Dodge Charger with silver racing stripes and visible rust on the fenders".
-   - Instead of "a tent", describe "a heavy-duty triangular olive-drab canvas tent with reinforced leather straps and weathered wooden poles".
-   - Apply this to EVERY object.
+2. **Outfits (Consistency Anchor):** For EACH character, describe their outfit with granular detail (Material, color shade, wear-and-tear). This description MUST remain 100% identical in every scene of this part.
+3. **Environment & Atmosphere:** Describe floor textures, wall materials, lighting sources, and air quality.
+4. **Object Precision:** Use extremely specific descriptions for every object.
 5. **Atomic Independence:** No pronouns like "he" or "she". Use full specific descriptions in every prompt.
 
-**STRICT RULE: NO TRANSLATIONS, NO HEADERS, NO META-TEXT**
-- EACH element in the "prompts" array MUST ONLY contain the RAW ENGLISH visual description.
+**STRICT RULE: VOICEOVER & DIALOGUE (MANDATORY)**
+- ${hasVoice ? `VOICEOVER IS ENABLED. For EACH scene in the "prompts" array, you MUST include the spoken dialogue at the end of the English prompt content.` : `VOICEOVER IS DISABLED. DO NOT include any dialogue in the prompts.`}
+- IF voiceover is enabled, the dialogue MUST be in ${resultLanguage}.
+- FORMAT for prompt content (if dialogue is enabled): "[English Visual Description] ... Dialog: '[The spoken lines in ${resultLanguage}]'".
+
+**STRICT RULE: NO TRANSLATIONS IN VISUALS**
+- EACH element in the "prompts" array MUST ONLY contain the RAW ENGLISH visual description and the Dialog part.
 - DO NOT start with "Scene X" or "Cảnh X" inside the string.
 - DO NOT include Vietnamese translations or bracketed text like "[Cảnh 1: ...]" inside the prompt content.
-- Return ONLY the clean, hyper-detailed English prompt.
 
 **STRICT RULE: NARRATIVE CONTINUITY**
 - ${!isFinalPart ? "This is NOT the final part. The script MUST NOT END. The last scene MUST be a cliffhanger or transition." : "This IS the final part. Provide a satisfying conclusion."}
@@ -285,7 +286,9 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
 
 **TECHNICAL SPECS:**
 - Generate EXACTLY ${numScenes} prompts.
-- Prompts in ENGLISH ONLY.
+- Visual prompts in ENGLISH ONLY.
+- Dialogue in ${resultLanguage} (only if voiceover is enabled).
+- Character descriptions and context descriptions in ${resultLanguage}.
 - Return ONLY a valid JSON object.
 `;
 
@@ -296,6 +299,8 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
 - Idea: "${videoIdea}"
 - Suggestions: "${userSuggestions}"
 - Style: ${selectedCinematicStyle}
+- Dialogue Enabled: ${hasVoice ? 'Yes' : 'No'}
+- Dialogue Language: ${resultLanguage}
 `;
 
     let finalError: unknown;
@@ -354,7 +359,7 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
 
     if (result) return result;
     throw finalError || new Error("Không thể tạo kịch bản.");
-  }, [videoIdea, userSuggestions, selectedCinematicStyle, geminiApiKey, openaiApiKey, selectedAIModel]);
+  }, [videoIdea, userSuggestions, selectedCinematicStyle, geminiApiKey, openaiApiKey, selectedAIModel, hasVoice, voiceLanguage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -530,11 +535,17 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
         // Left Column (Form)
         React.createElement("div", { className: "lg:w-1/3 space-y-6" },
             React.createElement("form", { onSubmit: handleSubmit, className: "bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl" },
-                React.createElement("div", { className: "flex flex-wrap items-center gap-3 mb-6" },
-                    React.createElement("h3", { className: "text-xl font-bold text-white whitespace-nowrap" }, "Thiết lập Kịch bản"),
-                    React.createElement("div", { className: "flex bg-gray-900 rounded p-1" },
-                        React.createElement("button", { type: "button", onClick: () => setHasVoice(false), className: `px-3 py-1 text-[10px] uppercase tracking-wider rounded transition font-bold ${!hasVoice ? 'bg-red-600 text-white' : 'text-gray-500 hover:text-white'}` }, "Im lặng"),
-                        React.createElement("button", { type: "button", onClick: () => setHasVoice(true), className: `px-3 py-1 text-[10px] uppercase tracking-wider rounded transition font-bold ${hasVoice ? 'bg-green-600 text-white' : 'text-gray-500 hover:text-white'}` }, "Lồng tiếng")
+                React.createElement("div", { className: "flex flex-col gap-4 mb-6" },
+                    React.createElement("div", { className: "flex flex-wrap items-center gap-3" },
+                        React.createElement("h3", { className: "text-xl font-bold text-white whitespace-nowrap" }, "Thiết lập Kịch bản"),
+                        React.createElement("div", { className: "flex bg-gray-900 rounded p-1" },
+                            React.createElement("button", { type: "button", onClick: () => setHasVoice(false), className: `px-3 py-1 text-[10px] uppercase tracking-wider rounded transition font-bold ${!hasVoice ? 'bg-red-600 text-white' : 'text-gray-500 hover:text-white'}` }, "Im lặng"),
+                            React.createElement("button", { type: "button", onClick: () => setHasVoice(true), className: `px-3 py-1 text-[10px] uppercase tracking-wider rounded transition font-bold ${hasVoice ? 'bg-green-600 text-white' : 'text-gray-500 hover:text-white'}` }, "Lồng tiếng")
+                        )
+                    ),
+                    hasVoice && React.createElement("div", { className: "flex bg-gray-900 rounded p-1 animate-fade-in self-start" },
+                        React.createElement("button", { type: "button", onClick: () => setVoiceLanguage('Vietnamese'), className: `px-4 py-1.5 text-[10px] uppercase tracking-widest rounded transition font-black ${voiceLanguage === 'Vietnamese' ? 'bg-cyan-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}` }, "Tiếng Việt"),
+                        React.createElement("button", { type: "button", onClick: () => setVoiceLanguage('English'), className: `px-4 py-1.5 text-[10px] uppercase tracking-widest rounded transition font-black ${voiceLanguage === 'English' ? 'bg-cyan-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}` }, "Tiếng Anh")
                     )
                 ),
                 React.createElement("div", { className: "space-y-5" },
