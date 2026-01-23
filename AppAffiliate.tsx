@@ -122,7 +122,9 @@ const GeneratedContent: React.FC<{ image: string | null | undefined; promptSets:
 
     const handleCopy = (text) => {
         if (text) {
-            navigator.clipboard.writeText(text);
+            // Copy on a single line with no extra characters
+            const singleLineText = text.replace(/\r?\n|\r/g, " ").replace(/\s+/g, " ").trim();
+            navigator.clipboard.writeText(singleLineText);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         }
@@ -166,7 +168,7 @@ const GeneratedContent: React.FC<{ image: string | null | undefined; promptSets:
                             React.createElement('p', { className: "text-slate-300 mt-2 text-sm md:text-base" }, promptSet.description)
                         ),
                         promptSet.animationPrompt && (() => {
-                            const formattedPrompt = JSON.stringify(promptSet.animationPrompt, null, 2);
+                            const formattedPrompt = promptSet.animationPrompt;
                             return (
                                 React.createElement('div', null,
                                     React.createElement('div', { className: "flex justify-between items-center mb-2" },
@@ -180,7 +182,7 @@ const GeneratedContent: React.FC<{ image: string | null | undefined; promptSets:
                                             React.createElement('span', null, copied ? 'Đã chép!' : 'Sao chép')
                                         )
                                     ),
-                                    React.createElement('pre', { className: "text-slate-300 text-xs md:text-sm whitespace-pre-wrap font-sans bg-slate-900 p-3 rounded" }, formattedPrompt)
+                                    React.createElement('div', { className: "text-slate-300 text-xs md:text-sm whitespace-pre-wrap font-sans bg-slate-900 p-3 rounded" }, formattedPrompt)
                                 )
                             )
                         })()
@@ -221,12 +223,12 @@ const generateTextAndPromptSet = async (
 
     1.  **description**: Write a concise promotional description in Vietnamese. The length MUST be short, between 15 and 25 words. This is a strict limit for an 8-second voiceover. CRITICAL RULE: The description MUST include commas (,) and periods (.) to create natural pauses for the voiceover. The punctuation is essential for the text-to-speech engine to generate realistic speech patterns. ${productInfoContext}
 
-    2.  **animationPrompt**: Build a detailed video prompt as a structured JSON object for a video generation model like VEO 3.1. This prompt must create a vivid and dynamic 8-second TikTok video in an "Outfit Showcase" style, with a special focus on lively and engaging camera movements.
-        - The JSON object must contain the following keys: "sceneDescription", "characterAction", "cameraMovement", "lighting", "facialExpression", "videoDuration", and "audioDescription".
-        - "cameraMovement" MUST be a unique, dynamic, and creative camera movement. DO NOT use static shots or repeat previous camera movements.
-        - "videoDuration" must be exactly "8 seconds".
-        - "audioDescription" must describe BOTH the voiceover and suitable background music. The description MUST start with 'Voiceover (Vietnamese):' followed by the EXACT Vietnamese text you just generated for the 'description' field. For example: 'Voiceover (Vietnamese): [Your generated Vietnamese text here]. Music: upbeat lo-fi hip hop.'. The accent should be ${regionDescription} for the ${voiceDescription} voice.
-        - All other fields must be filled with creative, detailed descriptions in English based on the generated image.`;
+    2.  **animationPrompt**: Build a detailed video prompt as a SINGLE PLAIN TEXT STRING (not JSON) for a video generation model like VEO 3.1. 
+        - This prompt MUST describe in detail: the character's precise actions, natural gestures, facial expressions, the cinematic lighting style, the atmospheric environment details, and a dynamic camera movement.
+        - The style should be a vivid and dynamic 8-second TikTok video "Outfit Showcase".
+        - Mention that the video duration is 8 seconds within the text description.
+        - DO NOT use keys like "sceneDescription" or "cameraMovement". Write it as a cohesive, descriptive paragraph in English.
+        - The audio context is ${regionDescription} for the ${voiceDescription} voice reading the text: "${productInfo}". (Do not include this in the visual prompt, just use it for context).`;
 
     let finalError;
 
@@ -234,9 +236,11 @@ const generateTextAndPromptSet = async (
     if ((selectedAIModel === 'gemini' || (selectedAIModel === 'auto' && geminiKey))) {
         if (!geminiKey && selectedAIModel === 'gemini') throw new Error("Gemini Key chưa được cài đặt.");
         try {
+            // Fix: Obtain Gemini API client instance before calling generateContent
             const ai = new GoogleGenAI({ apiKey: geminiKey });
             const textAndPromptGenResponse = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                // Fix: Using gemini-3-flash-preview for text tasks as per guidelines
+                model: 'gemini-3-flash-preview',
                 contents: {
                     parts: [
                         { text: prompt },
@@ -255,6 +259,7 @@ const generateTextAndPromptSet = async (
     }
 
     // 2. Try OpenAI (Fallback)
+    // Fix: Renamed incorrectly named variable openaiApiKey to openaiKey to match the function parameter
     if (!finalError && (selectedAIModel === 'openai' || (selectedAIModel === 'auto' && openaiKey))) {
         if (!openaiKey && selectedAIModel === 'openai') throw new Error("OpenAI Key chưa được cài đặt.");
         try {
@@ -366,14 +371,13 @@ ${checklistInstruction}
     let generatedImageBase64: string | null = null;
     let finalError = null;
 
-    // This feature (image composition) is Gemini-specific. Check model selection.
     if (selectedAIModel !== 'gemini' && selectedAIModel !== 'auto') {
         throw new Error(`Tính năng tạo ảnh ghép (Face Swap & Product) hiện chỉ hỗ trợ model Gemini. Vui lòng chọn model 'Gemini' hoặc 'Tự động' trong Menu để sử dụng tính năng này.`);
     }
 
-    // Try Gemini (Primary for this app due to multimodal capabilities)
     if (geminiKey) {
         try {
+            // Fix: Obtain Gemini API client instance before calling generateContent
             const ai = new GoogleGenAI({ apiKey: geminiKey });
             const imageResponse = await ai.models.generateContent({
                 model: 'gemini-2.5-flash-image',
@@ -399,7 +403,6 @@ ${checklistInstruction}
         }
     }
 
-    // If Gemini failed or key is missing, alert if we couldn't generate image
     if (!generatedImageBase64) {
         throw finalError || new Error("Không thể tạo ảnh từ Gemini. Vui lòng kiểm tra API Key và thử lại.");
     }
@@ -477,29 +480,6 @@ const OptionButton = ({ selected, onClick, children }) => (
     )
 );
 
-const AspectRatioSelector = ({ selectedRatio, onSelect, disabled }) => {
-    const ratios = [
-        { id: '16:9', label: 'Ngang' },
-        { id: '9:16', label: 'Dọc' },
-        { id: '1:1', label: 'Vuông' }
-    ];
-    return (
-        React.createElement('div', { className: "flex justify-center gap-2" },
-            ratios.map(ratio => React.createElement('button', {
-                key: ratio.id,
-                onClick: () => onSelect(ratio.id),
-                disabled: disabled,
-                className: `px-4 py-2 text-sm rounded-md font-semibold transition-all flex-1 ${
-                    selectedRatio === ratio.id && !disabled
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed'
-                }`
-            }, ratio.label))
-        )
-    );
-};
-
-
 const ControlPanel = ({
     generationMode, setGenerationMode,
     voice, setVoice,
@@ -511,9 +491,7 @@ const ControlPanel = ({
     setModelImage, setProductImage,
     handleGenerateContent,
     modelImage, productImage, isLoading,
-    aspectRatio, setAspectRatio,
-    faceSwapMode, setFaceSwapMode,
-    isGpt
+    faceSwapMode, setFaceSwapMode
 }) => {
      const outfitInputProps = {
         type: "text",
@@ -626,8 +604,8 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [aspectRatio, setAspectRatio] = useState('9:16');
   const [faceSwapMode, setFaceSwapMode] = useState(true);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   const handleGenerateContent = async () => {
     if (!geminiApiKey && !openaiApiKey) {
@@ -667,6 +645,38 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
     }
   };
 
+  const getAllPromptsText = () => {
+      // Each prompt on one line, separated by 2 blank lines (total 3 newlines)
+      return results.map(r => {
+          const prompt = r.promptSets[0]?.animationPrompt || '';
+          return prompt.replace(/\r?\n|\r/g, " ").replace(/\s+/g, " ").trim();
+      }).join('\n\n\n');
+  };
+
+  const handleCopyAllPrompts = () => {
+      const text = getAllPromptsText();
+      if (text) {
+          navigator.clipboard.writeText(text);
+          setCopiedAll(true);
+          setTimeout(() => setCopiedAll(false), 2000);
+      }
+  };
+
+  const handleDownloadPrompts = () => {
+      const text = getAllPromptsText();
+      if (text) {
+          const blob = new Blob([text], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `all_prompts_${Date.now()}.txt`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+      }
+  };
+
   return (
     <div className="w-full h-full p-4 flex flex-col lg:flex-row gap-8">
         <ControlPanel
@@ -690,11 +700,8 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
             modelImage={modelImage}
             productImage={productImage}
             isLoading={isLoading}
-            aspectRatio={aspectRatio}
-            setAspectRatio={setAspectRatio}
             faceSwapMode={faceSwapMode}
             setFaceSwapMode={setFaceSwapMode}
-            isGpt={false}
         />
         
         <div className="w-full lg:w-2/3 flex flex-col h-full overflow-hidden">
@@ -702,6 +709,27 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
                  <div className="bg-red-900/80 border border-red-600 text-red-200 p-4 rounded-xl mb-6 shadow-lg">
                     <strong className="font-bold text-lg">Lỗi: </strong> {error}
                  </div>
+            )}
+
+            {results.length > 0 && (
+                <div className="flex justify-end gap-3 mb-4">
+                    <button 
+                        onClick={handleCopyAllPrompts}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all shadow-md ${copiedAll ? 'bg-green-600 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
+                    >
+                        {copiedAll ? React.createElement(CheckIcon) : React.createElement(CopyIcon)}
+                        <span>{copiedAll ? 'Đã chép tất cả!' : 'Sao chép tất cả Prompt'}</span>
+                    </button>
+                    <button 
+                        onClick={handleDownloadPrompts}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold transition-all shadow-md"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Tải về kịch bản (.txt)</span>
+                    </button>
+                </div>
             )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto custom-scrollbar pr-2 pb-4">
@@ -730,7 +758,7 @@ const AppAffiliate = ({ geminiApiKey, openaiApiKey, selectedAIModel }) => {
             </div>
         </div>
     </div>
-  );
+);
 };
 
 export default AppAffiliate;
