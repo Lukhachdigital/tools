@@ -436,7 +436,7 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
     }
   };
 
-  const handleGenerateImage = useCallback(async (type: string, id: string | number, prompt: string, aspectRatio: '16:9' | '9:16') => {
+    const handleGenerateImage = useCallback(async (type: string, id: string | number, prompt: string, aspectRatio: '16:9' | '9:16') => {
     if (!geminiApiKey && !openaiApiKey) {
         setError("Vui lòng cài đặt ít nhất một API Key.");
         return;
@@ -460,7 +460,10 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.5-flash-image',
                     contents: { parts: [{ text: finalPrompt }] },
-                    config: { responseModalities: [window.GenAIModality.IMAGE] },
+                    config: { 
+                        responseModalities: [window.GenAIModality.IMAGE],
+                        imageConfig: { aspectRatio: aspectRatio } // FIX for Gemini
+                    },
                 });
                 const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
                 if (imagePart && imagePart.inlineData) {
@@ -471,6 +474,7 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
 
         if (!imageUrl && openaiApiKey && (selectedAIModel === 'openai' || (selectedAIModel === 'auto'))) {
              try {
+                const dalleSize = aspectRatio === '16:9' ? '1792x1024' : aspectRatio === '9:16' ? '1024x1792' : '1024x1024';
                 const response = await fetch('https://api.openai.com/v1/images/generations', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiApiKey}` },
@@ -478,7 +482,7 @@ Every scene prompt MUST be an exhaustive visual world. Generic nouns are strictl
                         model: 'dall-e-3',
                         prompt: finalPrompt,
                         n: 1,
-                        size: '1024x1024', 
+                        size: dalleSize, 
                         response_format: 'b64_json',
                     })
                 });
