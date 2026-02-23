@@ -318,12 +318,12 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) 
      let textInstruction = "";
      if (showText) {
          textInstruction = `
-         *   **TEXT OVERLAY (CRITICAL):** You MUST render the following text clearly on the image: "${userTextPrompt}". 
-         *   **ACCURACY:** Ensure 100% correct spelling, grammar, and all Vietnamese accents (diacritics).
-         *   **LEGIBILITY:** Place the text in a highly legible font and position (e.g., using bold styles, shadows, or outlines) so it's easy to read as a YouTube thumbnail.
+         *   **TEXT OVERLAY (ABSOLUTELY CRITICAL):** You MUST render the following Vietnamese text clearly on the image: "${userTextPrompt}".
+         *   **ACCURACY:** Ensure 100% correct spelling, grammar, and all Vietnamese accents (diacritics). This is non-negotiable.
+         *   **LEGIBILITY:** Place the text in a highly legible font and position (e.g., using bold styles, shadows, or outlines) so it is easy to read as a YouTube thumbnail.
          `;
      } else {
-         textInstruction = `*   **NO TEXT:** DO NOT RENDER ANY TEXT ON THE IMAGE under any circumstances.`;
+         textInstruction = `*   **NO TEXT (ABSOLUTE RULE):** The image must be purely visual. DO NOT render any letters, words, or text of any kind on the image under any circumstances.`;
      }
 
      const finalPromptForAI = `
@@ -331,7 +331,8 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) 
         **[DESIGN & STYLE REQUIREMENTS]**
         *   **VISUAL THEME:** The entire image's concept and style must creatively and powerfully represent the topic: "${userTextPrompt}".
         *   **STYLE:** Vibrant, high-contrast, professional, and extremely eye-catching. Use modern graphic design principles for maximum clickability.
-        *   **USER GUIDANCE:** ${creativeNotes.trim() ? `**User's Creative Guidance (High Priority):** ${creativeNotes}` : ''}
+        *   **USER GUIDANCE (High Priority):** ${creativeNotes.trim() ? `Incorporate this creative suggestion: "${creativeNotes}"` : 'Use your expert creative judgment.'}
+        *   **CLOTHING STYLE:** If characters are generated, their clothing must be normal and appropriate for the theme, not overly fantastical or creative.
         *   **COMPOSITION:** Create a dynamic and engaging composition. AVOID boring, centered layouts.
         ${textInstruction}
         ---
@@ -352,11 +353,11 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) 
               const finalPrompt = `
                   **MISSION: VIRAL THUMBNAIL CREATION (VISUALS)**
                   **[ART DIRECTION & CREATIVE EXECUTION]**
-                  1.  **CORE TASK:** Transform the uploaded image based on a visual theme. The person in the image is the main character, but you must reimagine everything else: pose, action, clothing, and background to create a dynamic, viral-quality scene.
-                  2.  **ASPECT RATIO:** The final image's aspect ratio MUST match the aspect ratio of the uploaded character image.
+                  1.  **CORE TASK:** Use the person in the uploaded image as the main character. You must reimagine their pose, action, and the background to fit the visual theme.
+                  2.  **CLOTHING (CRITICAL):** Create a new, normal outfit for the character that is appropriate for the theme: "${userTextPrompt}". The clothing should NOT be overly creative or fantastical. It should be something a person would realistically wear in that context.
                   3.  **ACCESSORY INTEGRATION (If accessory image is provided):** The character MUST be wearing or using the accessory from the secondary image in a natural and visually appealing way. The accessory's design, shape, and color must be preserved with 100% fidelity.
                   4.  **THEME:** The visual theme is: "${userTextPrompt}". All visuals must powerfully represent this concept.
-                  5.  **USER GUIDANCE:** ${creativeNotes.trim() ? creativeNotes : 'Use expert art direction for a highly clickable thumbnail.'}
+                  5.  **USER GUIDANCE (High Priority):** ${creativeNotes.trim() ? `Incorporate this creative suggestion: "${creativeNotes}"` : 'Use expert art direction for a highly clickable thumbnail.'}
                   6.  **FACIAL IDENTITY (NON-NEGOTIABLE):** The character's face, features, and identity MUST be preserved with 100% accuracy from the uploaded photo. This is the most critical instruction. Do not alter the face.
                   ${textInstruction}
                   **FINAL REVIEW:** Is the person recognizable? Is the thumbnail visually compelling based on the theme? ${showText ? "Is the text clearly legible and correctly spelled with accents?" : "Is there absolutely NO TEXT on the image?"} If all answers are YES, complete the mission.
@@ -434,7 +435,7 @@ const ThumbnailGeneratorTab = ({ geminiApiKey, openaiApiKey, selectedAIModel }) 
             ));
             generatedImage = true;
         } catch(e) {
-            console.warn("OpenAI Image Generation failed:", e);
+            console.warn("OpenAI Image Generation failed:", e); 
             finalError = e;
         }
     }
